@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>招待承認 - 多段階営業代理店管理システム</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="invite-accept-container">
+      <div class="card">
+        <div class="card-header">
+          <h2>代理店登録</h2>
+        </div>
+        <div class="card-body">
+          <div id="inviteMessage" class="message" style="display: none;"></div>
+
+          <div id="inviteLoading" class="loading">
+            <p>招待情報を確認中...</p>
+          </div>
+
+          <form id="registrationForm" style="display: none;">
+            <div class="form-group">
+              <label for="companyName">会社名*</label>
+              <input type="text" id="companyName" required>
+            </div>
+
+            <div class="form-group">
+              <label for="representativeName">代表者名*</label>
+              <input type="text" id="representativeName" required>
+            </div>
+
+            <div class="form-group">
+              <label for="email">メールアドレス*</label>
+              <input type="email" id="email" readonly>
+            </div>
+
+            <div class="form-group">
+              <label for="password">パスワード*</label>
+              <input type="password" id="password" required>
+              <small>英数字を含む8文字以上</small>
+            </div>
+
+            <div class="form-group">
+              <label for="passwordConfirm">パスワード確認*</label>
+              <input type="password" id="passwordConfirm" required>
+            </div>
+
+            <div class="form-group">
+              <label for="phone">電話番号</label>
+              <input type="tel" id="phone">
+            </div>
+
+            <div class="form-group">
+              <label for="address">住所</label>
+              <textarea id="address" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="terms" required>
+                <a href="#" target="_blank">利用規約</a>に同意する
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">登録する</button>
+          </form>
+
+          <div id="inviteExpired" style="display: none;">
+            <p class="error">この招待リンクは期限切れまたは無効です。</p>
+            <p>招待者に連絡して新しいリンクを取得してください。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api/client.js"></script>
+  <script src="js/invite-accept.js"></script>
+</body>
+</html>

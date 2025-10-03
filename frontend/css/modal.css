@@ -1,0 +1,294 @@
+/**
+ * モーダル用スタイル
+ */
+
+/* モーダル背景 */
+.modal {
+  display: flex;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+/* モーダルコンテンツ */
+.modal-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s;
+  position: relative;
+}
+
+/* 閉じるボタン */
+.modal-close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+  color: #000;
+}
+
+/* モーダルボディ */
+#modalBody {
+  padding: 20px 30px 30px;
+}
+
+/* 代理店詳細スタイル */
+.agency-detail h2 {
+  margin-top: 0;
+  margin-bottom: 30px;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.agency-detail h3 {
+  margin-top: 25px;
+  margin-bottom: 15px;
+  color: #555;
+  font-size: 1.1em;
+  border-left: 4px solid #007bff;
+  padding-left: 10px;
+}
+
+.detail-section {
+  margin-bottom: 25px;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+}
+
+.detail-table th {
+  text-align: left;
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  color: #666;
+  font-weight: normal;
+  width: 35%;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.detail-table td {
+  padding: 10px 15px;
+  color: #333;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.detail-table tr:last-child th,
+.detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ステータスバッジ */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-badge.pending {
+  background-color: #ffc107;
+  color: #333;
+}
+
+/* モーダルボタン */
+.modal-buttons {
+  margin-top: 30px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #dee2e6;
+}
+
+.modal-buttons .btn {
+  margin: 0 5px;
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 編集フォーム用スタイル */
+.agency-edit h2 {
+  margin-top: 0;
+  margin-bottom: 30px;
+  color: #333;
+  border-bottom: 2px solid #28a745;
+  padding-bottom: 10px;
+}
+
+.form-section {
+  margin-bottom: 25px;
+}
+
+.form-section h3 {
+  margin-top: 25px;
+  margin-bottom: 15px;
+  color: #555;
+  font-size: 1.1em;
+  border-left: 4px solid #28a745;
+  padding-left: 10px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #666;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ボタンスタイル */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+
+  #modalBody {
+    padding: 15px;
+  }
+
+  .detail-table th,
+  .detail-table td {
+    padding: 8px 10px;
+    font-size: 0.9em;
+  }
+
+  .detail-table th {
+    width: 40%;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* iOSでズームを防ぐ */
+  }
+
+  .modal-buttons .btn {
+    margin: 5px 0;
+    width: 100%;
+  }
+}

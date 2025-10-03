@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多段階営業代理店管理システム</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>営業代理店管理システム</h1>
+                <p>Multi-tier Sales Agency Management</p>
+            </div>
+
+            <div class="login-form">
+                <h2>ログイン</h2>
+
+                <div class="form-group">
+                    <label for="loginEmail">メールアドレス</label>
+                    <input type="email" id="loginEmail" required placeholder="email@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">パスワード</label>
+                    <input type="password" id="loginPassword" required placeholder="パスワード">
+                </div>
+
+                <button id="loginBtn" class="btn btn-primary">ログイン</button>
+
+                <div class="form-footer">
+                    <a href="#" id="forgotPasswordLink">パスワードを忘れた方</a>
+                </div>
+
+                <div id="loginMessage" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインアプリ -->
+    <div id="mainApp" class="screen hidden">
+        <!-- ヘッダー -->
+        <header class="app-header">
+            <div class="header-left">
+                <button id="menuToggle" class="menu-toggle">☰</button>
+                <h1>営業代理店管理システム</h1>
+            </div>
+            <div class="header-right">
+                <span id="userInfo" class="user-info"></span>
+                <button id="logoutBtn" class="btn btn-secondary">ログアウト</button>
+            </div>
+        </header>
+
+        <div class="app-container">
+            <!-- サイドバー -->
+            <aside id="sidebar" class="sidebar">
+                <nav>
+                    <a href="#" class="nav-item active" data-page="dashboard">
+                        <span class="icon">📊</span>
+                        <span class="label">ダッシュボード</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="agencies">
+                        <span class="icon">🏢</span>
+                        <span class="label">代理店管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="sales">
+                        <span class="icon">💰</span>
+                        <span class="label">売上管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="commissions">
+                        <span class="icon">💵</span>
+                        <span class="label">報酬管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="invoices">
+                        <span class="icon">📄</span>
+                        <span class="label">請求書管理</span>
+                    </a>
+                    <a href="#" class="nav-item admin-only hidden" data-page="products">
+                        <span class="icon">📦</span>
+                        <span class="label">商品管理</span>
+                    </a>
+                    <a href="#" class="nav-item admin-only hidden" data-page="campaigns">
+                        <span class="icon">🎯</span>
+                        <span class="label">キャンペーン管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="settings">
+                        <span class="icon">⚙️</span>
+                        <span class="label">設定</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- メインコンテンツ -->
+            <main class="main-content">
+                <!-- ダッシュボード -->
+                <div id="dashboardPage" class="page">
+                    <div class="page-header">
+                        <h2>ダッシュボード</h2>
+                    </div>
+
+                    <div class="kpi-cards">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="totalSales">¥0</div>
+                            <div class="kpi-label">今月の売上</div>
+                            <div class="kpi-change" id="salesChange">-</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="totalCommission">¥0</div>
+                            <div class="kpi-label">今月の報酬</div>
+                            <div class="kpi-change" id="commissionChange">-</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="activeAgencies">0</div>
+                            <div class="kpi-label">アクティブ代理店</div>
+                            <div class="kpi-change" id="agenciesChange">-</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="pendingCount">0</div>
+                            <div class="kpi-label">承認待ち</div>
+                            <div class="kpi-change">要対応</div>
+                        </div>
+                    </div>
+
+                    <!-- 組織売上サマリー（代理店のみ表示） -->
+                    <div id="organizationSalesCard" class="organization-sales-card hidden">
+                        <h3>組織売上サマリー</h3>
+
+                        <!-- タブメニュー -->
+                        <div class="org-tabs">
+                            <button class="org-tab-button active" data-tab="current" id="currentMonthTab">今月</button>
+                            <button class="org-tab-button" data-tab="previous" id="previousMonthTab">先月</button>
+                        </div>
+
+                        <!-- 今月タブコンテンツ -->
+                        <div id="orgCurrentMonth" class="org-tab-content active">
+                            <div class="org-sales-summary">
+                                <div class="org-sales-total">
+                                    <span class="label">組織全体</span>
+                                    <span class="value" id="orgCurrentTotalAmount">¥0</span>
+                                </div>
+                                <div class="org-sales-breakdown">
+                                    <div class="breakdown-item">
+                                        <span class="label">自社売上</span>
+                                        <span class="value" id="orgCurrentOwnAmount">¥0</span>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <span class="label">傘下売上</span>
+                                        <span class="value" id="orgCurrentSubordinateAmount">¥0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="org-top-agencies">
+                                <h4>TOP代理店</h4>
+                                <div id="orgCurrentTopAgenciesList"></div>
+                            </div>
+                        </div>
+
+                        <!-- 先月タブコンテンツ -->
+                        <div id="orgPreviousMonth" class="org-tab-content">
+                            <div class="org-sales-summary">
+                                <div class="org-sales-total">
+                                    <span class="label">組織全体</span>
+                                    <span class="value" id="orgPreviousTotalAmount">¥0</span>
+                                </div>
+                                <div class="org-sales-breakdown">
+                                    <div class="breakdown-item">
+                                        <span class="label">自社売上</span>
+                                        <span class="value" id="orgPreviousOwnAmount">¥0</span>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <span class="label">傘下売上</span>
+                                        <span class="value" id="orgPreviousSubordinateAmount">¥0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="org-top-agencies">
+                                <h4>TOP代理店</h4>
+                                <div id="orgPreviousTopAgenciesList"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-charts">
+                        <div class="chart-container">
+                            <h3>売上推移</h3>
+                            <div id="monthlyChart" style="height: 200px;"></div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>最近の売上</h3>
+                            <div id="recentSalesList"></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-info">
+                        <div class="info-card">
+                            <h4>統計サマリー</h4>
+                            <div class="info-row">
+                                <span class="info-label">今月の売上件数:</span>
+                                <span class="info-value" id="totalSalesCount">0件</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">成長率:</span>
+                                <span class="info-value" id="growthRate">0%</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">未承認報酬:</span>
+                                <span class="info-value" id="pendingCommission">¥0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 代理店管理 -->
+                <div id="agenciesPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>代理店管理</h2>
+                        <div class="header-controls">
+                            <button id="createAgencyBtn" class="btn btn-primary">新規代理店</button>
+                            <button id="exportAgenciesCsvBtn" class="btn btn-secondary">CSVエクスポート</button>
+                        </div>
+                    </div>
+
+                    <div class="filters">
+                        <div class="filter-row">
+                            <input type="text" id="agencySearch" class="search-input" placeholder="会社名・代表者で検索...">
+                            <select id="tierFilter" class="filter-select">
+                                <option value="">全階層</option>
+                                <option value="1">Tier 1</option>
+                                <option value="2">Tier 2</option>
+                                <option value="3">Tier 3</option>
+                                <option value="4">Tier 4</option>
+                            </select>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="">全ステータス</option>
+                                <option value="active">アクティブ</option>
+                                <option value="pending">承認待ち</option>
+                                <option value="suspended">停止中</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="agenciesTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-column="agency_code">代理店コード</th>
+                                    <th class="sortable" data-column="company_name">会社名</th>
+                                    <th class="sortable" data-column="tier_level">階層</th>
+                                    <th class="sortable" data-column="representative_name">代表者</th>
+                                    <th class="sortable" data-column="status">ステータス</th>
+                                    <th class="sortable" data-column="created_at">登録日</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="pagination-container"></div>
+                    </div>
+                </div>
+
+                <!-- 売上管理 -->
+                <div id="salesPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>売上管理</h2>
+                        <div class="header-controls">
+                            <button id="createSaleBtn" class="btn btn-primary">売上登録</button>
+                            <button id="exportSalesCsvBtn" class="btn btn-secondary">CSVエクスポート</button>
+                        </div>
+                    </div>
+
+                    <div class="filters">
+                        <div class="filter-row">
+                            <input type="text" id="salesSearch" class="search-input" placeholder="顧客名・商品名で検索...">
+                            <input type="date" id="startDate" class="date-input" placeholder="開始日">
+                            <span>〜</span>
+                            <input type="date" id="endDate" class="date-input" placeholder="終了日">
+                            <button id="filterSalesBtn" class="btn btn-secondary">絞り込み</button>
+                            <button id="clearFilterBtn" class="btn btn-secondary">クリア</button>
+                        </div>
+                    </div>
+
+                    <div id="salesTableContainer" class="table-container">
+                        <table id="salesTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-column="sale_number">売上番号</th>
+                                    <th class="sortable" data-column="sale_date">売上日</th>
+                                    <th class="sortable" data-column="customer_name">顧客名</th>
+                                    <th class="sortable" data-column="product_name">商品</th>
+                                    <th class="sortable" data-column="quantity">数量</th>
+                                    <th class="sortable" data-column="total_amount">金額</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="pagination-container"></div>
+                    </div>
+                </div>
+
+                <!-- 報酬管理 -->
+                <div id="commissionsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>報酬管理</h2>
+                        <div class="header-controls">
+                            <div class="month-selector">
+                                <label for="commissionMonth">対象月:</label>
+                                <input type="month" id="commissionMonth" class="form-control" style="width: 200px;">
+                            </div>
+                            <button id="calculateCommissionBtn" class="btn btn-primary admin-only">報酬計算実行</button>
+                            <button id="exportCommissionsCsvBtn" class="btn btn-secondary">CSVエクスポート</button>
+                        </div>
+                    </div>
+
+                    <div class="commission-summary">
+                        <div class="summary-card">
+                            <h3><span id="selectedMonthDisplay"></span>の報酬サマリー</h3>
+                            <div class="summary-item">
+                                <span>基本報酬:</span>
+                                <span id="baseCommission">¥0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>階層ボーナス:</span>
+                                <span id="tierBonus">¥0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>キャンペーンボーナス:</span>
+                                <span id="campaignBonus">¥0</span>
+                            </div>
+                            <div class="summary-item total">
+                                <span>合計:</span>
+                                <span id="totalCommissionAmount">¥0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filters">
+                        <div class="filter-row">
+                            <input type="text" id="commissionSearch" class="search-input" placeholder="売上番号で検索...">
+                            <select id="commissionStatusFilter" class="filter-select">
+                                <option value="">全ステータス</option>
+                                <option value="pending">承認待ち</option>
+                                <option value="approved">承認済み</option>
+                                <option value="paid">支払済み</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="commissionsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-column="commission_month">月</th>
+                                    <th class="sortable" data-column="sale_number">売上番号</th>
+                                    <th class="sortable" data-column="base_commission">基本報酬</th>
+                                    <th class="sortable" data-column="bonus_amount">ボーナス</th>
+                                    <th class="sortable" data-column="final_amount">最終金額</th>
+                                    <th class="sortable" data-column="status">ステータス</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="pagination-container"></div>
+                    </div>
+                </div>
+
+                <!-- 商品管理 -->
+                <div id="productsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>商品管理</h2>
+                        <div class="header-controls">
+                            <button id="addProductBtn" class="btn btn-primary">新規商品追加</button>
+                        </div>
+                    </div>
+
+                    <div class="filters">
+                        <div class="filter-row">
+                            <input type="text" id="productSearch" class="search-input" placeholder="商品名・商品コードで検索...">
+                            <select id="productStatusFilter" class="filter-select">
+                                <option value="">全ステータス</option>
+                                <option value="active">有効</option>
+                                <option value="inactive">無効</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="productsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-column="product_code">商品コード</th>
+                                    <th class="sortable" data-column="name">商品名</th>
+                                    <th class="sortable" data-column="price">価格</th>
+                                    <th class="sortable" data-column="tier1_rate">Tier1報酬率</th>
+                                    <th class="sortable" data-column="tier2_rate">Tier2報酬率</th>
+                                    <th class="sortable" data-column="tier3_rate">Tier3報酬率</th>
+                                    <th class="sortable" data-column="tier4_rate">Tier4報酬率</th>
+                                    <th class="sortable" data-column="status">ステータス</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="pagination-container"></div>
+                    </div>
+                </div>
+
+                <!-- キャンペーン管理 -->
+                <div id="campaignsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>キャンペーン管理</h2>
+                        <div class="header-controls">
+                            <button id="createCampaignBtn" class="btn btn-primary">新規キャンペーン作成</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="campaignsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>キャンペーン名</th>
+                                    <th>開始日</th>
+                                    <th>終了日</th>
+                                    <th>ボーナス</th>
+                                    <th>対象</th>
+                                    <th>ステータス</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 請求書管理 -->
+                <div id="invoicesPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>請求書管理</h2>
+                    </div>
+
+                    <!-- フィルター -->
+                    <div class="filters">
+                        <label for="invoiceMonthFilter">対象月:</label>
+                        <select id="invoiceMonthFilter" class="filter-select">
+                            <option value="">全期間</option>
+                        </select>
+                    </div>
+
+                    <!-- 管理者専用：月次集計明細書生成 -->
+                    <div id="adminMonthlySummarySection" class="admin-only hidden" style="margin-bottom: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem;">管理者専用：代理店別月次集計明細書</h3>
+                        <div class="filters" style="flex-wrap: nowrap;">
+                            <label for="summaryAgencySelect" style="white-space: nowrap;">代理店:</label>
+                            <select id="summaryAgencySelect" class="filter-select" style="width: 200px; flex-shrink: 0;">
+                                <option value="">代理店を選択</option>
+                            </select>
+                            <label for="summaryMonthSelect" style="white-space: nowrap;">対象月:</label>
+                            <select id="summaryMonthSelect" class="filter-select" style="width: 150px; flex-shrink: 0;">
+                                <option value="">月を選択</option>
+                            </select>
+                            <button id="generateMonthlySummaryBtn" class="btn btn-primary" disabled style="white-space: nowrap; flex-shrink: 0; width: auto;">
+                                📊 月次集計明細書生成
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 請求書一覧 -->
+                    <div id="invoicesLoading" class="loading">読み込み中...</div>
+                    <div id="invoicesError" class="error hidden"></div>
+                    <div id="invoicesEmpty" class="empty-message hidden">
+                        <div class="empty-icon">📄</div>
+                        <p>請求書が見つかりません</p>
+                    </div>
+                    <div id="invoicesTable" class="table-container hidden">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>請求書番号</th>
+                                    <th>対象月</th>
+                                    <th>基本報酬</th>
+                                    <th>階層ボーナス</th>
+                                    <th>源泉徴収</th>
+                                    <th>請求額</th>
+                                    <th>ステータス</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 設定 -->
+                <div id="settingsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>システム設定</h2>
+                    </div>
+
+                    <div class="settings-sections">
+                        <div class="settings-section admin-only" id="commissionRatesSection">
+                            <h3>報酬率設定</h3>
+                            <div id="commissionRates"></div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>アカウント設定</h3>
+                            <div id="accountSettings"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- モーダル -->
+    <!-- モーダル -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close" onclick="app.closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/api/client.js"></script>
+    <script src="js/api/auth.js"></script>
+    <script src="js/api/agencies.js"></script>
+    <script src="js/api/sales.js"></script>
+    <script src="js/api/commissions.js"></script>
+    <script src="js/api/products.js"></script>
+    <script src="js/api/campaigns.js"></script>
+    <script src="js/api/documents.js"></script>
+    <script src="js/api/commission-settings.js"></script>
+    <!-- <script src="js/components/modal.js"></script> -->
+    <!-- <script src="js/components/forms.js"></script> -->
+    <!-- <script src="js/components/tables.js"></script> -->
+    <script src="js/components/documents.js"></script>
+    <script src="js/pages/commissions.js"></script>
+    <script src="js/pages/invoices.js"></script>
+    <script src="js/pages/products.js"></script>
+    <script src="js/pages/campaigns.js"></script>
+    <script src="js/pages/settings.js"></script>
+    <script src="js/utils/ageValidator.js"></script>
+    <script src="js/utils/tableHelper.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
