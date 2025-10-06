@@ -202,6 +202,24 @@ class ProductsPage {
       }
     }
 
+    // ユーザー情報取得
+    const userStr = localStorage.getItem('agency_system_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+    const agencyTier = user && user.role === 'agency' ? user.tier : null;
+
+    // 階層に応じた編集可否を判定
+    const canEditTier = (tierNum) => {
+      if (isAdmin) return true; // 管理者は全て編集可能
+      if (!agencyTier) return false; // 代理店情報がない場合は編集不可
+
+      if (agencyTier === 1) return true; // Tier1は全階層編集可能
+      if (agencyTier === 2) return tierNum !== 1; // Tier2はTier1以外編集可能
+      if (agencyTier === 3) return tierNum >= 3; // Tier3はTier3,4のみ編集可能
+      if (agencyTier === 4) return tierNum === 4; // Tier4はTier4のみ編集可能
+      return false;
+    };
+
     const modalContent = `
       <h3>${isEdit ? '商品編集' : '新規商品追加'}</h3>
       <form id="productForm">
@@ -231,19 +249,23 @@ class ProductsPage {
         <div class="commission-rates-grid">
           <div class="form-group">
             <label for="tier1Rate">Tier 1 報酬率 (%)</label>
-            <input type="number" id="tier1Rate" value="${product?.tier1_commission_rate || 10}" min="0" max="100" step="0.01">
+            <input type="number" id="tier1Rate" value="${product?.tier1_commission_rate || 10}" min="0" max="100" step="0.01" ${canEditTier(1) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            ${!canEditTier(1) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
           <div class="form-group">
             <label for="tier2Rate">Tier 2 報酬率 (%)</label>
-            <input type="number" id="tier2Rate" value="${product?.tier2_commission_rate || 8}" min="0" max="100" step="0.01">
+            <input type="number" id="tier2Rate" value="${product?.tier2_commission_rate || 8}" min="0" max="100" step="0.01" ${canEditTier(2) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            ${!canEditTier(2) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
           <div class="form-group">
             <label for="tier3Rate">Tier 3 報酬率 (%)</label>
-            <input type="number" id="tier3Rate" value="${product?.tier3_commission_rate || 6}" min="0" max="100" step="0.01">
+            <input type="number" id="tier3Rate" value="${product?.tier3_commission_rate || 6}" min="0" max="100" step="0.01" ${canEditTier(3) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            ${!canEditTier(3) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
           <div class="form-group">
             <label for="tier4Rate">Tier 4 報酬率 (%)</label>
-            <input type="number" id="tier4Rate" value="${product?.tier4_commission_rate || 4}" min="0" max="100" step="0.01">
+            <input type="number" id="tier4Rate" value="${product?.tier4_commission_rate || 4}" min="0" max="100" step="0.01" ${canEditTier(4) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            ${!canEditTier(4) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
         </div>
 
