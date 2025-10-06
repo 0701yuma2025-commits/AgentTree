@@ -58,7 +58,7 @@ class SettingsPage {
         <form id="commissionRatesForm">
           <div class="form-section">
             <h4>階層ボーナス設定（上位代理店への還元率）</h4>
-            <p class="setting-timing-note">📌 反映タイミング: <strong>売上登録時</strong>に確定（編集時・月次計算時は変更されません）</p>
+            <p class="setting-timing-note">反映タイミング:<strong>売上登録時</strong>に確定（編集時・月次計算時は変更されません）</p>
             <div class="form-row">
               <div class="form-group">
                 <label for="tier1_bonus">Tier1 ← Tier2 (%)</label>
@@ -86,7 +86,7 @@ class SettingsPage {
 
           <div class="form-section">
             <h4>支払い設定</h4>
-            <p class="setting-timing-note">📌 反映タイミング: <strong>月次計算時</strong></p>
+            <p class="setting-timing-note">反映タイミング:<strong>月次計算時</strong></p>
             <div class="form-row">
               <div class="form-group">
                 <label for="minimum_payment">最低支払額 (円)</label>
@@ -122,7 +122,7 @@ class SettingsPage {
 
           <div class="form-section">
             <h4>税務設定</h4>
-            <p class="setting-timing-note">📌 反映タイミング: <strong>売上登録時</strong>に確定（編集時・月次計算時は変更されません）</p>
+            <p class="setting-timing-note">反映タイミング:<strong>売上登録時</strong>に確定（編集時・月次計算時は変更されません）</p>
             <div class="form-row">
               <div class="form-group">
                 <label for="withholding_tax">源泉徴収率 (%)</label>
