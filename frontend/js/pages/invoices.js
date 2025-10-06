@@ -251,6 +251,21 @@ class InvoicesPage {
         document.getElementById('invoicesEmpty').classList.add('hidden');
         document.getElementById('invoicesTable').classList.remove('hidden');
 
+        // ユーザー情報を取得して管理者かどうかを判定
+        const userStr = localStorage.getItem('agency_system_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const isAdmin = user && user.role === 'admin';
+
+        // テーブルヘッダーのアクション列を制御
+        const actionHeader = document.querySelector('#invoicesTable thead th:last-child');
+        if (actionHeader && actionHeader.textContent.trim() === 'アクション') {
+            if (isAdmin) {
+                actionHeader.style.display = 'none';
+            } else {
+                actionHeader.style.display = '';
+            }
+        }
+
         const tbody = document.getElementById('invoicesTableBody');
         tbody.innerHTML = '';
 
@@ -262,6 +277,22 @@ class InvoicesPage {
 
     createInvoiceRow(invoice) {
         const row = document.createElement('tr');
+
+        // ユーザー情報を取得して管理者かどうかを判定
+        const userStr = localStorage.getItem('agency_system_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const isAdmin = user && user.role === 'admin';
+
+        // 管理者の場合はアクションボタンを非表示
+        const actionColumn = isAdmin ? '' : `
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-primary" onclick="invoicesPage.downloadPDF('${invoice.id}', 'invoice')">
+                        📄 請求書
+                    </button>
+                </div>
+            </td>
+        `;
 
         row.innerHTML = `
             <td>
@@ -279,13 +310,7 @@ class InvoicesPage {
                     ${this.getStatusIcon(invoice.status)} ${invoice.status}
                 </span>
             </td>
-            <td>
-                <div class="action-buttons">
-                    <button class="btn btn-sm btn-primary" onclick="invoicesPage.downloadPDF('${invoice.id}', 'invoice')">
-                        📄 請求書
-                    </button>
-                </div>
-            </td>
+            ${actionColumn}
         `;
 
         return row;
