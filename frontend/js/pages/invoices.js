@@ -191,7 +191,7 @@ class InvoicesPage {
             alert('月次集計明細書の生成に失敗しました: ' + error.message);
         } finally {
             generateBtn.disabled = false;
-            generateBtn.textContent = '📊 月次集計明細書生成';
+            generateBtn.textContent = '[CSV] 月次集計明細書生成';
         }
     }
 
@@ -288,7 +288,7 @@ class InvoicesPage {
             <td>
                 <div class="action-buttons">
                     <button class="btn btn-sm btn-primary" onclick="invoicesPage.downloadPDF('${invoice.id}', 'invoice')">
-                        📄 請求書
+                        [INV] 請求書
                     </button>
                 </div>
             </td>
@@ -297,7 +297,7 @@ class InvoicesPage {
         row.innerHTML = `
             <td>
                 <div class="invoice-number">
-                    📄 ${invoice.invoiceNumber}
+                    [INV] ${invoice.invoiceNumber}
                 </div>
             </td>
             <td>${invoice.month}</td>
@@ -318,10 +318,10 @@ class InvoicesPage {
 
     getStatusIcon(status) {
         switch (status) {
-            case '支払済': return '✅';
-            case '承認済': return '⏰';
-            case '繰越': return '🔄';
-            default: return '⏳';
+            case '支払済': return '[OK]';
+            case '承認済': return '[!]';
+            case '繰越': return '[>>]';
+            default: return '[...]';
         }
     }
 
@@ -511,7 +511,7 @@ class InvoicesPage {
             alert('振込データのダウンロードに失敗しました: ' + error.message);
         } finally {
             exportBtn.disabled = false;
-            exportBtn.textContent = '💾 ダウンロード';
+            exportBtn.textContent = '[SAVE] ダウンロード';
         }
     }
 
@@ -560,7 +560,7 @@ class InvoicesPage {
             alert('振込確定処理に失敗しました: ' + error.message);
         } finally {
             confirmBtn.disabled = false;
-            confirmBtn.textContent = '✅ 振込実行を確定';
+            confirmBtn.textContent = '[OK] 振込実行を確定';
         }
     }
 }
