@@ -434,7 +434,7 @@ class CommissionsPage {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/commissions/${commissionId}/status`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commissionId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -468,7 +468,7 @@ class CommissionsPage {
     const transactionId = prompt('取引ID・振込番号（任意）');
 
     try {
-      const response = await fetch(`http://localhost:3001/api/commissions/${commissionId}/pay`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commissionId}/pay`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -561,7 +561,7 @@ class CommissionsPage {
 
       for (const commission of pendingCommissions) {
         try {
-          const response = await fetch(`http://localhost:3001/api/commissions/${commission.id}/status`, {
+          const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commission.id}/status`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -704,7 +704,7 @@ class CommissionsPage {
 
       for (const commission of approvedCommissions) {
         try {
-          const response = await fetch(`http://localhost:3001/api/commissions/${commission.id}/pay`, {
+          const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commission.id}/pay`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',

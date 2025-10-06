@@ -1846,7 +1846,7 @@ class App {
     const transactionId = prompt('取引ID・振込番号（任意）');
 
     try {
-      const response = await fetch(`http://localhost:3001/api/commissions/${commissionId}/pay`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commissionId}/pay`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -2274,7 +2274,7 @@ class App {
       const email = document.getElementById('resetEmail').value;
 
       try {
-        const response = await fetch('http://localhost:3001/api/auth/reset-password-request', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/auth/reset-password-request`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
