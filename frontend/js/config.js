@@ -3,8 +3,10 @@
  */
 
 const CONFIG = {
-  // APIベースURL
-  API_BASE_URL: 'http://localhost:3001/api',
+  // APIベースURL（環境に応じて自動切替）
+  API_BASE_URL: window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api'
+    : 'https://agenttree.onrender.com/api',
 
   // ローカルストレージキー
   STORAGE_KEYS: {
@@ -20,7 +22,7 @@ const CONFIG = {
   PAGE_SIZE: 20,
 
   // デバッグモード
-  DEBUG: true
+  DEBUG: window.location.hostname === 'localhost'
 };
 
 // デバッグログ
