@@ -45,11 +45,41 @@ class InvoicesPage {
                 this.generateMonthlySummary();
             });
         }
+
+        // 管理者専用：振込データ出力機能
+        const paymentMonth = document.getElementById('paymentExportMonth');
+        const paymentFormat = document.getElementById('paymentExportFormat');
+        const previewBtn = document.getElementById('previewPaymentBtn');
+        const exportBtn = document.getElementById('exportPaymentBtn');
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+
+        if (paymentMonth && paymentFormat && previewBtn && exportBtn && confirmBtn) {
+            const checkPaymentButtonState = () => {
+                const canOperate = paymentMonth.value !== '';
+                previewBtn.disabled = !canOperate;
+                exportBtn.disabled = !canOperate;
+            };
+
+            paymentMonth.addEventListener('change', checkPaymentButtonState);
+
+            previewBtn.addEventListener('click', () => {
+                this.previewPaymentData();
+            });
+
+            exportBtn.addEventListener('click', () => {
+                this.exportPaymentData();
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                this.confirmPayment();
+            });
+        }
     }
 
     generateMonthOptions() {
         const monthFilter = document.getElementById('invoiceMonthFilter');
         const summaryMonthSelect = document.getElementById('summaryMonthSelect');
+        const paymentMonthSelect = document.getElementById('paymentExportMonth');
 
         // 現在の月から過去12ヶ月のオプションを生成
         const today = new Date();
@@ -72,6 +102,14 @@ class InvoicesPage {
                 option.value = value;
                 option.textContent = label;
                 summaryMonthSelect.appendChild(option);
+            }
+
+            // 振込データ出力用
+            if (paymentMonthSelect) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = label;
+                paymentMonthSelect.appendChild(option);
             }
         }
     }
@@ -318,6 +356,186 @@ class InvoicesPage {
         } catch (error) {
             console.error('PDFダウンロードエラー:', error);
             alert('PDFのダウンロードに失敗しました: ' + error.message);
+        }
+    }
+
+    async previewPaymentData() {
+        const monthSelect = document.getElementById('paymentExportMonth');
+        const formatSelect = document.getElementById('paymentExportFormat');
+        const previewArea = document.getElementById('paymentPreviewArea');
+        const previewContent = document.getElementById('paymentPreviewContent');
+
+        if (!monthSelect.value) {
+            alert('対象月を選択してください');
+            return;
+        }
+
+        try {
+            const data = await apiClient.get('/payments/preview', {
+                month: monthSelect.value
+            });
+
+            if (!data) {
+                return; // JWT認証エラーでリダイレクトされた場合
+            }
+
+            if (!data.payments || data.payments.length === 0) {
+                alert('指定月の承認済み支払いデータが見つかりません');
+                previewArea.classList.add('hidden');
+                return;
+            }
+
+            // プレビューテーブル生成
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>代理店コード</th>
+                            <th>代理店名</th>
+                            <th>銀行名</th>
+                            <th>支店名</th>
+                            <th>口座種別</th>
+                            <th>口座番号</th>
+                            <th>口座名義</th>
+                            <th>支払金額</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.payments.forEach(payment => {
+                html += `
+                    <tr>
+                        <td>${payment.agency_code || '-'}</td>
+                        <td>${payment.company_name || '-'}</td>
+                        <td>${payment.bank_name || '-'}</td>
+                        <td>${payment.branch_name || '-'}</td>
+                        <td>${payment.account_type || '-'}</td>
+                        <td>${payment.account_number || '-'}</td>
+                        <td>${payment.account_holder || '-'}</td>
+                        <td>¥${(payment.amount || 0).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                <div style="margin-top: 1rem; font-weight: bold;">
+                    合計件数: ${data.payments.length}件　合計金額: ¥${(data.total_amount || 0).toLocaleString()}
+                </div>
+            `;
+
+            previewContent.innerHTML = html;
+            previewArea.classList.remove('hidden');
+
+        } catch (error) {
+            console.error('振込データプレビューエラー:', error);
+            alert('振込データのプレビューに失敗しました: ' + error.message);
+            previewArea.classList.add('hidden');
+        }
+    }
+
+    async exportPaymentData() {
+        const monthSelect = document.getElementById('paymentExportMonth');
+        const formatSelect = document.getElementById('paymentExportFormat');
+        const exportBtn = document.getElementById('exportPaymentBtn');
+
+        if (!monthSelect.value) {
+            alert('対象月を選択してください');
+            return;
+        }
+
+        try {
+            exportBtn.disabled = true;
+            exportBtn.textContent = 'ダウンロード中...';
+
+            const blob = await apiClient.postForBlob('/payments/export', {
+                month: monthSelect.value,
+                format: formatSelect.value
+            });
+
+            if (!blob) {
+                return; // JWT認証エラーでリダイレクトされた場合
+            }
+
+            // ファイル拡張子の決定
+            let extension = 'txt';
+            if (formatSelect.value === 'csv') {
+                extension = 'csv';
+            } else if (formatSelect.value === 'zengin') {
+                extension = 'txt';
+            } else if (formatSelect.value === 'readable') {
+                extension = 'txt';
+            }
+
+            // ファイルダウンロード
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payment_data_${monthSelect.value}_${formatSelect.value}.${extension}`;
+            document.body.appendChild(a);
+            a.click();
+
+            // クリーンアップ
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        } catch (error) {
+            console.error('振込データダウンロードエラー:', error);
+            alert('振込データのダウンロードに失敗しました: ' + error.message);
+        } finally {
+            exportBtn.disabled = false;
+            exportBtn.textContent = '💾 ダウンロード';
+        }
+    }
+
+    async confirmPayment() {
+        const monthSelect = document.getElementById('paymentExportMonth');
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+
+        if (!monthSelect.value) {
+            alert('対象月を選択してください');
+            return;
+        }
+
+        // 確認ダイアログ（二重確認）
+        if (!confirm(`${monthSelect.value}の振込を実行確定しますか？\n\nこの操作により、承認済みステータスが支払済みに変更されます。\nこの操作は取り消せません。`)) {
+            return;
+        }
+
+        if (!confirm('本当によろしいですか？\n\n再度確認してください。')) {
+            return;
+        }
+
+        try {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '確定処理中...';
+
+            const result = await apiClient.post('/payments/confirm', {
+                month: monthSelect.value
+            });
+
+            if (!result) {
+                return; // JWT認証エラーでリダイレクトされた場合
+            }
+
+            alert(`振込実行を確定しました。\n\n更新件数: ${result.updated_count || 0}件`);
+
+            // プレビューエリアを非表示にする
+            document.getElementById('paymentPreviewArea').classList.add('hidden');
+
+            // 月選択をリセット
+            monthSelect.value = '';
+            document.getElementById('previewPaymentBtn').disabled = true;
+            document.getElementById('exportPaymentBtn').disabled = true;
+
+        } catch (error) {
+            console.error('振込確定エラー:', error);
+            alert('振込確定処理に失敗しました: ' + error.message);
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '✅ 振込実行を確定';
         }
     }
 }

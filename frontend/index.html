@@ -470,6 +470,39 @@
                         </div>
                     </div>
 
+                    <!-- 管理者専用：振込データ出力 -->
+                    <div id="paymentExportSection" class="admin-only hidden" style="margin-bottom: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem;">管理者専用：振込データ出力</h3>
+                        <div class="filters" style="flex-wrap: nowrap;">
+                            <label for="paymentExportMonth" style="white-space: nowrap;">対象月:</label>
+                            <select id="paymentExportMonth" class="filter-select" style="width: 150px; flex-shrink: 0;">
+                                <option value="">月を選択</option>
+                            </select>
+                            <label for="paymentExportFormat" style="white-space: nowrap;">形式:</label>
+                            <select id="paymentExportFormat" class="filter-select" style="width: 180px; flex-shrink: 0;">
+                                <option value="csv">CSV形式</option>
+                                <option value="zengin">全銀フォーマット</option>
+                                <option value="readable">読みやすい形式</option>
+                            </select>
+                            <button id="previewPaymentBtn" class="btn btn-secondary" disabled style="white-space: nowrap; flex-shrink: 0; width: auto;">
+                                👁️ プレビュー
+                            </button>
+                            <button id="exportPaymentBtn" class="btn btn-primary" disabled style="white-space: nowrap; flex-shrink: 0; width: auto;">
+                                💾 ダウンロード
+                            </button>
+                        </div>
+
+                        <!-- プレビュー表示エリア -->
+                        <div id="paymentPreviewArea" class="hidden" style="margin-top: 1.5rem; padding: 1rem; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">
+                            <h4 style="margin-bottom: 1rem;">振込データプレビュー</h4>
+                            <div id="paymentPreviewContent" style="overflow-x: auto;"></div>
+                            <div id="paymentPreviewStats" style="margin-top: 1rem; padding: 1rem; background-color: #fff; border-radius: 4px;"></div>
+                            <button id="confirmPaymentBtn" class="btn btn-success" style="margin-top: 1rem;">
+                                ✅ 振込実行を確定
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- 請求書一覧 -->
                     <div id="invoicesLoading" class="loading">読み込み中...</div>
                     <div id="invoicesError" class="error hidden"></div>

@@ -386,8 +386,17 @@ class CommissionsPage {
         break;
       case 'confirmed':
       case 'approved':  // approvedもconfirmedと同様に扱う
-        // 確定（報酬計算後）→ 支払処理へ
-        buttons.push(`<button class="btn btn-small btn-warning" onclick="window.commissionsPageInstance.markAsPaid('${commission.id}')">支払完了</button>`);
+        // ユーザー情報を取得（フェイルセーフ付き）
+        const userStr = localStorage.getItem('agency_system_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+
+        if (user && user.role === 'admin') {
+          // 管理者のみ: 支払い実行ボタン
+          buttons.push(`<button class="btn btn-small btn-warning" onclick="window.commissionsPageInstance.markAsPaid('${commission.id}')">支払い実行</button>`);
+        } else {
+          // 代理店または取得失敗時: 承認済みと表示
+          buttons.push(`<span class="text-muted">承認済み</span>`);
+        }
         break;
       case 'carried_forward':
         // 繰り越し（最低支払額未満）
@@ -396,7 +405,7 @@ class CommissionsPage {
       case 'paid':
         // 支払済み
         buttons.push(`
-          <button class="btn btn-small btn-success" onclick="window.commissionsPageInstance.downloadReceipt('${commission.month}', '${commission.agency_id}')">領収書</button>
+          <button class="btn btn-small btn-success" onclick="window.commissionsPageInstance.downloadReceipt('${commission.month}', '${commission.agency_id}')">明細生成（確認用）</button>
         `);
         break;
       default:
