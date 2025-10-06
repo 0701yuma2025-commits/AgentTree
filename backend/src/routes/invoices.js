@@ -31,7 +31,12 @@ router.post('/generate', authenticateToken, async (req, res) => {
           agency_code,
           address,
           contact_email,
-          bank_account
+          bank_account,
+          bank_name,
+          branch_name,
+          account_type,
+          account_number,
+          account_holder
         ),
         sales(
           sale_number,
@@ -139,13 +144,13 @@ router.post('/generate', authenticateToken, async (req, res) => {
       tax: 0, // 報酬は非課税
       deductions: (invoiceDeduction || 0) + (commission.withholding_tax || 0),
       totalAmount: commission.final_amount,
-      bankInfo: {
-        bankName: 'みずほ銀行',
-        branchName: '東京営業部',
-        accountType: '普通',
-        accountNumber: '1234567',
-        accountName: 'エイギョウダイリテンカンリシステム'
-      },
+      bankInfo: commission.agencies.bank_name ? {
+        bankName: commission.agencies.bank_name,
+        branchName: commission.agencies.branch_name,
+        accountType: commission.agencies.account_type,
+        accountNumber: commission.agencies.account_number,
+        accountName: commission.agencies.account_holder
+      } : null,
       notes: commission.carry_forward > 0
         ? `前月繰越額: ¥${commission.carry_forward.toLocaleString()}`
         : null

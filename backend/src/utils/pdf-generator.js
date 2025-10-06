@@ -127,20 +127,22 @@ async function generateInvoicePDF(invoiceData) {
          .text('合計:', 320, yPosition)
          .text(`¥${invoiceData.totalAmount.toLocaleString()}`, 420, yPosition);
 
-      // 振込先情報
-      yPosition += 50;
-      doc.fontSize(10)
-         .text('【振込先】', 50, yPosition);
-      yPosition += 15;
-      doc.text(`銀行名: ${invoiceData.bankInfo?.bankName || 'みずほ銀行'}`, 50, yPosition);
-      yPosition += 15;
-      doc.text(`支店名: ${invoiceData.bankInfo?.branchName || '東京営業部'}`, 50, yPosition);
-      yPosition += 15;
-      doc.text(`口座種別: ${invoiceData.bankInfo?.accountType || '普通'}`, 50, yPosition);
-      yPosition += 15;
-      doc.text(`口座番号: ${invoiceData.bankInfo?.accountNumber || '1234567'}`, 50, yPosition);
-      yPosition += 15;
-      doc.text(`口座名義: ${invoiceData.bankInfo?.accountName || '営業代理店管理システム'}`, 50, yPosition);
+      // 振込先情報（銀行口座情報がある場合のみ表示）
+      if (invoiceData.bankInfo) {
+        yPosition += 50;
+        doc.fontSize(10)
+           .text('【振込先】', 50, yPosition);
+        yPosition += 15;
+        doc.text(`銀行名: ${invoiceData.bankInfo.bankName}`, 50, yPosition);
+        yPosition += 15;
+        doc.text(`支店名: ${invoiceData.bankInfo.branchName}`, 50, yPosition);
+        yPosition += 15;
+        doc.text(`口座種別: ${invoiceData.bankInfo.accountType}`, 50, yPosition);
+        yPosition += 15;
+        doc.text(`口座番号: ${invoiceData.bankInfo.accountNumber}`, 50, yPosition);
+        yPosition += 15;
+        doc.text(`口座名義: ${invoiceData.bankInfo.accountName}`, 50, yPosition);
+      }
 
       // 備考
       if (invoiceData.notes) {
