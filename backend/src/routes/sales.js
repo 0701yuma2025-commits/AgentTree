@@ -520,8 +520,61 @@ router.post('/',
 
       // 代理店IDを取得
       let agency_id = req.body.agency_id;
+
+      // 代理店ユーザーの場合の権限チェック
       if (req.user.role === 'agency' && req.user.agency) {
-        agency_id = req.user.agency.id;
+        if (!agency_id) {
+          // 代理店IDが指定されていない場合は自分のIDを使用
+          agency_id = req.user.agency.id;
+        } else {
+          // 代理店IDが指定されている場合、自分以下の階層かチェック
+          const userAgencyId = req.user.agency.id;
+
+          // 指定された代理店が自分または自分の傘下であることを確認
+          const { data: targetAgency, error: targetAgencyError } = await supabase
+            .from('agencies')
+            .select('id, parent_agency_id, tier_level')
+            .eq('id', agency_id)
+            .single();
+
+          if (targetAgencyError || !targetAgency) {
+            return res.status(404).json({
+              error: true,
+              message: '指定された代理店が見つかりません'
+            });
+          }
+
+          // 自分自身の場合はOK
+          if (agency_id === userAgencyId) {
+            // OK
+          } else {
+            // 自分の傘下かどうか再帰的にチェック
+            const isSubordinate = async (parentId, targetId) => {
+              const { data: children } = await supabase
+                .from('agencies')
+                .select('id, parent_agency_id')
+                .eq('parent_agency_id', parentId);
+
+              if (!children || children.length === 0) return false;
+
+              for (const child of children) {
+                if (child.id === targetId) return true;
+                if (await isSubordinate(child.id, targetId)) return true;
+              }
+
+              return false;
+            };
+
+            const isAllowed = await isSubordinate(userAgencyId, agency_id);
+
+            if (!isAllowed) {
+              return res.status(403).json({
+                error: true,
+                message: '指定された代理店への売上登録権限がありません'
+              });
+            }
+          }
+        }
       }
 
       if (!agency_id) {

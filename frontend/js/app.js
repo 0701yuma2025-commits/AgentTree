@@ -2556,15 +2556,29 @@ class App {
       apiClient.get('/products')
     ]);
 
-    // 管理者は全アクティブ代理店、代理店ユーザーは自分のみ
+    // 管理者は全アクティブ代理店、代理店ユーザーは自分以下の階層
     let activeAgencies;
     if (isAdmin) {
       activeAgencies = agencies.filter(a => a.status === 'active');
     } else if (userAgency) {
-      // 代理店ユーザーは自分の代理店と配下の代理店のみ
+      // 代理店ユーザーは自分とすべての傘下代理店を取得
+      const getSubordinateAgencyIds = (parentId, allAgencies) => {
+        const directChildren = allAgencies.filter(a => a.parent_agency_id === parentId);
+        let allIds = directChildren.map(a => a.id);
+
+        // 再帰的に子孫代理店も取得
+        directChildren.forEach(child => {
+          allIds = allIds.concat(getSubordinateAgencyIds(child.id, allAgencies));
+        });
+
+        return allIds;
+      };
+
+      const subordinateIds = getSubordinateAgencyIds(userAgency.id, agencies);
+      const allowedIds = [userAgency.id, ...subordinateIds];
+
       activeAgencies = agencies.filter(a =>
-        a.status === 'active' &&
-        (a.id === userAgency.id || a.parent_agency_id === userAgency.id)
+        a.status === 'active' && allowedIds.includes(a.id)
       );
     } else {
       activeAgencies = [];
