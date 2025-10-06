@@ -49,10 +49,10 @@ async function generateInvoicePDF(invoiceData) {
 
       // 請求先情報
       doc.fontSize(14)
-         .text(`${invoiceData.agency.company_name} 様`, 50, 170);
+         .text('営業代理店管理システム 様', 50, 170);
 
       doc.fontSize(10)
-         .text(invoiceData.agency.address || '', 50, 195);
+         .text('', 50, 195);
 
       // 請求元情報（システム運営会社）
       doc.fontSize(10)

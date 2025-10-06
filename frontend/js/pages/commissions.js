@@ -405,7 +405,7 @@ class CommissionsPage {
       case 'paid':
         // 支払済み
         buttons.push(`
-          <button class="btn btn-small btn-success" onclick="window.commissionsPageInstance.downloadReceipt('${commission.month}', '${commission.agency_id}')">明細生成（確認用）</button>
+          <button class="btn btn-small btn-success" onclick="window.commissionsPageInstance.downloadReceipt('${commission.month}', '${commission.agency_id}')">領収書</button>
         `);
         break;
       default:
