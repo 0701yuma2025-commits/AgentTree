@@ -798,6 +798,16 @@ router.put('/:id',
       const { id } = req.params;
       const updates = req.body;
 
+      // 権限チェック：代理店ユーザーは自分の代理店のみ編集可能
+      if (req.user.role === 'agency') {
+        if (!req.user.agency || req.user.agency.id !== id) {
+          return res.status(403).json({
+            error: true,
+            message: '自分の代理店情報のみ編集可能です'
+          });
+        }
+      }
+
       // 生年月日が更新される場合は年齢確認
       if (updates.birth_date) {
         if (!validateDateFormat(updates.birth_date)) {
@@ -817,7 +827,7 @@ router.put('/:id',
       }
 
       // 更新可能なフィールドのみ抽出
-      const allowedFields = ['company_name', 'company_type', 'representative_name', 'representative_phone', 'birth_date', 'bank_account', 'tax_info', 'invoice_number', 'invoice_registered'];
+      const allowedFields = ['company_name', 'company_type', 'representative_name', 'representative_phone', 'birth_date', 'bank_account', 'tax_info', 'invoice_number', 'invoice_registered', 'contact_email', 'contact_phone', 'address'];
       const filteredUpdates = {};
 
       allowedFields.forEach(field => {

@@ -1261,6 +1261,8 @@ class App {
             ${authAPI.isAdmin() ? `
               <button class="btn btn-warning" onclick="app.editAgency('${agencyData.id}')">編集</button>
               <button class="btn btn-danger" onclick="app.deleteAgency('${agencyData.id}')">削除</button>
+            ` : (this.user && this.user.role === 'agency' && this.user.agency && this.user.agency.id === agencyData.id) ? `
+              <button class="btn btn-warning" onclick="app.editAgency('${agencyData.id}')">自社情報を編集</button>
             ` : ''}
             <button class="btn btn-secondary" onclick="app.closeModal()">閉じる</button>
           </div>
