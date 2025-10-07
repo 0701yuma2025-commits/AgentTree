@@ -40,11 +40,30 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // 2. 売上統計の取得
     let salesQuery = supabase
       .from('sales')
-      .select('total_amount, sale_date, status')
+      .select('total_amount, sale_date, status, agency_id')
       .eq('status', 'confirmed');
 
+    let agencyIds = null;
     if (!isAdmin && agencyId) {
-      salesQuery = salesQuery.eq('agency_id', agencyId);
+      // 代理店の場合、自社と下位代理店の売上を含める
+      const getSubordinateAgencyIds = async (parentId) => {
+        const { data: children } = await supabase
+          .from('agencies')
+          .select('id')
+          .eq('parent_agency_id', parentId);
+
+        let ids = [parentId];
+        if (children && children.length > 0) {
+          for (const child of children) {
+            const childIds = await getSubordinateAgencyIds(child.id);
+            ids = ids.concat(childIds);
+          }
+        }
+        return ids;
+      };
+
+      agencyIds = await getSubordinateAgencyIds(agencyId);
+      salesQuery = salesQuery.in('agency_id', agencyIds);
     }
 
     const { data: salesData } = await salesQuery;
@@ -116,8 +135,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
       .order('sale_date', { ascending: false })
       .limit(5);
 
-    if (!isAdmin && agencyId) {
-      recentSalesQuery = recentSalesQuery.eq('agency_id', agencyId);
+    if (!isAdmin && agencyIds) {
+      recentSalesQuery = recentSalesQuery.in('agency_id', agencyIds);
     }
 
     const { data: recentSales } = await recentSalesQuery;
@@ -323,12 +342,30 @@ router.get('/charts', authenticateToken, async (req, res) => {
     // 売上データ取得
     let salesQuery = supabase
       .from('sales')
-      .select('total_amount, sale_date')
+      .select('total_amount, sale_date, agency_id')
       .gte('sale_date', startDate.toISOString().split('T')[0])
       .eq('status', 'confirmed');
 
     if (!isAdmin && agencyId) {
-      salesQuery = salesQuery.eq('agency_id', agencyId);
+      // 代理店の場合、自社と下位代理店の売上を含める
+      const getSubordinateAgencyIds = async (parentId) => {
+        const { data: children } = await supabase
+          .from('agencies')
+          .select('id')
+          .eq('parent_agency_id', parentId);
+
+        let ids = [parentId];
+        if (children && children.length > 0) {
+          for (const child of children) {
+            const childIds = await getSubordinateAgencyIds(child.id);
+            ids = ids.concat(childIds);
+          }
+        }
+        return ids;
+      };
+
+      const agencyIds = await getSubordinateAgencyIds(agencyId);
+      salesQuery = salesQuery.in('agency_id', agencyIds);
     }
 
     const { data: salesData } = await salesQuery;
