@@ -246,9 +246,27 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('status', status);
     }
 
-    // 代理店ユーザーは自社の売上のみ
+    // 代理店ユーザーは自社と下位代理店の売上を表示
     if (req.user.role === 'agency' && req.user.agency) {
-      query = query.eq('agency_id', req.user.agency.id);
+      // 下位代理店のIDを再帰的に取得
+      const getSubordinateAgencyIds = async (parentId) => {
+        const { data: children } = await supabase
+          .from('agencies')
+          .select('id')
+          .eq('parent_agency_id', parentId);
+
+        let ids = [parentId];
+        if (children && children.length > 0) {
+          for (const child of children) {
+            const childIds = await getSubordinateAgencyIds(child.id);
+            ids = ids.concat(childIds);
+          }
+        }
+        return ids;
+      };
+
+      const agencyIds = await getSubordinateAgencyIds(req.user.agency.id);
+      query = query.in('agency_id', agencyIds);
     }
 
     const { data, error } = await query;
@@ -440,9 +458,27 @@ router.get('/:id', authenticateToken, async (req, res) => {
       `)
       .eq('id', id);
 
-    // 代理店ユーザーは自社の売上のみ
+    // 代理店ユーザーは自社と下位代理店の売上を表示
     if (req.user.role === 'agency' && req.user.agency) {
-      query = query.eq('agency_id', req.user.agency.id);
+      // 下位代理店のIDを再帰的に取得
+      const getSubordinateAgencyIds = async (parentId) => {
+        const { data: children } = await supabase
+          .from('agencies')
+          .select('id')
+          .eq('parent_agency_id', parentId);
+
+        let ids = [parentId];
+        if (children && children.length > 0) {
+          for (const child of children) {
+            const childIds = await getSubordinateAgencyIds(child.id);
+            ids = ids.concat(childIds);
+          }
+        }
+        return ids;
+      };
+
+      const agencyIds = await getSubordinateAgencyIds(req.user.agency.id);
+      query = query.in('agency_id', agencyIds);
     }
 
     // single()は最後に呼び出す
