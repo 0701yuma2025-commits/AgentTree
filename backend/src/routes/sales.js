@@ -289,11 +289,22 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       }
 
-      // 売上データに製品情報を追加
-      const enrichedData = data.map(sale => ({
-        ...sale,
-        product: productMap[sale.product_id] || { name: '不明', price: 0 }
-      }));
+      // 売上データに製品情報を追加し、代理店ユーザーの場合は下位代理店の顧客情報をマスキング
+      const enrichedData = data.map(sale => {
+        const saleData = {
+          ...sale,
+          product: productMap[sale.product_id] || { name: '不明', price: 0 }
+        };
+
+        // 代理店ユーザーで、自社以外の売上の場合は顧客情報をマスキング
+        if (req.user.role === 'agency' && req.user.agency && sale.agency_id !== req.user.agency.id) {
+          saleData.customer_name = '***';
+          saleData.customer_email = '***';
+          saleData.customer_phone = '***';
+        }
+
+        return saleData;
+      });
 
       res.json({
         success: true,
@@ -507,6 +518,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
       } else {
         data.product = { name: '不明', price: 0 };
       }
+    }
+
+    // 代理店ユーザーで、自社以外の売上の場合は顧客情報をマスキング
+    if (req.user.role === 'agency' && req.user.agency && data.agency_id !== req.user.agency.id) {
+      data.customer_name = '***';
+      data.customer_email = '***';
+      data.customer_phone = '***';
     }
 
     res.json({
