@@ -842,6 +842,7 @@ class App {
       // イベントリスナーを設定（重複を避けるため、一度削除してから再設定）
       const setupEventListeners = () => {
         const searchInput = document.getElementById('salesSearch');
+        const ownerFilter = document.getElementById('salesOwnerFilter');
         const filterBtn = document.getElementById('filterSalesBtn');
         const clearBtn = document.getElementById('clearFilterBtn');
         const sortableHeaders = document.querySelectorAll('#salesTable th.sortable');
@@ -851,6 +852,14 @@ class App {
           const newSearchInput = searchInput.cloneNode(true);
           searchInput.parentNode.replaceChild(newSearchInput, searchInput);
           newSearchInput.addEventListener('input', () => {
+            this.applySalesFilters();
+          });
+        }
+
+        if (ownerFilter) {
+          const newOwnerFilter = ownerFilter.cloneNode(true);
+          ownerFilter.parentNode.replaceChild(newOwnerFilter, ownerFilter);
+          newOwnerFilter.addEventListener('change', () => {
             this.applySalesFilters();
           });
         }
@@ -870,6 +879,8 @@ class App {
             document.getElementById('salesSearch').value = '';
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
+            const ownerFilterEl = document.getElementById('salesOwnerFilter');
+            if (ownerFilterEl) ownerFilterEl.value = 'all';
             this.applySalesFilters();
           });
         }
@@ -928,6 +939,12 @@ class App {
     const searchText = document.getElementById('salesSearch')?.value || '';
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
+    const ownerFilter = document.getElementById('salesOwnerFilter')?.value || 'all';
+
+    // 現在のユーザーのagency_idを取得
+    const userStr = localStorage.getItem('agency_system_user');
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const currentAgencyId = currentUser?.agency_id;
 
     this.salesTableHelper.setFilters({
       search: (sale) => {
@@ -942,6 +959,22 @@ class App {
         const saleDate = sale.sale_date;
         if (startDate && saleDate < new Date(startDate)) return false;
         if (endDate && saleDate > new Date(endDate + 'T23:59:59')) return false;
+        return true;
+      },
+      owner: (sale) => {
+        // 管理者の場合、または代理店ユーザーでない場合はフィルター不要
+        if (!currentAgencyId || ownerFilter === 'all') return true;
+
+        // 自社のみ
+        if (ownerFilter === 'own') {
+          return sale.agency_id === currentAgencyId;
+        }
+
+        // 下位のみ
+        if (ownerFilter === 'subordinate') {
+          return sale.agency_id !== currentAgencyId;
+        }
+
         return true;
       }
     });
