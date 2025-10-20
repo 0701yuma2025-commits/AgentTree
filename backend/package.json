@@ -30,8 +30,10 @@
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "pdfkit": "^0.17.2",
+    "qrcode": "^1.5.3",
     "rate-limit-redis": "^4.2.2",
     "resend": "^6.1.0",
+    "speakeasy": "^2.0.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

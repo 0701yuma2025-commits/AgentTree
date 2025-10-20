@@ -827,7 +827,7 @@ router.put('/:id',
       }
 
       // 更新可能なフィールドのみ抽出
-      const allowedFields = ['company_name', 'company_type', 'representative_name', 'representative_phone', 'birth_date', 'bank_account', 'tax_info', 'invoice_number', 'invoice_registered', 'contact_email', 'contact_phone', 'address'];
+      const allowedFields = ['company_name', 'company_type', 'representative_name', 'representative_phone', 'birth_date', 'bank_account', 'tax_info', 'invoice_number', 'invoice_registered', 'contact_email', 'contact_phone', 'postal_code', 'address'];
       const filteredUpdates = {};
 
       allowedFields.forEach(field => {

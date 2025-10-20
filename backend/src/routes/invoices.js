@@ -14,7 +14,7 @@ const { generateInvoicePDF, generateReceiptPDF, generatePaymentStatementPDF } = 
  */
 router.post('/generate', authenticateToken, async (req, res) => {
   try {
-    const { commission_id, month } = req.body;
+    const { commission_id, month, recipient } = req.body;
 
     if (!commission_id && !month) {
       return res.status(400).json({ error: '報酬IDまたは対象月を指定してください' });
@@ -29,8 +29,12 @@ router.post('/generate', authenticateToken, async (req, res) => {
           id,
           company_name,
           agency_code,
+          representative_name,
           address,
           contact_email,
+          contact_phone,
+          postal_code,
+          invoice_number,
           bank_account
         ),
         sales(
@@ -53,6 +57,9 @@ router.post('/generate', authenticateToken, async (req, res) => {
       console.error('報酬データ取得エラー:', error);
       return res.status(404).json({ error: '報酬データが見つかりません' });
     }
+
+    // デバッグ: 代理店データを確認
+    console.log('代理店データ:', JSON.stringify(commission.agencies, null, 2));
 
     // 控除項目を計算詳細から取得、またはfinal_amountから逆算
     const calculationDetails = commission.calculation_details || {};
@@ -148,8 +155,29 @@ router.post('/generate', authenticateToken, async (req, res) => {
       } : null,
       notes: commission.carry_forward > 0
         ? `前月繰越額: ¥${commission.carry_forward.toLocaleString()}`
-        : null
+        : null,
+      // カスタム宛先情報
+      recipientCompanyName: recipient?.company_name,
+      recipientDepartment: recipient?.department,
+      recipientContactPerson: recipient?.contact_person,
+      recipientPostalCode: recipient?.postal_code,
+      recipientAddress: recipient?.address,
+      recipientPhone: recipient?.phone,
+      recipientEmail: recipient?.email,
+      // 発行元情報（代理店自社情報）
+      issuer: {
+        company_name: commission.agencies.company_name,
+        representative_name: commission.agencies.representative_name,
+        postal_code: commission.agencies.postal_code,
+        address: commission.agencies.address,
+        contact_phone: commission.agencies.contact_phone,
+        contact_email: commission.agencies.contact_email,
+        invoice_number: commission.agencies.invoice_number
+      }
     };
+
+    // デバッグ: issuerオブジェクトを確認
+    console.log('issuerオブジェクト:', JSON.stringify(invoiceData.issuer, null, 2));
 
     // PDF生成
     const pdfBuffer = await generateInvoicePDF(invoiceData);
@@ -188,7 +216,13 @@ router.post('/receipt', authenticateToken, async (req, res) => {
           *,
           agencies(
             company_name,
-            agency_code
+            agency_code,
+            representative_name,
+            postal_code,
+            address,
+            contact_phone,
+            contact_email,
+            invoice_number
           )
         )
       `)
@@ -217,7 +251,11 @@ router.post('/receipt', authenticateToken, async (req, res) => {
           amount: payment.commissions.tier_bonus
         }
       ],
-      invoiceRegistrationNumber: '1234567890123'
+      invoiceRegistrationNumber: '1234567890123',
+      // 宛名（支払者情報）- デフォルトは管理者
+      recipient: {
+        company_name: '営業代理店管理システム運営事務局'
+      }
     };
 
     if (payment.commissions.withholding_tax > 0) {
@@ -243,6 +281,182 @@ router.post('/receipt', authenticateToken, async (req, res) => {
   }
 });
 
+
+/**
+ * 売上ベース請求書PDF生成
+ * POST /api/invoices/generate-from-sale
+ */
+router.post('/generate-from-sale', authenticateToken, async (req, res) => {
+  try {
+    const { sale_id } = req.body;
+
+    if (!sale_id) {
+      return res.status(400).json({ error: '売上IDを指定してください' });
+    }
+
+    // 売上データと関連する報酬データを取得
+    const { data: sale, error: saleError } = await supabase
+      .from('sales')
+      .select(`
+        *,
+        products(
+          id,
+          name,
+          price
+        ),
+        agencies(
+          id,
+          company_name,
+          agency_code,
+          address,
+          contact_email,
+          bank_account
+        )
+      `)
+      .eq('id', sale_id)
+      .single();
+
+    if (saleError || !sale) {
+      console.error('売上データ取得エラー:', saleError);
+      return res.status(404).json({ error: '売上データが見つかりません' });
+    }
+
+    // この売上に紐づく報酬データを取得
+    const { data: commission } = await supabase
+      .from('commissions')
+      .select('*')
+      .eq('sale_id', sale_id)
+      .single();
+
+    // 請求書データ構築
+    const items = [
+      {
+        description: sale.products?.name || '商品',
+        quantity: sale.quantity || 1,
+        unitPrice: sale.unit_price,
+        amount: sale.total_amount
+      }
+    ];
+
+    const invoiceData = {
+      invoiceNumber: sale.sale_number,
+      issueDate: new Date().toLocaleDateString('ja-JP'),
+      dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString('ja-JP'),
+      agency: sale.agencies,
+      items: items,
+      subtotal: sale.total_amount,
+      tax: 0,
+      deductions: 0,
+      totalAmount: sale.total_amount,
+      saleNumber: sale.sale_number,
+      saleDate: new Date(sale.sale_date).toLocaleDateString('ja-JP'),
+      customerName: sale.customer_name,
+      bankInfo: sale.agencies.bank_account ? {
+        bankName: sale.agencies.bank_account.bank_name,
+        branchName: sale.agencies.bank_account.branch_name,
+        accountType: sale.agencies.bank_account.account_type,
+        accountNumber: sale.agencies.bank_account.account_number,
+        accountName: sale.agencies.bank_account.account_holder
+      } : null,
+      notes: commission ? `報酬額: ¥${commission.final_amount.toLocaleString()}` : null
+    };
+
+    // PDF生成
+    const pdfBuffer = await generateInvoicePDF(invoiceData);
+
+    // レスポンス
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice_${sale.sale_number}.pdf"`
+    });
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('売上ベース請求書生成エラー:', error);
+    res.status(500).json({ error: '請求書の生成に失敗しました' });
+  }
+});
+
+/**
+ * 売上ベース領収書PDF生成
+ * POST /api/invoices/receipt-from-sale
+ */
+router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
+  try {
+    const { sale_id } = req.body;
+
+    if (!sale_id) {
+      return res.status(400).json({ error: '売上IDを指定してください' });
+    }
+
+    // 売上データ取得
+    const { data: sale, error: saleError } = await supabase
+      .from('sales')
+      .select(`
+        *,
+        products(
+          id,
+          name,
+          price
+        ),
+        agencies(
+          id,
+          company_name,
+          agency_code,
+          representative_name,
+          postal_code,
+          address,
+          contact_phone,
+          contact_email,
+          invoice_number
+        )
+      `)
+      .eq('id', sale_id)
+      .single();
+
+    if (saleError || !sale) {
+      console.error('売上データ取得エラー:', saleError);
+      return res.status(404).json({ error: '売上データが見つかりません' });
+    }
+
+    // 領収書データ構築
+    const receiptData = {
+      receiptNumber: `RCP-${sale.sale_number}`,
+      issueDate: new Date().toLocaleDateString('ja-JP'),
+      agency: sale.agencies,
+      customerName: sale.customer_name,
+      amount: sale.total_amount,
+      description: `${sale.products?.name || '商品'} (売上番号: ${sale.sale_number})`,
+      breakdown: [
+        {
+          label: sale.products?.name || '商品',
+          amount: sale.total_amount
+        }
+      ],
+      saleNumber: sale.sale_number,
+      saleDate: new Date(sale.sale_date).toLocaleDateString('ja-JP'),
+      invoiceRegistrationNumber: sale.agencies.invoice_registration_number || '登録なし',
+      // 宛名（支払者情報）- デフォルトは管理者
+      recipient: {
+        company_name: '営業代理店管理システム運営事務局'
+      }
+    };
+
+    // PDF生成
+    const pdfBuffer = await generateReceiptPDF(receiptData);
+
+    // レスポンス
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="receipt_${sale.sale_number}.pdf"`
+    });
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('売上ベース領収書生成エラー:', error);
+    res.status(500).json({ error: '領収書の生成に失敗しました' });
+  }
+});
 
 /**
  * 管理者向け代理店別月次集計明細書PDF生成
@@ -364,7 +578,7 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
  */
 router.post('/receipt-monthly', authenticateToken, async (req, res) => {
   try {
-    const { month, agency_id } = req.body;
+    const { month, agency_id, recipient } = req.body;
 
     if (!month) {
       return res.status(400).json({ error: '対象月を指定してください' });
@@ -391,7 +605,13 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
         *,
         agencies(
           company_name,
-          agency_code
+          agency_code,
+          representative_name,
+          postal_code,
+          address,
+          contact_phone,
+          contact_email,
+          invoice_number
         )
       `)
       .eq('month', month)
@@ -429,7 +649,11 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
           amount: totalTierBonus
         }
       ],
-      invoiceRegistrationNumber: '1234567890123'
+      invoiceRegistrationNumber: '1234567890123',
+      // 宛名（支払者情報）- カスタムまたはデフォルト
+      recipient: recipient || {
+        company_name: '営業代理店管理システム運営事務局'
+      }
     };
 
     if (totalWithholdingTax > 0) {
@@ -510,6 +734,9 @@ router.get('/', authenticateToken, async (req, res) => {
           id,
           company_name,
           agency_code
+        ),
+        sales(
+          sale_number
         )
       `)
       .order('month', { ascending: false });
@@ -538,6 +765,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const invoices = data.map(commission => ({
       id: commission.id,
       invoiceNumber: `INV-${commission.month.replace('-', '')}-${commission.agency_id.substring(0,8)}`,
+      saleNumber: commission.sales?.sale_number || '-',
       month: commission.month,
       agencyName: commission.agencies.company_name,
       agencyCode: commission.agencies.agency_code,

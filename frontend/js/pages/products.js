@@ -206,7 +206,7 @@ class ProductsPage {
     const userStr = localStorage.getItem('agency_system_user');
     const user = userStr ? JSON.parse(userStr) : null;
     const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
-    const agencyTier = user && user.role === 'agency' ? user.tier : null;
+    const agencyTier = user && user.role === 'agency' && user.agency ? user.agency.tier_level : null;
 
     // 階層に応じた編集可否を判定
     const canEditTier = (tierNum) => {

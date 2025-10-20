@@ -18,7 +18,8 @@
                 <p>Multi-tier Sales Agency Management</p>
             </div>
 
-            <div class="login-form">
+            <!-- 通常ログインフォーム -->
+            <div id="loginForm" class="login-form">
                 <h2>ログイン</h2>
 
                 <div class="form-group">
@@ -38,6 +39,25 @@
                 </div>
 
                 <div id="loginMessage" class="message"></div>
+            </div>
+
+            <!-- 2FA認証フォーム -->
+            <div id="twoFactorForm" class="login-form hidden">
+                <h2>2段階認証</h2>
+                <p style="margin-bottom: 1.5rem; color: #666;">メールに送信された6桁の認証コードを入力してください</p>
+
+                <div class="form-group">
+                    <label for="twoFactorCode">認証コード</label>
+                    <input type="text" id="twoFactorCode" required placeholder="000000" maxlength="6" pattern="[0-9]{6}" autocomplete="off">
+                </div>
+
+                <button id="verify2FABtn" class="btn btn-primary">認証</button>
+
+                <div class="form-footer">
+                    <a href="#" id="back2FALink">戻る</a>
+                </div>
+
+                <div id="twoFactorMessage" class="message"></div>
             </div>
         </div>
     </div>
@@ -80,6 +100,12 @@
                     </a>
                     <a href="#" class="nav-item admin-only hidden" data-page="campaigns">
                         <span class="label">キャンペーン管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="network">
+                        <span class="label">ネットワーク</span>
+                    </a>
+                    <a href="#" class="nav-item admin-only hidden" data-page="auditLogs">
+                        <span class="label">監査ログ</span>
                     </a>
                     <a href="#" class="nav-item" data-page="settings">
                         <span class="label">設定</span>
@@ -511,7 +537,7 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>請求書番号</th>
+                                    <th>売上番号</th>
                                     <th>対象月</th>
                                     <th>基本報酬</th>
                                     <th>階層ボーナス</th>
@@ -524,6 +550,149 @@
                             <tbody id="invoicesTableBody">
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- ネットワーク可視化 -->
+                <div id="networkPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>代理店ネットワーク</h2>
+                        <div class="page-actions">
+                            <button id="resetNetworkView" class="btn btn-secondary">全体表示</button>
+                            <button id="filterByTier" class="btn btn-secondary">Tier別フィルター</button>
+                        </div>
+                    </div>
+
+                    <div class="network-container">
+                        <div id="network3d"></div>
+                        <div id="networkLegend" class="network-legend">
+                            <div id="networkNodeDetails" class="network-node-details hidden">
+                                <h4>代理店詳細</h4>
+                                <button id="closeNodeDetails" class="btn-close">×</button>
+                                <div id="nodeDetailsContent"></div>
+                            </div>
+
+                            <h4>凡例</h4>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #ff4444;"></span>
+                                <span>Tier 1</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #4444ff;"></span>
+                                <span>Tier 2</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #44ff44;"></span>
+                                <span>Tier 3</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #ffaa44;"></span>
+                                <span>Tier 4</span>
+                            </div>
+                            <div class="legend-note">
+                                <p><strong>操作方法:</strong></p>
+                                <ul>
+                                    <li>左ドラッグ: 回転</li>
+                                    <li>右ドラッグ: 移動</li>
+                                    <li>スクロール: ズーム</li>
+                                    <li>ノードクリック: 詳細表示</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 監査ログ -->
+                <div id="auditLogsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>監査ログ</h2>
+                        <div class="page-actions">
+                            <button id="exportAuditLogsCsv" class="btn btn-primary">CSVエクスポート</button>
+                        </div>
+                    </div>
+
+                    <!-- フィルターパネル -->
+                    <div class="filter-panel">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label>期間</label>
+                                <input type="date" id="filterStartDate" class="form-control">
+                                <span>〜</span>
+                                <input type="date" id="filterEndDate" class="form-control">
+                            </div>
+                            <div class="filter-group">
+                                <label>アクション</label>
+                                <select id="filterAction" class="form-control">
+                                    <option value="">すべて</option>
+                                    <option value="create">作成</option>
+                                    <option value="read">閲覧</option>
+                                    <option value="update">更新</option>
+                                    <option value="delete">削除</option>
+                                    <option value="login">ログイン</option>
+                                    <option value="logout">ログアウト</option>
+                                    <option value="export">エクスポート</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>リソース種別</label>
+                                <select id="filterResourceType" class="form-control">
+                                    <option value="">すべて</option>
+                                    <option value="agency">代理店</option>
+                                    <option value="sale">売上</option>
+                                    <option value="commission">報酬</option>
+                                    <option value="user">ユーザー</option>
+                                    <option value="product">商品</option>
+                                    <option value="campaign">キャンペーン</option>
+                                    <option value="authentication">認証</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>ステータス</label>
+                                <select id="filterStatus" class="form-control">
+                                    <option value="">すべて</option>
+                                    <option value="success">成功</option>
+                                    <option value="failure">失敗</option>
+                                    <option value="error">エラー</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <div class="filter-group search-group">
+                                <label>検索</label>
+                                <input type="text" id="searchAuditLogs" class="form-control" placeholder="ユーザーメール、説明文で検索...">
+                            </div>
+                            <div class="filter-actions">
+                                <button id="applyAuditLogFilter" class="btn btn-primary">フィルター適用</button>
+                                <button id="resetAuditLogFilter" class="btn btn-secondary">リセット</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 監査ログテーブル -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>タイムスタンプ</th>
+                                    <th>ユーザー</th>
+                                    <th>アクション</th>
+                                    <th>リソース</th>
+                                    <th>説明</th>
+                                    <th>ステータス</th>
+                                    <th>詳細</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsTableBody">
+                                <!-- 監査ログデータが挿入される -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ページネーション -->
+                    <div class="pagination">
+                        <button id="prevAuditLogsPage" class="btn btn-secondary">前へ</button>
+                        <span id="auditLogsPageInfo">1 / 1</span>
+                        <button id="nextAuditLogsPage" class="btn btn-secondary">次へ</button>
                     </div>
                 </div>
 
@@ -559,6 +728,11 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Three.js CDN (required for 3D Force Graph) -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <!-- 3D Force Graph CDN -->
+    <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+
     <script src="js/config.js"></script>
     <script src="js/supabase-client.js"></script>
     <script src="js/api/client.js"></script>
@@ -570,6 +744,8 @@
     <script src="js/api/campaigns.js"></script>
     <script src="js/api/documents.js"></script>
     <script src="js/api/commission-settings.js"></script>
+    <script src="js/api/audit-logs.js"></script>
+    <script src="js/api/document-recipients.js"></script>
     <!-- <script src="js/components/modal.js"></script> -->
     <!-- <script src="js/components/forms.js"></script> -->
     <!-- <script src="js/components/tables.js"></script> -->
@@ -578,6 +754,8 @@
     <script src="js/pages/invoices.js"></script>
     <script src="js/pages/products.js"></script>
     <script src="js/pages/campaigns.js"></script>
+    <script src="js/pages/network.js"></script>
+    <script src="js/pages/audit-logs.js"></script>
     <script src="js/pages/settings.js"></script>
     <script src="js/utils/ageValidator.js"></script>
     <script src="js/utils/tableHelper.js"></script>

@@ -914,6 +914,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       customer_name,
       customer_email,
       customer_phone,
+      customer_address,
       product_id,
       quantity,
       unit_price,
@@ -922,41 +923,190 @@ router.put('/:id', authenticateToken, async (req, res) => {
       status
     } = req.body;
 
-    // 権限チェック（管理者のみ更新可能）
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
-      return res.status(403).json({
+    // 売上情報を取得
+    const { data: currentSale, error: fetchError } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !currentSale) {
+      return res.status(404).json({
         error: true,
-        message: '売上情報を更新する権限がありません'
+        message: '売上情報が見つかりません'
       });
     }
 
-    // 更新データ準備
+    // ステータスベースの権限チェック
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    const isAgency = req.user.role === 'agency';
+
+    // 代理店は自社の売上のみ編集可能
+    if (isAgency && currentSale.agency_id !== req.user.agency?.id) {
+      return res.status(403).json({
+        error: true,
+        message: '他の代理店の売上を編集する権限がありません'
+      });
+    }
+
+    // ステータス別の編集可能フィールドを定義
+    const editableFields = {
+      pending: ['customer_name', 'customer_email', 'customer_phone', 'customer_address', 'product_id', 'quantity', 'unit_price', 'notes', 'sale_date'],
+      confirmed: ['customer_name', 'customer_email', 'customer_phone', 'customer_address'],
+      paid: [] // 支払済みは編集不可
+    };
+
+    // 管理者は常に全フィールド編集可能
+    if (!isAdmin) {
+      const allowedFields = editableFields[currentSale.status] || [];
+
+      if (currentSale.status === 'paid') {
+        return res.status(403).json({
+          error: true,
+          message: '支払済みの売上は編集できません'
+        });
+      }
+
+      // リクエストされたフィールドが編集可能かチェック
+      const requestedFields = Object.keys(req.body);
+      const unauthorizedFields = requestedFields.filter(field =>
+        !allowedFields.includes(field) && field !== 'id'
+      );
+
+      if (unauthorizedFields.length > 0) {
+        return res.status(403).json({
+          error: true,
+          message: `現在のステータス (${currentSale.status}) では以下のフィールドは編集できません: ${unauthorizedFields.join(', ')}`
+        });
+      }
+    }
+
+    // 更新データ準備と変更履歴記録
     const updateData = {
       updated_at: new Date().toISOString()
     };
 
-    // 更新可能なフィールドのみ設定
-    if (customer_name !== undefined) updateData.customer_name = customer_name;
-    if (customer_email !== undefined) updateData.customer_email = customer_email;
-    if (customer_phone !== undefined) updateData.customer_phone = customer_phone;
-    if (product_id !== undefined) updateData.product_id = product_id;
-    if (quantity !== undefined) updateData.quantity = quantity;
-    if (unit_price !== undefined) updateData.unit_price = unit_price;
-    if (notes !== undefined) updateData.notes = notes;
-    if (sale_date !== undefined) updateData.sale_date = sale_date;
-    if (status !== undefined) updateData.status = status;
+    const changeHistory = [];
+
+    // フィールドのラベルマッピング
+    const fieldLabels = {
+      customer_name: '顧客名',
+      customer_email: '顧客メール',
+      customer_phone: '顧客電話番号',
+      customer_address: '顧客住所',
+      product_id: '商品',
+      quantity: '数量',
+      unit_price: '単価',
+      notes: '備考',
+      sale_date: '売上日',
+      status: 'ステータス'
+    };
+
+    // 更新可能なフィールドのみ設定し、変更履歴を記録
+    if (customer_name !== undefined && customer_name !== currentSale.customer_name) {
+      updateData.customer_name = customer_name;
+      changeHistory.push({
+        field_name: fieldLabels.customer_name,
+        old_value: currentSale.customer_name || '',
+        new_value: customer_name
+      });
+    }
+    if (customer_email !== undefined && customer_email !== currentSale.customer_email) {
+      updateData.customer_email = customer_email;
+      changeHistory.push({
+        field_name: fieldLabels.customer_email,
+        old_value: currentSale.customer_email || '',
+        new_value: customer_email
+      });
+    }
+    if (customer_phone !== undefined && customer_phone !== currentSale.customer_phone) {
+      updateData.customer_phone = customer_phone;
+      changeHistory.push({
+        field_name: fieldLabels.customer_phone,
+        old_value: currentSale.customer_phone || '',
+        new_value: customer_phone
+      });
+    }
+    if (customer_address !== undefined && customer_address !== currentSale.customer_address) {
+      updateData.customer_address = customer_address;
+      changeHistory.push({
+        field_name: fieldLabels.customer_address,
+        old_value: currentSale.customer_address || '',
+        new_value: customer_address
+      });
+    }
+    if (product_id !== undefined && product_id !== currentSale.product_id) {
+      updateData.product_id = product_id;
+      changeHistory.push({
+        field_name: fieldLabels.product_id,
+        old_value: currentSale.product_id || '',
+        new_value: product_id
+      });
+    }
+    if (quantity !== undefined && quantity !== currentSale.quantity) {
+      updateData.quantity = quantity;
+      changeHistory.push({
+        field_name: fieldLabels.quantity,
+        old_value: String(currentSale.quantity || 0),
+        new_value: String(quantity)
+      });
+    }
+    if (unit_price !== undefined && unit_price !== currentSale.unit_price) {
+      updateData.unit_price = unit_price;
+      changeHistory.push({
+        field_name: fieldLabels.unit_price,
+        old_value: String(currentSale.unit_price || 0),
+        new_value: String(unit_price)
+      });
+    }
+    if (notes !== undefined && notes !== currentSale.notes) {
+      updateData.notes = notes;
+      changeHistory.push({
+        field_name: fieldLabels.notes,
+        old_value: currentSale.notes || '',
+        new_value: notes
+      });
+    }
+    if (sale_date !== undefined && sale_date !== currentSale.sale_date) {
+      updateData.sale_date = sale_date;
+      changeHistory.push({
+        field_name: fieldLabels.sale_date,
+        old_value: currentSale.sale_date || '',
+        new_value: sale_date
+      });
+    }
+    if (status !== undefined && status !== currentSale.status) {
+      updateData.status = status;
+      changeHistory.push({
+        field_name: fieldLabels.status,
+        old_value: currentSale.status || '',
+        new_value: status
+      });
+    }
 
     // 合計金額を再計算
     if (quantity !== undefined || unit_price !== undefined) {
-      const { data: currentSale } = await supabase
-        .from('sales')
-        .select('quantity, unit_price')
-        .eq('id', id)
-        .single();
-
       const newQuantity = quantity !== undefined ? quantity : currentSale.quantity;
       const newUnitPrice = unit_price !== undefined ? unit_price : currentSale.unit_price;
-      updateData.total_amount = newQuantity * newUnitPrice;
+      const newTotalAmount = newQuantity * newUnitPrice;
+
+      if (newTotalAmount !== currentSale.total_amount) {
+        updateData.total_amount = newTotalAmount;
+        changeHistory.push({
+          field_name: '合計金額',
+          old_value: String(currentSale.total_amount || 0),
+          new_value: String(newTotalAmount)
+        });
+      }
+    }
+
+    // 変更がない場合
+    if (changeHistory.length === 0) {
+      return res.json({
+        success: true,
+        message: '変更はありませんでした',
+        data: currentSale
+      });
     }
 
     // 更新実行
@@ -974,6 +1124,31 @@ router.put('/:id', authenticateToken, async (req, res) => {
         error: true,
         message: '売上情報が見つかりません'
       });
+    }
+
+    // 変更履歴をデータベースに保存
+    if (changeHistory.length > 0) {
+      try {
+        const historyRecords = changeHistory.map(change => ({
+          sale_id: id,
+          changed_by: req.user.id,
+          changed_at: new Date().toISOString(),
+          field_name: change.field_name,
+          old_value: change.old_value,
+          new_value: change.new_value
+        }));
+
+        const { error: historyError } = await supabase
+          .from('sale_change_history')
+          .insert(historyRecords);
+
+        if (historyError) {
+          console.error('変更履歴の保存エラー:', historyError);
+          // 履歴保存エラーは売上更新の成功には影響しない
+        }
+      } catch (historyError) {
+        console.error('変更履歴の保存エラー:', historyError);
+      }
     }
 
     // 金額が変更された場合、関連する報酬を再計算
@@ -1237,6 +1412,96 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({
       error: true,
       message: 'データの削除に失敗しました'
+    });
+  }
+});
+
+/**
+ * GET /api/sales/:id/history
+ * 売上の変更履歴取得
+ */
+router.get('/:id/history', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 売上情報を取得して権限チェック
+    const { data: sale, error: saleError } = await supabase
+      .from('sales')
+      .select('agency_id')
+      .eq('id', id)
+      .single();
+
+    if (saleError || !sale) {
+      return res.status(404).json({
+        success: false,
+        message: '売上情報が見つかりません'
+      });
+    }
+
+    // 代理店ユーザーは自社または下位代理店の売上のみ閲覧可能
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    if (!isAdmin && req.user.role === 'agency') {
+      // 下位代理店のIDを再帰的に取得
+      const getSubordinateAgencyIds = async (parentId) => {
+        const { data: children } = await supabase
+          .from('agencies')
+          .select('id')
+          .eq('parent_agency_id', parentId);
+
+        let ids = [parentId];
+        if (children && children.length > 0) {
+          for (const child of children) {
+            const childIds = await getSubordinateAgencyIds(child.id);
+            ids = ids.concat(childIds);
+          }
+        }
+        return ids;
+      };
+
+      const allowedAgencyIds = await getSubordinateAgencyIds(req.user.agency.id);
+      if (!allowedAgencyIds.includes(sale.agency_id)) {
+        return res.status(403).json({
+          success: false,
+          message: '変更履歴を閲覧する権限がありません'
+        });
+      }
+    }
+
+    // 変更履歴を取得
+    const { data: history, error: historyError } = await supabase
+      .from('sale_change_history')
+      .select(`
+        *,
+        users!inner(full_name, email)
+      `)
+      .eq('sale_id', id)
+      .order('changed_at', { ascending: false });
+
+    if (historyError) throw historyError;
+
+    // ユーザー情報を整形
+    const formattedHistory = history.map(item => ({
+      id: item.id,
+      field_name: item.field_name,
+      old_value: item.old_value,
+      new_value: item.new_value,
+      changed_at: item.changed_at,
+      changed_by: {
+        id: item.changed_by,
+        name: item.users?.full_name || '不明',
+        email: item.users?.email || ''
+      }
+    }));
+
+    res.json({
+      success: true,
+      data: formattedHistory
+    });
+  } catch (error) {
+    console.error('Get sale history error:', error);
+    res.status(500).json({
+      success: false,
+      message: '変更履歴の取得に失敗しました'
     });
   }
 });

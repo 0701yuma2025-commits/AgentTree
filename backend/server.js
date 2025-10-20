@@ -83,6 +83,9 @@ app.use('/api/invoices', require('./src/routes/invoices'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/payments', require('./src/routes/payments'));
 app.use('/api/campaigns', require('./src/routes/campaigns'));
+app.use('/api/network', require('./src/routes/network'));
+app.use('/api/audit-logs', require('./src/routes/audit-logs'));
+app.use('/api/document-recipients', require('./src/routes/document-recipients'));
 
 // ヘルスチェック
 app.get('/health', (req, res) => {

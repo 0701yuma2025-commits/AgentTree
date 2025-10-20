@@ -161,7 +161,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (req.user.role === 'agency') {
       const { data: agency, error: agencyError } = await supabase
         .from('agencies')
-        .select('tier')
+        .select('tier_level')
         .eq('id', req.user.agency_id)
         .single();
 
@@ -171,7 +171,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
           message: '代理店情報が見つかりません'
         });
       }
-      agencyTier = agency.tier;
+      agencyTier = agency.tier_level;
     }
 
     // 基本フィールド（全員編集可能）

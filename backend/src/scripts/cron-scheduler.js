@@ -48,7 +48,7 @@ async function monthlyClosing() {
 
       if (admins && admins.length > 0) {
         for (const admin of admins) {
-          await emailService.sendEmail({
+          await emailService.sendMail({
             to: admin.email,
             subject: `【要対応】未確定売上の確認 (${targetMonth})`,
             html: `
@@ -81,7 +81,7 @@ async function monthlyClosing() {
 
     if (admins && admins.length > 0) {
       for (const admin of admins) {
-        await emailService.sendEmail({
+        await emailService.sendMail({
           to: admin.email,
           subject: '【エラー】月次締め処理の失敗',
           html: `
@@ -163,7 +163,7 @@ async function calculateCommissions() {
       const totalAmount = commissionsData.reduce((sum, c) => sum + c.final_amount, 0);
 
       for (const admin of admins) {
-        await emailService.sendEmail({
+        await emailService.sendMail({
           to: admin.email,
           subject: `【完了】報酬計算処理 (${targetMonth})`,
           html: `
@@ -191,7 +191,7 @@ async function calculateCommissions() {
 
     if (admins && admins.length > 0) {
       for (const admin of admins) {
-        await emailService.sendEmail({
+        await emailService.sendMail({
           to: admin.email,
           subject: '【エラー】報酬計算処理の失敗',
           html: `
@@ -257,7 +257,7 @@ async function sendPaymentReminders() {
       // 最低支払額未満はスキップ
       if (data.total < 10000) continue;
 
-      await emailService.sendEmail({
+      await emailService.sendMail({
         to: data.agency.contact_email,
         subject: `【ご案内】${currentMonth}月分の報酬確定のお知らせ`,
         html: `
@@ -291,6 +291,204 @@ async function sendPaymentReminders() {
 }
 
 /**
+ * 月次支払い実行処理
+ * 実行タイミング: 毎月25日 10:00
+ */
+async function processMonthlyPayments() {
+  console.log('💸 月次支払い処理を開始します...');
+
+  try {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const paymentDate = `${currentMonth}-25`;
+
+    // 承認済み（approved）の報酬データを取得
+    const { data: commissions, error: commError } = await supabase
+      .from('commissions')
+      .select(`
+        *,
+        agency:agencies(id, company_name, contact_email)
+      `)
+      .eq('month', currentMonth)
+      .eq('status', 'approved');
+
+    if (commError) throw commError;
+
+    if (!commissions || commissions.length === 0) {
+      console.log('ℹ️  支払い対象の報酬がありません');
+      return;
+    }
+
+    console.log(`${commissions.length} 件の報酬を処理します`);
+
+    // 代理店ごとに集計
+    const agencyPayments = {};
+    for (const comm of commissions) {
+      const agencyId = comm.agency_id;
+      if (!agencyPayments[agencyId]) {
+        agencyPayments[agencyId] = {
+          agency: comm.agency,
+          commissionIds: [],
+          total: 0
+        };
+      }
+      agencyPayments[agencyId].commissionIds.push(comm.id);
+      agencyPayments[agencyId].total += comm.final_amount;
+    }
+
+    let processedCount = 0;
+    let totalAmount = 0;
+    const paymentRecords = [];
+
+    // 各代理店の支払い処理
+    for (const [agencyId, data] of Object.entries(agencyPayments)) {
+      // 最低支払額チェック（1万円未満はスキップ）
+      if (data.total < 10000) {
+        console.log(`⏭️  ${data.agency.company_name}: 最低支払額未満 (¥${data.total.toLocaleString()})`);
+        continue;
+      }
+
+      // 1. 報酬ステータスを paid に更新
+      const { error: updateError } = await supabase
+        .from('commissions')
+        .update({
+          status: 'paid',
+          payment_date: paymentDate
+        })
+        .in('id', data.commissionIds);
+
+      if (updateError) {
+        console.error(`❌ ${data.agency.company_name} の報酬更新に失敗:`, updateError);
+        continue;
+      }
+
+      // 2. payment_history に記録
+      const paymentRecord = {
+        agency_id: agencyId,
+        amount: data.total,
+        payment_method: 'bank_transfer',
+        payment_date: paymentDate,
+        reference_number: `PAY-${currentMonth.replace('-', '')}-${agencyId.substring(0, 8)}`,
+        status: 'completed',
+        notes: `${currentMonth}月分の報酬支払い（${data.commissionIds.length}件の報酬）`
+      };
+
+      const { error: insertError } = await supabase
+        .from('payment_history')
+        .insert(paymentRecord);
+
+      if (insertError) {
+        console.error(`❌ ${data.agency.company_name} の支払い履歴記録に失敗:`, insertError);
+        continue;
+      }
+
+      paymentRecords.push({
+        agencyName: data.agency.company_name,
+        amount: data.total,
+        count: data.commissionIds.length
+      });
+
+      // 3. 代理店に支払い完了メール送信
+      if (data.agency.contact_email) {
+        await emailService.sendMail({
+          to: data.agency.contact_email,
+          subject: `【完了】${currentMonth}月分の報酬支払いのお知らせ`,
+          html: `
+            <h2>報酬支払い完了のお知らせ</h2>
+            <p>${data.agency.company_name} 様</p>
+            <p>${currentMonth}月分の報酬をお支払いいたしました。</p>
+
+            <h3>支払い詳細</h3>
+            <ul>
+              <li>支払い金額: ¥${data.total.toLocaleString()}</li>
+              <li>支払い日: ${paymentDate}</li>
+              <li>参照番号: ${paymentRecord.reference_number}</li>
+              <li>報酬件数: ${data.commissionIds.length} 件</li>
+            </ul>
+
+            <p>ご確認の程、よろしくお願いいたします。</p>
+            <p>※詳細は管理画面の請求書ページよりご確認いただけます。</p>
+          `
+        });
+      }
+
+      processedCount++;
+      totalAmount += data.total;
+
+      console.log(`✅ ${data.agency.company_name}: ¥${data.total.toLocaleString()}`);
+    }
+
+    console.log(`✅ ${processedCount} 社への支払い処理が完了しました (合計: ¥${totalAmount.toLocaleString()})`);
+
+    // 4. 管理者に支払い完了レポート送信
+    const { data: admins } = await supabase
+      .from('users')
+      .select('email, full_name')
+      .eq('role', 'admin');
+
+    if (admins && admins.length > 0) {
+      for (const admin of admins) {
+        await emailService.sendMail({
+          to: admin.email,
+          subject: `【完了】${currentMonth}月分の支払い処理レポート`,
+          html: `
+            <h2>月次支払い処理完了</h2>
+            <p>${admin.full_name} 様</p>
+            <p>${currentMonth}月分の支払い処理が完了しました。</p>
+
+            <h3>処理サマリー</h3>
+            <ul>
+              <li>処理件数: ${processedCount} 社</li>
+              <li>合計支払額: ¥${totalAmount.toLocaleString()}</li>
+              <li>支払い日: ${paymentDate}</li>
+            </ul>
+
+            <h3>支払い明細</h3>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+              <tr>
+                <th>代理店名</th>
+                <th>支払額</th>
+                <th>報酬件数</th>
+              </tr>
+              ${paymentRecords.map(p => `
+                <tr>
+                  <td>${p.agencyName}</td>
+                  <td>¥${p.amount.toLocaleString()}</td>
+                  <td>${p.count}</td>
+                </tr>
+              `).join('')}
+            </table>
+          `
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ 月次支払い処理でエラーが発生しました:', error);
+
+    // エラー時は管理者に通知
+    const { data: admins } = await supabase
+      .from('users')
+      .select('email')
+      .eq('role', 'admin');
+
+    if (admins && admins.length > 0) {
+      for (const admin of admins) {
+        await emailService.sendMail({
+          to: admin.email,
+          subject: '【エラー】月次支払い処理の失敗',
+          html: `
+            <h2>エラー通知</h2>
+            <p>月次支払い処理中にエラーが発生しました。</p>
+            <pre>${error.message}</pre>
+          `
+        });
+      }
+    }
+  }
+}
+
+/**
  * スケジューラーを起動
  */
 function startScheduler() {
@@ -318,6 +516,11 @@ function startScheduler() {
     await sendPaymentReminders();
   });
 
+  // 毎月25日 10:00 に支払い実行処理
+  cron.schedule('0 10 25 * *', async () => {
+    await processMonthlyPayments();
+  });
+
   // 日次バックアップ（毎日 03:00）
   cron.schedule('0 3 * * *', async () => {
     console.log('💾 日次バックアップ処理（未実装）');
@@ -327,6 +530,7 @@ function startScheduler() {
   console.log('⏰ 月次締め: 毎月末日 23:59');
   console.log('⏰ 報酬計算: 毎月1日 02:00');
   console.log('⏰ 支払い通知: 毎月20日 09:00');
+  console.log('⏰ 支払い実行: 毎月25日 10:00');
   console.log('⏰ バックアップ: 毎日 03:00');
 }
 
@@ -346,5 +550,6 @@ module.exports = {
   startScheduler,
   monthlyClosing,
   calculateCommissions,
-  sendPaymentReminders
+  sendPaymentReminders,
+  processMonthlyPayments
 };

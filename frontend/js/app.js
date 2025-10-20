@@ -51,6 +51,20 @@ class App {
       if (e.key === 'Enter') this.handleLogin();
     });
 
+    // 2FA認証
+    document.getElementById('verify2FABtn')?.addEventListener('click', () => this.handle2FAVerification());
+    document.getElementById('twoFactorCode')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.handle2FAVerification();
+    });
+
+
+    // 2FA画面から戻る
+    document.getElementById('back2FALink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.show2FAForm(false);
+      this.showMessage('loginMessage', '', 'info');
+    });
+
     // パスワードリセットリンク
     document.getElementById('forgotPasswordLink')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -204,6 +218,17 @@ class App {
       const response = await authAPI.login(email, password);
 
       if (response.success) {
+        // 2FA有効チェック
+        if (response.requires2FA || response.user?.two_factor_enabled) {
+          // 2FA入力画面を表示
+          this.loginEmail = email; // 2FA認証時に使用するため保存
+          this.show2FAForm(true);
+          this.showMessage('loginMessage', '', 'info');
+          this.showMessage('twoFactorMessage', 'メールに認証コードを送信しました。確認してください。', 'info');
+          return;
+        }
+
+        // 2FAが不要な場合は通常通りログイン成功
         this.showMessage('loginMessage', 'ログイン成功', 'success');
         // セキュリティ対策: ページを完全リロードして前ユーザーのデータを確実に削除
         setTimeout(() => {
@@ -238,6 +263,55 @@ class App {
     document.getElementById('loginPassword').value = '';
 
   }
+
+  /**
+   * 2FAフォーム表示切り替え
+   */
+  show2FAForm(show) {
+    if (show) {
+      document.getElementById('loginForm')?.classList.add('hidden');
+      document.getElementById('twoFactorForm')?.classList.remove('hidden');
+      // フォームクリア
+      document.getElementById('twoFactorCode').value = '';
+      // 認証コード入力にフォーカス
+      setTimeout(() => {
+        document.getElementById('twoFactorCode')?.focus();
+      }, 100);
+    } else {
+      document.getElementById('loginForm')?.classList.remove('hidden');
+      document.getElementById('twoFactorForm')?.classList.add('hidden');
+      this.loginEmail = null;
+    }
+  }
+
+  /**
+   * 2FA認証処理
+   */
+  async handle2FAVerification() {
+    const token = document.getElementById('twoFactorCode')?.value;
+
+    if (!token || token.length !== 6) {
+      this.showMessage('twoFactorMessage', '6桁の認証コードを入力してください', 'error');
+      return;
+    }
+
+    try {
+      this.showMessage('twoFactorMessage', '認証中...', 'info');
+
+      const response = await authAPI.login2FAEmail(this.loginEmail, token);
+
+      if (response.success) {
+        this.showMessage('twoFactorMessage', '認証成功', 'success');
+        // セキュリティ対策: ページを完全リロード
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    } catch (error) {
+      this.showMessage('twoFactorMessage', error.message || '認証に失敗しました', 'error');
+    }
+  }
+
 
   /**
    * メインアプリ表示
@@ -353,6 +427,12 @@ class App {
             campaignsPage.showCreateCampaignModal();
           });
           break;
+        case 'network':
+          await networkPage.init();
+          break;
+        case 'auditLogs':
+          await auditLogsPage.init();
+          break;
       }
 
       // ロード完了を記録
@@ -430,7 +510,7 @@ class App {
             recentSalesContainer.innerHTML = stats.recentSales.map(sale => `
               <div class="recent-sale-item">
                 <span class="sale-number">${sale.sale_number}</span>
-                <span class="customer">${sale.customer_name}</span>
+                <span class="customer">${sale.agency_name}</span>
                 <span class="amount">¥${sale.total_amount.toLocaleString()}</span>
                 <span class="date">${sale.sale_date}</span>
               </div>
@@ -1467,12 +1547,32 @@ class App {
             <div class="form-section">
               <h3>連絡先情報</h3>
               <div class="form-group">
+                <label for="edit_contact_email">メールアドレス *</label>
+                <input type="email" id="edit_contact_email" value="${agency.contact_email || ''}" required>
+                <small class="text-muted">請求書・領収書に記載されるメールアドレスです</small>
+              </div>
+              <div class="form-group">
+                <label for="edit_contact_phone">電話番号</label>
+                <input type="tel" id="edit_contact_phone" value="${agency.contact_phone || ''}">
+                <small class="text-muted">請求書・領収書に記載される電話番号です</small>
+              </div>
+              <div class="form-group">
                 <label for="edit_representative_phone">代表者電話番号</label>
                 <input type="tel" id="edit_representative_phone" value="${agency.representative_phone || ''}">
               </div>
               <div class="form-group">
                 <label for="edit_birth_date">生年月日</label>
                 <input type="date" id="edit_birth_date" value="${agency.birth_date || ''}">
+              </div>
+              <div class="form-group">
+                <label for="edit_postal_code">郵便番号</label>
+                <input type="text" id="edit_postal_code" value="${agency.postal_code || ''}" placeholder="例：100-0001">
+                <small class="text-muted">請求書・領収書に記載される郵便番号です</small>
+              </div>
+              <div class="form-group">
+                <label for="edit_address">住所</label>
+                <textarea id="edit_address" rows="3" placeholder="例：東京都千代田区千代田1-1">${agency.address || ''}</textarea>
+                <small class="text-muted">請求書・領収書に記載される住所です</small>
               </div>
             </div>
 
@@ -1604,6 +1704,10 @@ class App {
         company_name: document.getElementById('edit_company_name').value,
         company_type: document.getElementById('edit_company_type').value,
         representative_name: document.getElementById('edit_representative_name').value,
+        contact_email: document.getElementById('edit_contact_email').value,
+        contact_phone: document.getElementById('edit_contact_phone').value,
+        postal_code: document.getElementById('edit_postal_code').value || null,
+        address: document.getElementById('edit_address').value || null,
         representative_phone: document.getElementById('edit_representative_phone').value,
         birth_date: document.getElementById('edit_birth_date').value || null,
         invoice_registered: document.getElementById('edit_invoice_registered').checked,
@@ -2023,6 +2127,7 @@ class App {
               <button class="btn btn-primary" onclick="app.editSale('${sale.id}')">編集</button>
               <button class="btn btn-danger" onclick="app.deleteSale('${sale.id}')">削除</button>
             ` : ''}
+            <button class="btn btn-secondary" onclick="app.showSaleHistory('${sale.id}')">変更履歴</button>
             <button class="btn btn-secondary" onclick="app.hideModal()">閉じる</button>
           </div>
         </div>
@@ -2058,65 +2163,90 @@ class App {
       }
 
       const sale = response.data;
+      const status = sale.status || 'pending';
+      const isAdmin = authAPI.isAdmin();
+
+      // ステータスによる編集可否チェック
+      if (status === 'paid' && !isAdmin) {
+        alert('支払済みの売上は編集できません');
+        return;
+      }
 
       // 商品一覧を取得
       const productsResponse = await apiClient.get('/products');
       const products = productsResponse.data || [];
+
+      // 変更履歴を取得
+      const historyResponse = await apiClient.get(`/sales/${saleId}/history`);
+      const history = historyResponse.success ? historyResponse.data : [];
+
+      // ステータス別の編集可能フィールド
+      const canEditAll = status === 'pending' || isAdmin;
+      const canEditCustomer = status === 'confirmed' || canEditAll;
+      const readonly = (field) => {
+        if (status === 'paid' && !isAdmin) return 'readonly style="background-color: #f5f5f5;"';
+        if (field === 'customer' && !canEditCustomer) return '';
+        if (!canEditAll && field !== 'customer') return 'readonly style="background-color: #f5f5f5;"';
+        return '';
+      };
 
       // 編集フォームを表示
       const modalBody = document.getElementById('modalBody');
       modalBody.innerHTML = `
         <div class="sale-edit">
           <h2>売上編集</h2>
+          <div style="background: #e7f3ff; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em;">
+            <strong>現在のステータス:</strong> ${status === 'pending' ? '保留中' : status === 'confirmed' ? '確定済み' : status === 'paid' ? '支払済み' : status}<br>
+            ${!canEditAll ? '<span style="color: #d46b08;">⚠ このステータスでは一部のフィールドのみ編集可能です</span>' : ''}
+            ${status === 'pending' ? '<span style="color: #52c41a;">✓ 全てのフィールドを編集できます</span>' : ''}
+            ${status === 'confirmed' && !isAdmin ? '<span style="color: #d46b08;">⚠ 顧客情報のみ編集できます</span>' : ''}
+          </div>
           <form id="editSaleForm">
             <div class="form-group">
               <label for="saleDate">売上日*</label>
-              <input type="date" id="saleDate" value="${sale.sale_date.split('T')[0]}" required>
+              <input type="date" id="saleDate" value="${sale.sale_date.split('T')[0]}" ${readonly('sale')} required>
             </div>
 
             <div class="form-group">
               <label for="customerName">顧客名*</label>
-              <input type="text" id="customerName" value="${sale.customer_name || ''}" required>
+              <input type="text" id="customerName" value="${sale.customer_name || ''}" ${readonly('customer')} required>
             </div>
 
             <div class="form-group">
               <label for="customerEmail">メールアドレス</label>
-              <input type="email" id="customerEmail" value="${sale.customer_email || ''}">
+              <input type="email" id="customerEmail" value="${sale.customer_email || ''}" ${readonly('customer')}>
             </div>
 
             <div class="form-group">
               <label for="customerPhone">電話番号</label>
-              <input type="tel" id="customerPhone" value="${sale.customer_phone || ''}">
+              <input type="tel" id="customerPhone" value="${sale.customer_phone || ''}" ${readonly('customer')}>
+            </div>
+
+            <div class="form-group">
+              <label for="customerAddress">住所</label>
+              <input type="text" id="customerAddress" value="${sale.customer_address || ''}" ${readonly('customer')}>
             </div>
 
             <div class="form-group">
               <label for="productId">商品*</label>
-              <select id="productId" required>
+              <select id="productId" ${readonly('sale')} required>
                 ${products.map(p => `<option value="${p.id}" ${sale.product_id === p.id ? 'selected' : ''}>${p.name} (¥${p.price.toLocaleString()})</option>`).join('')}
               </select>
             </div>
 
             <div class="form-group">
               <label for="quantity">数量*</label>
-              <input type="number" id="quantity" value="${sale.quantity}" min="1" required>
+              <input type="number" id="quantity" value="${sale.quantity}" min="1" ${readonly('sale')} required>
             </div>
 
             <div class="form-group">
               <label for="unitPrice">単価*</label>
-              <input type="number" id="unitPrice" value="${sale.unit_price}" min="0" required>
+              <input type="number" id="unitPrice" value="${sale.unit_price}" min="0" ${readonly('sale')} required>
             </div>
 
             <div class="form-group">
               <label for="notes">備考</label>
-              <textarea id="notes" rows="3">${sale.notes || ''}</textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="status">ステータス</label>
-              <select id="status">
-                <option value="active" ${sale.status === 'active' ? 'selected' : ''}>有効</option>
-                <option value="cancelled" ${sale.status === 'cancelled' ? 'selected' : ''}>キャンセル</option>
-              </select>
+              <textarea id="notes" rows="3" ${readonly('sale')}>${sale.notes || ''}</textarea>
             </div>
 
             <div class="modal-buttons">
@@ -2124,6 +2254,30 @@ class App {
               <button type="button" class="btn btn-secondary" onclick="app.hideModal()">キャンセル</button>
             </div>
           </form>
+
+          ${history.length > 0 ? `
+          <div class="detail-section" style="margin-top: 30px;">
+            <h3>変更履歴</h3>
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 4px;">
+              ${history.map(h => `
+                <div style="padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <strong style="color: #4A90E2;">${h.field_name}</strong>
+                    <span style="font-size: 0.85em; color: #999;">${new Date(h.changed_at).toLocaleString()}</span>
+                  </div>
+                  <div style="font-size: 0.9em; color: #666;">
+                    <span style="color: #999;">変更前:</span> <span style="background: #fff1f0; padding: 2px 6px; border-radius: 3px;">${h.old_value || '(空)'}</span>
+                    →
+                    <span style="color: #999;">変更後:</span> <span style="background: #f6ffed; padding: 2px 6px; border-radius: 3px;">${h.new_value || '(空)'}</span>
+                  </div>
+                  <div style="font-size: 0.85em; color: #999; margin-top: 4px;">
+                    変更者: ${h.changed_by.name} (${h.changed_by.email})
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
         </div>
       `;
 
@@ -2132,16 +2286,20 @@ class App {
         e.preventDefault();
 
         const updateData = {
-          sale_date: document.getElementById('saleDate').value,
           customer_name: document.getElementById('customerName').value,
           customer_email: document.getElementById('customerEmail').value,
           customer_phone: document.getElementById('customerPhone').value,
-          product_id: document.getElementById('productId').value,
-          quantity: parseInt(document.getElementById('quantity').value),
-          unit_price: parseFloat(document.getElementById('unitPrice').value),
-          notes: document.getElementById('notes').value,
-          status: document.getElementById('status').value
+          customer_address: document.getElementById('customerAddress').value
         };
+
+        // 全フィールド編集可能な場合は追加
+        if (canEditAll) {
+          updateData.sale_date = document.getElementById('saleDate').value;
+          updateData.product_id = document.getElementById('productId').value;
+          updateData.quantity = parseInt(document.getElementById('quantity').value);
+          updateData.unit_price = parseFloat(document.getElementById('unitPrice').value);
+          updateData.notes = document.getElementById('notes').value;
+        }
 
         try {
           const result = await apiClient.put(`/sales/${saleId}`, updateData);
@@ -2154,7 +2312,7 @@ class App {
           }
         } catch (error) {
           console.error('Update sale error:', error);
-          alert('エラーが発生しました');
+          alert('エラーが発生しました: ' + (error.message || ''));
         }
       });
 
@@ -2187,6 +2345,88 @@ class App {
     } catch (error) {
       console.error('Delete sale error:', error);
       alert('エラーが発生しました');
+    }
+  }
+
+  /**
+   * 売上変更履歴表示
+   */
+  async showSaleHistory(saleId) {
+    try {
+      const historyResponse = await apiClient.get(`/sales/${saleId}/history`);
+      const saleResponse = await apiClient.get(`/sales/${saleId}`);
+
+      if (!historyResponse.success || !saleResponse.success) {
+        alert('履歴の取得に失敗しました');
+        return;
+      }
+
+      const history = historyResponse.data || [];
+      const sale = saleResponse.data;
+
+      const modalBody = document.getElementById('modalBody');
+      modalBody.innerHTML = `
+        <div class="sale-history">
+          <h2>売上変更履歴</h2>
+          <div style="background: #f5f5f5; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+            <strong>売上番号:</strong> ${sale.sale_number || '-'}<br>
+            <strong>顧客名:</strong> ${sale.customer_name || '-'}<br>
+            <strong>合計金額:</strong> ¥${sale.total_amount.toLocaleString()}
+          </div>
+
+          ${history.length === 0 ? `
+            <p style="text-align: center; color: #999; padding: 40px 0;">
+              変更履歴はありません
+            </p>
+          ` : `
+            <div style="max-height: 500px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 4px;">
+              ${history.map((h, index) => `
+                <div style="padding: 16px; border-bottom: 1px solid #f0f0f0; ${index % 2 === 0 ? 'background: #fafafa;' : ''}">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <strong style="color: #4A90E2; font-size: 1.1em;">${h.field_name}</strong>
+                    <span style="font-size: 0.9em; color: #999;">${new Date(h.changed_at).toLocaleString('ja-JP')}</span>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; margin: 10px 0;">
+                    <div>
+                      <div style="font-size: 0.85em; color: #999; margin-bottom: 4px;">変更前</div>
+                      <div style="background: #fff1f0; padding: 8px 12px; border-radius: 4px; border: 1px solid #ffccc7; min-height: 36px;">
+                        ${h.old_value || '<span style="color: #ccc;">(空)</span>'}
+                      </div>
+                    </div>
+                    <div style="text-align: center; color: #999;">
+                      →
+                    </div>
+                    <div>
+                      <div style="font-size: 0.85em; color: #999; margin-bottom: 4px;">変更後</div>
+                      <div style="background: #f6ffed; padding: 8px 12px; border-radius: 4px; border: 1px solid #b7eb8f; min-height: 36px;">
+                        ${h.new_value || '<span style="color: #ccc;">(空)</span>'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size: 0.9em; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e8e8e8;">
+                    <strong>変更者:</strong> ${h.changed_by.name} <span style="color: #999;">(${h.changed_by.email})</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+
+          <div class="modal-buttons" style="margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="app.showSaleDetail('${saleId}')">売上詳細に戻る</button>
+            <button class="btn btn-secondary" onclick="app.hideModal()">閉じる</button>
+          </div>
+        </div>
+      `;
+
+      // モーダル表示（既に表示されている場合は内容のみ更新）
+      const modal = document.getElementById('modal');
+      if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+      }
+
+    } catch (error) {
+      console.error('Show sale history error:', error);
+      alert('履歴の取得に失敗しました');
     }
   }
 

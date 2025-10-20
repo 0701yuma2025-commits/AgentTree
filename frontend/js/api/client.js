@@ -102,7 +102,10 @@ class ApiClient {
     };
 
     const queryString = new URLSearchParams(timestampedParams).toString();
-    const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+
+    // 既存のクエリパラメータがあるか確認
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const url = queryString ? `${endpoint}${separator}${queryString}` : endpoint;
 
     return this.request(url, {
       method: 'GET'

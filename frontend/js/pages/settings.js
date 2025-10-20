@@ -171,6 +171,7 @@ class SettingsPage {
         <div class="form-tabs">
           <button class="tab-button active" data-tab="email">メールアドレス変更</button>
           <button class="tab-button" data-tab="password">パスワード変更</button>
+          <button class="tab-button" data-tab="2fa">2段階認証</button>
         </div>
 
         <!-- メールアドレス変更タブ -->
@@ -218,6 +219,11 @@ class SettingsPage {
             </div>
           </form>
         </div>
+
+        <!-- 2段階認証タブ -->
+        <div class="tab-content" id="2faTab">
+          <div id="2faStatus" class="loading">読み込み中...</div>
+        </div>
       </div>
     `;
 
@@ -260,6 +266,9 @@ class SettingsPage {
     document.getElementById('newPassword')?.addEventListener('input', (e) => {
       this.checkPasswordStrength(e.target.value);
     });
+
+    // 2FAステータスを読み込み
+    this.load2FAStatus();
   }
 
   /**
@@ -386,6 +395,409 @@ class SettingsPage {
     } catch (error) {
       console.error('Save commission rates error:', error);
       alert('エラーが発生しました');
+    }
+  }
+
+  /**
+   * ============================================
+   * 2段階認証（2FA）管理
+   * ============================================
+   */
+
+  /**
+   * 2FAステータスを読み込み
+   */
+  async load2FAStatus() {
+    const container = document.getElementById('2faStatus');
+    if (!container) return;
+
+    try {
+      const response = await authAPI.get2FAStatus();
+
+      if (response.success) {
+        this.display2FASettings(response.data);
+      } else {
+        container.innerHTML = '<div class="error">2FAステータスの取得に失敗しました</div>';
+      }
+    } catch (error) {
+      console.error('Load 2FA status error:', error);
+      container.innerHTML = '<div class="error">エラーが発生しました</div>';
+    }
+  }
+
+  /**
+   * 2FA設定UIを表示
+   */
+  display2FASettings(status) {
+    const container = document.getElementById('2faStatus');
+    if (!container) return;
+
+    const isEnabled = status.enabled || false;
+    const user = authAPI.getCurrentUser();
+
+    container.innerHTML = `
+      <div class="2fa-settings">
+        <div class="2fa-status-card">
+          <h4>メール2段階認証</h4>
+          <p class="2fa-description">
+            ログイン時に登録メールアドレス（${user.email}）に認証コードを送信します。<br>
+            アカウントのセキュリティを向上させます。
+          </p>
+
+          <div class="2fa-current-status">
+            <span class="status-label">現在の状態:</span>
+            <span class="status-badge ${isEnabled ? 'enabled' : 'disabled'}">
+              ${isEnabled ? '✓ 有効' : '無効'}
+            </span>
+          </div>
+
+          <div class="2fa-actions" style="margin-top: 20px;">
+            ${!isEnabled ? `
+              <button type="button" class="btn btn-primary" onclick="window.settingsPage.enable2FA()">
+                2FAを有効化
+              </button>
+              <p class="help-text" style="margin-top: 10px; color: #ff9800; font-size: 14px; font-weight: bold;">
+                ⚠️ クリックすると確認画面が表示されます。必ず下にスクロールしてパスワード入力欄を確認してください
+              </p>
+            ` : `
+              <p class="warning-text" style="color: #ff9800; margin-bottom: 15px;">
+                ⚠️ 2FAを無効化すると、セキュリティレベルが低下します
+              </p>
+              <button type="button" class="btn btn-danger" onclick="window.settingsPage.disable2FA()">
+                2FAを無効化
+              </button>
+              <p class="help-text" style="margin-top: 10px; color: #ff9800; font-size: 14px; font-weight: bold;">
+                ⚠️ クリックすると確認画面が表示されます。必ず下にスクロールして入力欄を確認してください
+              </p>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 2FA有効化（メール認証方式）
+   */
+  async enable2FA() {
+    this.showEnable2FAModal();
+  }
+
+  /**
+   * 2FA有効化モーダル表示
+   */
+  showEnable2FAModal() {
+    const modalHTML = `
+      <div class="modal-overlay" id="enable2FAModal" style="z-index: 10000;">
+        <div class="modal-dialog" style="margin-left: 200px;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>2段階認証を有効化</h3>
+              <button class="modal-close" onclick="window.settingsPage.closeEnable2FAModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p>セキュリティ確認のため、現在のパスワードを入力してください。</p>
+              <form id="enable2FAForm">
+                <div class="form-group">
+                  <label for="enable2FAPassword">パスワード</label>
+                  <input type="password" id="enable2FAPassword" class="form-control"
+                         placeholder="パスワードを入力" required autocomplete="current-password">
+                </div>
+                <div id="enable2FAMessage" class="message"></div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">有効化</button>
+                  <button type="button" class="btn btn-secondary" onclick="window.settingsPage.closeEnable2FAModal()">キャンセル</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+
+    // フォーカスを設定
+    setTimeout(() => {
+      document.getElementById('enable2FAPassword')?.focus();
+    }, 100);
+
+    document.getElementById('enable2FAForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.submitEnable2FA();
+    });
+  }
+
+  /**
+   * 2FA有効化を実行
+   */
+  async submitEnable2FA() {
+    const password = document.getElementById('enable2FAPassword').value;
+    const messageEl = document.getElementById('enable2FAMessage');
+
+    if (!password) {
+      this.showModalMessage(messageEl, 'パスワードを入力してください', 'error');
+      return;
+    }
+
+    try {
+      this.showModalMessage(messageEl, '処理中...', 'info');
+      const response = await authAPI.enable2FAEmail(password);
+
+      if (response.success) {
+        this.showModalMessage(messageEl, '2段階認証を有効化しました！', 'success');
+        setTimeout(() => {
+          this.closeEnable2FAModal();
+          this.load2FAStatus();
+        }, 1000);
+      } else {
+        this.showModalMessage(messageEl, response.message || '2FAの有効化に失敗しました', 'error');
+      }
+    } catch (error) {
+      console.error('Enable 2FA error:', error);
+      this.showModalMessage(messageEl, error.message || 'エラーが発生しました', 'error');
+    }
+  }
+
+  /**
+   * 2FA有効化モーダルを閉じる
+   */
+  closeEnable2FAModal() {
+    const modal = document.getElementById('enable2FAModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  /**
+   * 2FA認証コード入力モーダル表示
+   */
+  show2FAVerifyModal() {
+    const modalHTML = `
+      <div class="modal-overlay" id="2faVerifyModal" style="z-index: 10000;">
+        <div class="modal-dialog" style="margin-left: 200px;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>メール認証コードの入力</h3>
+              <button class="modal-close" onclick="window.settingsPage.close2FAVerifyModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p>登録メールアドレスに送信された6桁の認証コードを入力してください。</p>
+              <form id="verify2FAEmailForm">
+                <div class="form-group">
+                  <input type="text" id="2faEmailCode" class="form-control"
+                         placeholder="000000" maxlength="6" pattern="[0-9]{6}" required
+                         style="font-size: 24px; text-align: center; letter-spacing: 0.5em;">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">有効化</button>
+                  <button type="button" class="btn btn-secondary" onclick="window.settingsPage.close2FAVerifyModal()">キャンセル</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+
+    document.getElementById('verify2FAEmailForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.verify2FAEmail();
+    });
+  }
+
+  /**
+   * メール認証コード検証
+   */
+  async verify2FAEmail() {
+    const code = document.getElementById('2faEmailCode').value;
+
+    if (!code || code.length !== 6) {
+      alert('6桁の認証コードを入力してください');
+      return;
+    }
+
+    try {
+      const response = await authAPI.verify2FAEmail(code);
+
+      if (response.success) {
+        alert('2FAが有効化されました！');
+        this.close2FAVerifyModal();
+        await this.load2FAStatus();
+      } else {
+        alert(response.message || '認証コードが正しくありません');
+      }
+    } catch (error) {
+      console.error('Verify 2FA email error:', error);
+      alert('エラーが発生しました');
+    }
+  }
+
+  /**
+   * 2FA無効化（メール方式）
+   */
+  async disable2FA() {
+    this.showDisable2FAModal();
+  }
+
+  /**
+   * 2FA無効化モーダル表示
+   */
+  showDisable2FAModal() {
+    const modalHTML = `
+      <div class="modal-overlay" id="disable2FAModal" style="z-index: 10000;">
+        <div class="modal-dialog" style="margin-left: 200px;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>2段階認証を無効化</h3>
+              <button class="modal-close" onclick="window.settingsPage.closeDisable2FAModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="warning-text" style="color: #ff9800; margin-bottom: 15px;">
+                ⚠️ 2段階認証を無効化すると、セキュリティレベルが低下します。
+              </p>
+              <p>無効化するには、メールに送信される認証コードが必要です。</p>
+              <form id="disable2FAForm">
+                <div id="disable2FAStep1" class="form-step">
+                  <div id="disable2FAMessage" class="message"></div>
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-primary" onclick="window.settingsPage.requestDisable2FACode()">認証コードを送信</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.settingsPage.closeDisable2FAModal()">キャンセル</button>
+                  </div>
+                </div>
+                <div id="disable2FAStep2" class="form-step" style="display: none;">
+                  <div class="form-group">
+                    <label for="disable2FACode">認証コード</label>
+                    <input type="text" id="disable2FACode" class="form-control"
+                           placeholder="000000" maxlength="6" pattern="[0-9]{6}" required
+                           style="font-size: 24px; text-align: center; letter-spacing: 0.5em;">
+                    <small>メールに送信された6桁のコードを入力してください</small>
+                  </div>
+                  <div id="disable2FAMessage2" class="message"></div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-danger">無効化</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.settingsPage.closeDisable2FAModal()">キャンセル</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+
+    document.getElementById('disable2FAForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.submitDisable2FA();
+    });
+  }
+
+  /**
+   * 無効化用認証コードをリクエスト
+   */
+  async requestDisable2FACode() {
+    const messageEl = document.getElementById('disable2FAMessage');
+
+    try {
+      this.showModalMessage(messageEl, '認証コードを送信中...', 'info');
+      const response = await authAPI.requestDisable2FACode();
+
+      if (response.success) {
+        this.showModalMessage(messageEl, '認証コードをメールで送信しました。', 'success');
+
+        // ステップ2を表示
+        setTimeout(() => {
+          document.getElementById('disable2FAStep1').style.display = 'none';
+          document.getElementById('disable2FAStep2').style.display = 'block';
+          document.getElementById('disable2FACode')?.focus();
+        }, 1000);
+      } else {
+        this.showModalMessage(messageEl, response.message || '認証コードの送信に失敗しました', 'error');
+      }
+    } catch (error) {
+      console.error('Request disable 2FA code error:', error);
+      this.showModalMessage(messageEl, error.message || 'エラーが発生しました', 'error');
+    }
+  }
+
+  /**
+   * 2FA無効化を実行
+   */
+  async submitDisable2FA() {
+    const code = document.getElementById('disable2FACode').value;
+    const messageEl = document.getElementById('disable2FAMessage2');
+
+    if (!code || code.length !== 6) {
+      this.showModalMessage(messageEl, '6桁の認証コードを入力してください', 'error');
+      return;
+    }
+
+    try {
+      this.showModalMessage(messageEl, '処理中...', 'info');
+      const response = await authAPI.verifyDisable2FACode(code);
+
+      if (response.success) {
+        this.showModalMessage(messageEl, '2FAを無効化しました。', 'success');
+        setTimeout(() => {
+          this.closeDisable2FAModal();
+          this.load2FAStatus();
+        }, 1000);
+      } else {
+        this.showModalMessage(messageEl, response.message || '認証コードが正しくありません', 'error');
+      }
+    } catch (error) {
+      console.error('Disable 2FA error:', error);
+      this.showModalMessage(messageEl, error.message || 'エラーが発生しました', 'error');
+    }
+  }
+
+  /**
+   * 2FA無効化モーダルを閉じる
+   */
+  closeDisable2FAModal() {
+    const modal = document.getElementById('disable2FAModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  /**
+   * 2FA検証モーダルを閉じる
+   */
+  close2FAVerifyModal() {
+    const modal = document.getElementById('2faVerifyModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  /**
+   * モーダル内メッセージ表示ヘルパー
+   */
+  showModalMessage(element, message, type) {
+    if (!element) return;
+
+    element.textContent = message;
+    element.className = 'message';
+
+    if (type === 'error') {
+      element.style.color = '#dc3545';
+    } else if (type === 'success') {
+      element.style.color = '#28a745';
+    } else if (type === 'info') {
+      element.style.color = '#17a2b8';
+    } else {
+      element.style.color = '#333';
     }
   }
 

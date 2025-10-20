@@ -47,33 +47,91 @@ async function generateInvoicePDF(invoiceData) {
          .text(`発行日: ${invoiceData.issueDate}`, 50, 115)
          .text(`支払期日: ${invoiceData.dueDate}`, 50, 130);
 
-      // 請求先情報
+      // 請求先情報（カスタマイズ可能）
       doc.fontSize(14)
-         .text('営業代理店管理システム 様', 50, 170);
+         .text(invoiceData.recipientCompanyName || '営業代理店管理システム 様', 50, 170);
+
+      // 追加の宛先情報
+      let yPos = 190;
+      doc.fontSize(10);
+
+      if (invoiceData.recipientDepartment) {
+        doc.text(invoiceData.recipientDepartment, 50, yPos);
+        yPos += 15;
+      }
+
+      if (invoiceData.recipientContactPerson) {
+        doc.text(`${invoiceData.recipientContactPerson} 様`, 50, yPos);
+        yPos += 15;
+      }
+
+      if (invoiceData.recipientAddress) {
+        if (invoiceData.recipientPostalCode) {
+          doc.text(`〒${invoiceData.recipientPostalCode}`, 50, yPos);
+          yPos += 15;
+        }
+        doc.text(invoiceData.recipientAddress, 50, yPos);
+        yPos += 15;
+      }
+
+      if (invoiceData.recipientPhone) {
+        doc.text(`TEL: ${invoiceData.recipientPhone}`, 50, yPos);
+        yPos += 15;
+      }
 
       doc.fontSize(10)
-         .text('', 50, 195);
+         .text('', 50, yPos);
 
-      // 請求元情報（システム運営会社）
-      doc.fontSize(10)
-         .text('営業代理店管理システム', 350, 100)
-         .text('〒100-0001', 350, 118)
-         .text('東京都千代田区千代田1-1', 350, 133)
-         .text('TEL: 03-1234-5678', 350, 148)
-         .text('Email: info@agency-system.com', 350, 163);
+      // 請求元情報（代理店自社情報）
+      doc.fontSize(10);
+      let issuerY = 100;
 
-      // インボイス番号
-      if (invoiceData.invoiceNumber) {
-        doc.fontSize(10)
-           .text(`登録番号: T${invoiceData.invoiceRegistrationNumber || '1234567890123'}`, 350, 185);
+      // 代理店名
+      if (invoiceData.issuer?.company_name) {
+        doc.text(invoiceData.issuer.company_name, 350, issuerY);
+        issuerY += 18;
+      }
+
+      // 代表者名
+      if (invoiceData.issuer?.representative_name) {
+        doc.text(invoiceData.issuer.representative_name, 350, issuerY);
+        issuerY += 18;
+      }
+
+      // 郵便番号と住所
+      if (invoiceData.issuer?.postal_code) {
+        doc.text(`〒${invoiceData.issuer.postal_code}`, 350, issuerY);
+        issuerY += 18;
+      }
+
+      if (invoiceData.issuer?.address) {
+        doc.text(invoiceData.issuer.address, 350, issuerY, { width: 150 });
+        issuerY += 18;
+      }
+
+      // 電話番号
+      if (invoiceData.issuer?.contact_phone) {
+        doc.text(`TEL: ${invoiceData.issuer.contact_phone}`, 350, issuerY);
+        issuerY += 18;
+      }
+
+      // メールアドレス
+      if (invoiceData.issuer?.contact_email) {
+        doc.text(`Email: ${invoiceData.issuer.contact_email}`, 350, issuerY);
+        issuerY += 18;
+      }
+
+      // インボイス登録番号
+      if (invoiceData.issuer?.invoice_number) {
+        doc.text(`登録番号: ${invoiceData.issuer.invoice_number}`, 350, issuerY);
       }
 
       // 請求金額
       doc.fontSize(16)
-         .text(`請求金額: ¥${invoiceData.totalAmount.toLocaleString()}`, 50, 230, { align: 'center' });
+         .text(`請求金額: ¥${invoiceData.totalAmount.toLocaleString()}`, 50, 280, { align: 'center' });
 
       // 明細テーブル
-      const tableTop = 280;
+      const tableTop = 330;
       const itemHeight = 25;
 
       // テーブルヘッダー
@@ -194,22 +252,23 @@ async function generateReceiptPDF(receiptData) {
       doc.text(`領収書番号: ${receiptData.receiptNumber}`, 400, 100, { lineBreak: false });
       doc.text(`発行日: ${receiptData.issueDate}`, 400, 150, { lineBreak: false });
 
-      // 宛名
+      // 宛名（支払者情報）
+      const recipientName = receiptData.recipient?.company_name || '営業代理店管理システム運営事務局';
       doc.fontSize(14)
-         .text(`${receiptData.agency.company_name} 様`, 50, 150);
+         .text(`${recipientName} 様`, 50, 150);
 
       // 領収金額
       doc.fontSize(20)
-         .text(`領収金額: ¥${receiptData.amount.toLocaleString()}`, 50, 200, { align: 'center' });
+         .text(`領収金額: ¥${receiptData.amount.toLocaleString()}`, 50, 250, { align: 'center' });
 
       // 但し書き
       doc.fontSize(12)
-         .text('但し、', 50, 260)
-         .text(receiptData.description || '営業代理店報酬として', 100, 260);
+         .text('但し、', 50, 310)
+         .text(receiptData.description || '営業代理店報酬として', 100, 310);
 
       // 内訳
       if (receiptData.breakdown) {
-        let yPosition = 320;
+        let yPosition = 370;
         doc.fontSize(10)
            .text('【内訳】', 50, yPosition);
 
@@ -222,30 +281,62 @@ async function generateReceiptPDF(receiptData) {
 
       // 収入印紙欄（5万円以上の場合）
       if (receiptData.amount >= 50000) {
-        doc.rect(400, 250, 100, 100)
+        doc.rect(400, 300, 100, 100)
            .stroke()
            .fontSize(10)
-           .text('収入印紙', 425, 290);
+           .text('収入印紙', 425, 340);
       }
 
-      // 発行元情報
-      let footerY = 450;
-      doc.fontSize(10)
-         .text('営業代理店管理システム運営事務局', 50, footerY)
-         .text('〒100-0001 東京都千代田区千代田1-1', 50, footerY + 15)
-         .text('TEL: 03-1234-5678', 50, footerY + 30)
-         .text('Email: info@agency-system.com', 50, footerY + 45);
+      // 発行元情報（領収書発行者＝代理店）
+      let footerY = 520;
+      console.log('領収書PDF生成 - フッター開始Y座標:', footerY);
+      doc.fontSize(10);
+
+      // 代理店名
+      if (receiptData.agency?.company_name) {
+        doc.text(receiptData.agency.company_name, 50, footerY);
+        footerY += 15;
+      }
+
+      // 代表者名
+      if (receiptData.agency?.representative_name) {
+        doc.text(receiptData.agency.representative_name, 50, footerY);
+        footerY += 15;
+      }
+
+      // 郵便番号と住所
+      if (receiptData.agency?.postal_code) {
+        doc.text(`〒${receiptData.agency.postal_code}`, 50, footerY);
+        footerY += 15;
+      }
+
+      if (receiptData.agency?.address) {
+        doc.text(receiptData.agency.address, 50, footerY, { width: 300 });
+        footerY += 15;
+      }
+
+      // 電話番号
+      if (receiptData.agency?.contact_phone) {
+        doc.text(`TEL: ${receiptData.agency.contact_phone}`, 50, footerY);
+        footerY += 15;
+      }
+
+      // メールアドレス
+      if (receiptData.agency?.contact_email) {
+        doc.text(`Email: ${receiptData.agency.contact_email}`, 50, footerY);
+        footerY += 15;
+      }
 
       // 印鑑枠
-      doc.rect(400, footerY, 80, 80)
+      doc.rect(400, 520, 80, 80)
          .stroke()
          .fontSize(8)
-         .text('印', 435, footerY + 35);
+         .text('印', 435, 555);
 
       // インボイス番号
-      if (receiptData.invoiceRegistrationNumber) {
+      if (receiptData.agency?.invoice_number) {
         doc.fontSize(10)
-           .text(`登録番号: T${receiptData.invoiceRegistrationNumber}`, 50, footerY + 70);
+           .text(`登録番号: ${receiptData.agency.invoice_number}`, 50, footerY);
       }
 
       doc.end();
@@ -294,7 +385,7 @@ async function generatePaymentStatementPDF(summaryData) {
       // 明細テーブル
       const startY = doc.y;
       const tableHeaders = ['売上日', '売上番号', '売上額', '基本報酬', 'ボーナス', '源泉税', '支払額'];
-      const colWidths = [65, 85, 75, 75, 70, 65, 75];
+      const colWidths = [65, 75, 65, 75, 70, 65, 85];
       let currentX = 50;
 
       // ヘッダー行

@@ -210,20 +210,20 @@ router.get('/stats', authenticateToken, async (req, res) => {
           const ownSales = salesData.filter(s => s.agency_id === agencyId);
           const subordinateSales = salesData.filter(s => s.agency_id !== agencyId);
 
-          const ownAmount = ownSales.reduce((sum, sale) => sum + sale.total_amount, 0);
-          const subordinateAmount = subordinateSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+          const ownAmount = ownSales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || 0), 0);
+          const subordinateAmount = subordinateSales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || 0), 0);
 
           // TOP代理店の計算
           const agencySalesMap = {};
           subordinateSales.forEach(sale => {
             if (!agencySalesMap[sale.agency_id]) {
               agencySalesMap[sale.agency_id] = {
-                agency_name: sale.agencies.company_name,
+                agency_name: sale.agencies?.company_name || '不明',
                 total_amount: 0,
                 sale_count: 0
               };
             }
-            agencySalesMap[sale.agency_id].total_amount += sale.total_amount;
+            agencySalesMap[sale.agency_id].total_amount += parseFloat(sale.total_amount || 0);
             agencySalesMap[sale.agency_id].sale_count += 1;
           });
 
@@ -246,28 +246,32 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
         // 今月のデータ取得
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         const { data: currentSalesData } = await supabase
           .from('sales')
-          .select('*, agencies!inner(id, company_name)')
+          .select('*, agencies(id, company_name)')
           .in('agency_id', allAgencyIds)
           .eq('status', 'confirmed')
-          .gte('sale_date', currentMonthStart.toISOString())
-          .lt('sale_date', now.toISOString());
+          .gte('sale_date', currentMonthStart.toISOString().split('T')[0])
+          .lte('sale_date', currentMonthEnd.toISOString().split('T')[0]);
 
         // 先月のデータ取得
         const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+        const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
         const { data: previousSalesData } = await supabase
           .from('sales')
-          .select('*, agencies!inner(id, company_name)')
+          .select('*, agencies(id, company_name)')
           .in('agency_id', allAgencyIds)
           .eq('status', 'confirmed')
-          .gte('sale_date', previousMonthStart.toISOString())
-          .lt('sale_date', previousMonthEnd.toISOString());
+          .gte('sale_date', previousMonthStart.toISOString().split('T')[0])
+          .lte('sale_date', previousMonthEnd.toISOString().split('T')[0]);
+
+        const currentResult = currentSalesData ? calculateMonthlyOrgSales(currentSalesData, agencyId) : null;
+        const previousResult = previousSalesData ? calculateMonthlyOrgSales(previousSalesData, agencyId) : null;
 
         stats.organizationSales = {
-          current: currentSalesData ? calculateMonthlyOrgSales(currentSalesData, agencyId) : null,
-          previous: previousSalesData ? calculateMonthlyOrgSales(previousSalesData, agencyId) : null
+          current: currentResult,
+          previous: previousResult
         };
 
       } catch (error) {

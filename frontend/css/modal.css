@@ -168,10 +168,14 @@
 
 .form-section {
   margin-bottom: 25px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #fafafa;
 }
 
 .form-section h3 {
-  margin-top: 25px;
+  margin-top: 0;
   margin-bottom: 15px;
   color: #555;
   font-size: 1.1em;
@@ -212,6 +216,17 @@
 .form-group textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.85em;
+  color: #6c757d;
+}
+
+.form-group small.text-muted {
+  color: #6c757d;
 }
 
 /* ボタンスタイル */
@@ -260,6 +275,80 @@
   background-color: #c82333;
 }
 
+/* 宛先選択モーダル */
+.recipient-modal {
+  padding: 20px;
+}
+
+.recipient-modal h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.recipient-selection {
+  margin-bottom: 20px;
+}
+
+.template-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.template-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.recipient-form {
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.required {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.modal-actions {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
   .modal-content {
@@ -289,6 +378,18 @@
 
   .modal-buttons .btn {
     margin: 5px 0;
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
     width: 100%;
   }
 }

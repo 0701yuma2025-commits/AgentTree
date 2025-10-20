@@ -294,6 +294,7 @@ body {
   left: 0;
   bottom: 0;
   overflow-y: auto;
+  z-index: 1000;
 }
 
 .sidebar nav {
@@ -328,6 +329,8 @@ body {
   flex: 1;
   margin-left: var(--sidebar-width);
   padding: 2rem;
+  max-width: calc(100vw - var(--sidebar-width));
+  overflow-x: hidden;
 }
 
 /* ページ */
@@ -336,6 +339,8 @@ body {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: var(--shadow);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .page-header {
@@ -352,7 +357,7 @@ body {
 /* KPIカード */
 .kpi-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -389,7 +394,7 @@ body {
 /* チャート */
 .dashboard-charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
   gap: 1rem;
 }
 
@@ -501,33 +506,50 @@ body {
     font-size: 13px;
 }
 
+.recent-sale-item:nth-child(even) {
+    background: #f9f9f9;
+}
+
 .recent-sale-item:hover {
-    background: #f7f7f7;
+    background: #e3f2fd;
 }
 
 .recent-sale-item .sale-number {
     font-weight: 600;
     color: #2c3e50;
     width: 100px;
+    min-width: 80px;
+    flex-shrink: 1;
+    padding-right: 10px;
 }
 
 .recent-sale-item .customer {
-    flex: 1;
+    flex: 0.5;
     color: #555;
     padding: 0 10px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .recent-sale-item .amount {
     color: #27ae60;
     font-weight: 600;
     width: 100px;
-    text-align: right;
+    min-width: 80px;
+    text-align: left;
+    flex-shrink: 1;
+    padding: 0 10px;
 }
 
 .recent-sale-item .date {
     color: #999;
     width: 100px;
+    min-width: 80px;
     text-align: right;
+    flex-shrink: 1;
+    padding-left: 10px;
 }
 
 /* 簡易グラフスタイル */
@@ -1046,9 +1068,56 @@ body {
 
 .top-agency-item {
   display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
+  align-items: center;
+  padding: 10px 12px;
   border-bottom: 1px solid #eee;
+}
+
+.top-agency-item:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.top-agency-item:hover {
+  background: #e3f2fd;
+}
+
+.top-agency-item .rank {
+  font-weight: bold;
+  color: #667eea;
+  width: 120px;
+  min-width: 90px;
+  flex-shrink: 1;
+  padding-right: 10px;
+}
+
+.top-agency-item .name {
+  color: #333;
+  flex: 0.8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 10px;
+}
+
+.top-agency-item .amount {
+  color: #666;
+  font-weight: 600;
+  text-align: left;
+  width: 280px;
+  min-width: 180px;
+  flex-shrink: 1;
+  padding: 0 10px;
+}
+
+.top-agency-item .count {
+  color: #999;
+  font-size: 0.9em;
+  text-align: right;
+  width: 120px;
+  min-width: 70px;
+  flex-shrink: 1;
+  padding-left: 10px;
 }
 
 /* 組織売上タブスタイル */
@@ -1090,22 +1159,6 @@ body {
 
 .top-agency-item:last-child {
   border-bottom: none;
-}
-
-.top-agency-rank {
-  font-weight: bold;
-  margin-right: 10px;
-  color: #667eea;
-}
-
-.top-agency-name {
-  flex: 1;
-  color: #333;
-}
-
-.top-agency-amount {
-  color: #666;
-  font-weight: 600;
 }
 
 /* チェックボックスリストのスタイル */
@@ -2264,5 +2317,328 @@ th.sorted-desc::after {
 
   .login-header h1 {
     font-size: 3.5rem;
+  }
+}
+
+/* ネットワーク可視化 */
+.network-container {
+  display: flex;
+  gap: 20px;
+  height: calc(100vh - 200px);
+  position: relative;
+}
+
+#network3d {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #1a1a2e;
+  overflow: hidden;
+}
+
+.network-legend {
+  width: 250px;
+  background: var(--white);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+}
+
+.network-legend h4 {
+  margin-bottom: 15px;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.legend-note {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.legend-note p {
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.legend-note ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.legend-note li {
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.legend-note li:before {
+  content: "•";
+  position: absolute;
+  left: 5px;
+  color: var(--primary-color);
+}
+
+.network-node-details {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid var(--primary-color);
+  position: relative;
+}
+
+.network-node-details.hidden {
+  display: none;
+}
+
+.network-node-details h4 {
+  margin: 0 0 15px 0;
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 10px;
+}
+
+.network-node-details .btn-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.network-node-details .btn-close:hover {
+  background: rgba(0,0,0,0.1);
+  color: var(--danger-color);
+}
+
+#nodeDetailsContent p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+#nodeDetailsContent strong {
+  color: var(--text-secondary);
+}
+
+.page-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .network-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  #network3d {
+    height: 400px;
+  }
+
+  .network-legend {
+    width: 100%;
+  }
+}
+
+/* 監査ログページ */
+.filter-panel {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group.search-group {
+  flex: 2;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.badge-primary {
+  background-color: #E6F7FF;
+  color: #1890FF;
+}
+
+.badge-success {
+  background-color: #F6FFED;
+  color: #52C41A;
+}
+
+.badge-warning {
+  background-color: #FFFBE6;
+  color: #FAAD14;
+}
+
+.badge-danger {
+  background-color: #FFF1F0;
+  color: #F5222D;
+}
+
+.badge-info {
+  background-color: #E6F7FF;
+  color: #1890FF;
+}
+
+.badge-secondary {
+  background-color: #F5F5F5;
+  color: #8C8C8C;
+}
+
+.text-muted {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.log-detail {
+  padding: 20px 0;
+}
+
+.log-detail-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.log-detail-section:last-child {
+  border-bottom: none;
+}
+
+.log-detail-section h4 {
+  margin-bottom: 15px;
+  color: var(--primary-color);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.log-detail-section.error {
+  background-color: #FFF1F0;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #FFCCC7;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detail-table th,
+.detail-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-table th {
+  width: 30%;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: #FAFAFA;
+}
+
+.detail-table td {
+  color: var(--text-primary);
+}
+
+.log-detail-section pre {
+  background-color: #F5F5F5;
+  padding: 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .filter-actions {
+    width: 100%;
+  }
+  
+  .filter-actions button {
+    flex: 1;
   }
 }
