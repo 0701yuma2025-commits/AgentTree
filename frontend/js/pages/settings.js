@@ -489,7 +489,7 @@ class SettingsPage {
   showEnable2FAModal() {
     const modalHTML = `
       <div class="modal-overlay" id="enable2FAModal" style="z-index: 10000;">
-        <div class="modal-dialog" style="margin-left: 200px;">
+        <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h3>2段階認証を有効化</h3>
@@ -577,7 +577,7 @@ class SettingsPage {
   show2FAVerifyModal() {
     const modalHTML = `
       <div class="modal-overlay" id="2faVerifyModal" style="z-index: 10000;">
-        <div class="modal-dialog" style="margin-left: 200px;">
+        <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h3>メール認証コードの入力</h3>
@@ -652,7 +652,7 @@ class SettingsPage {
   showDisable2FAModal() {
     const modalHTML = `
       <div class="modal-overlay" id="disable2FAModal" style="z-index: 10000;">
-        <div class="modal-dialog" style="margin-left: 200px;">
+        <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h3>2段階認証を無効化</h3>
