@@ -433,6 +433,9 @@ class App {
         case 'auditLogs':
           await auditLogsPage.init();
           break;
+        case 'commissionSettings':
+          await initCommissionSettings();
+          break;
       }
 
       // ロード完了を記録
