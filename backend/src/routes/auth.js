@@ -11,6 +11,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { validatePassword, checkPasswordSimilarity } = require('../utils/passwordValidator');
 const { loginRateLimit, passwordResetRateLimit } = require('../middleware/rateLimiter');
 const { logLogin, logLogout } = require('../middleware/auditLog');
+const { generateAgencyCode } = require('../utils/generateCode');
 
 /**
  * POST /api/auth/login
@@ -155,13 +156,22 @@ router.post('/login', loginRateLimit, async (req, res) => {
             .single();
 
           if (parentAgency) {
+            // Tier4の下には代理店を作成できない
+            if (parentAgency.tier_level >= 4) {
+              await logLogin({ email }, req, false);
+              return res.status(400).json({
+                error: true,
+                message: 'これ以上階層を作成できません。最大Tier4までです。'
+              });
+            }
+
             tierLevel = parentAgency.tier_level + 1;
             parentAgencyId = invitation.parent_agency_id;
           }
         }
 
         // 新規代理店を作成
-        const agencyCode = 'AG' + Date.now().toString().slice(-6);  // 簡易的な代理店コード生成
+        const agencyCode = await generateAgencyCode();
 
         const { data: newAgency, error: agencyError } = await supabase
           .from('agencies')
