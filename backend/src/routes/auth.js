@@ -191,15 +191,20 @@ router.post('/login', loginRateLimit, async (req, res) => {
     console.log('Login Success - Final Role:', finalRole);
     console.log('Login Success - User Email:', email);
     console.log('Login Success - User Agency:', userAgency);
+    console.log('Login Debug - 2FA Enabled:', userProfile.two_factor_enabled);
 
     // 2FA有効チェック
     if (userProfile.two_factor_enabled) {
+      console.log('[2FA] ログイン時2FA処理開始');
+
       // メール2FA用の認証コードを生成して送信
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5分後
 
+      console.log('[2FA] 認証コード生成完了:', code);
+
       // データベースに一時保存
-      await supabase
+      const { error: updateError } = await supabase
         .from('users')
         .update({
           two_factor_secret: code,
@@ -208,18 +213,31 @@ router.post('/login', loginRateLimit, async (req, res) => {
         })
         .eq('id', userProfile.id);
 
+      if (updateError) {
+        console.error('[2FA] DB更新エラー:', updateError);
+      } else {
+        console.log('[2FA] DB更新成功');
+      }
+
       // メール送信（認証コードのみ）
-      const { sendEmail } = require('../utils/emailSender');
-      await sendEmail({
-        to: email,
-        subject: 'ログイン認証コード',
-        html: `
-          <h2>ログイン認証コード</h2>
-          <p>${userProfile.full_name || 'ユーザー'}様</p>
-          <h1 style="background: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 8px;">${code}</h1>
-          <p>有効期限: 5分</p>
-        `
-      });
+      try {
+        console.log('[2FA] メール送信開始 to:', email);
+        const { sendEmail } = require('../utils/emailSender');
+        await sendEmail({
+          to: email,
+          subject: 'ログイン認証コード',
+          html: `
+            <h2>ログイン認証コード</h2>
+            <p>${userProfile.full_name || 'ユーザー'}様</p>
+            <h1 style="background: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 8px;">${code}</h1>
+            <p>有効期限: 5分</p>
+          `
+        });
+        console.log('[2FA] メール送信完了');
+      } catch (emailError) {
+        console.error('[2FA] メール送信エラー:', emailError);
+        // エラーが発生してもログインは続行
+      }
 
       // 2FAが有効な場合は、トークンを発行せずに2FA要求を返す
       return res.json({
@@ -233,6 +251,8 @@ router.post('/login', loginRateLimit, async (req, res) => {
         message: '2段階認証が必要です。メールに認証コードを送信しました。'
       });
     }
+
+    console.log('[2FA] 2FA無効のため通常ログイン');
 
     // ログイン成功を記録
     await logLogin({
