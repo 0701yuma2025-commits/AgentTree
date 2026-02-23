@@ -15,6 +15,14 @@ const { loginRateLimiter, invitationRateLimiter, globalApiRateLimiter, passwordR
 // スケジューラーのインポート
 const { startScheduler } = require('./src/scripts/cron-scheduler');
 
+// 必須環境変数の検証（起動時にfail-fast）
+const requiredEnvVars = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`FATAL: 必須環境変数が未設定です: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
+
 // Expressアプリケーション初期化
 const app = express();
 

@@ -4,8 +4,16 @@
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
+// エクスポート用レート制限（1分あたり5回まで）
+const exportRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { success: false, message: 'エクスポートのリクエスト回数が上限を超えました。1分後に再試行してください。' }
+});
 const {
   generateZenginFormat,
   generateCSVFormat,
@@ -17,7 +25,7 @@ const {
  * GET /api/payments/export
  * 振込データをエクスポート（管理者のみ）
  */
-router.get('/export', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (req, res) => {
   try {
     const { month, format = 'csv', status = 'approved' } = req.query;
 

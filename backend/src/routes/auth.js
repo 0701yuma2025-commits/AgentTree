@@ -53,10 +53,6 @@ router.post('/login', loginRateLimit, async (req, res) => {
       .or(`id.eq.${authData.user.id},email.eq.${email}`)
       .single();
 
-    console.log('Login Debug - User Profile:', userProfile);
-    console.log('Login Debug - Auth User ID:', authData.user.id);
-    console.log('Login Debug - Email:', email);
-
     if (profileError || !userProfile) {
       // ユーザーがない場合は作成
       const { data: newUser, error: createError } = await supabase
@@ -191,7 +187,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
           .single();
 
         if (!agencyError && newAgency) {
-          console.log('Agency auto-created:', newAgency);
+          // Agency auto-created
           userAgency = newAgency;
         }
       } else {
@@ -199,14 +195,8 @@ router.post('/login', loginRateLimit, async (req, res) => {
       }
     }
 
-    console.log('Login Success - Final Role:', finalRole);
-    console.log('Login Success - User Email:', email);
-    console.log('Login Success - User Agency:', userAgency);
-    console.log('Login Debug - 2FA Enabled:', userProfile.two_factor_enabled);
-
     // 2FA有効チェック
     if (userProfile.two_factor_enabled) {
-      console.log('[2FA] ログイン時2FA処理開始');
 
       // メール2FA用の認証コードを生成して送信
       const code = generate6DigitCode();
@@ -225,13 +215,10 @@ router.post('/login', loginRateLimit, async (req, res) => {
 
       if (updateError) {
         console.error('[2FA] DB更新エラー:', updateError);
-      } else {
-        console.log('[2FA] DB更新成功');
       }
 
       // メール送信（認証コードのみ）
       try {
-        console.log('[2FA] メール送信開始 to:', email);
         const { sendEmail } = require('../utils/emailSender');
         await sendEmail({
           to: email,
@@ -243,7 +230,6 @@ router.post('/login', loginRateLimit, async (req, res) => {
             <p>有効期限: 5分</p>
           `
         });
-        console.log('[2FA] メール送信完了');
       } catch (emailError) {
         console.error('[2FA] メール送信エラー:', emailError);
         // エラーが発生してもログインは続行
@@ -261,8 +247,6 @@ router.post('/login', loginRateLimit, async (req, res) => {
         message: '2段階認証が必要です。メールに認証コードを送信しました。'
       });
     }
-
-    console.log('[2FA] 2FA無効のため通常ログイン');
 
     // ログイン成功を記録
     await logLogin({
@@ -644,11 +628,8 @@ router.post('/set-password', async (req, res) => {
   try {
     const { token, password } = req.body;
 
-    console.log('Set password request:', { token: token?.substring(0, 10) + '...', hasPassword: !!password });
-
     // 入力検証
     if (!token || !password) {
-      console.log('Missing token or password');
       return res.status(400).json({
         success: false,
         message: 'トークンとパスワードは必須です'
@@ -658,7 +639,6 @@ router.post('/set-password', async (req, res) => {
     // パスワード強度検証
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-      console.log('Password validation failed:', passwordValidation.errors);
       return res.status(400).json({
         success: false,
         message: passwordValidation.errors.join(', ')
@@ -670,12 +650,6 @@ router.post('/set-password', async (req, res) => {
       .from('agencies')
       .select('*')
       .eq('password_reset_token', token);
-
-    console.log('Agency lookup result:', {
-      found: agencies && agencies.length > 0,
-      count: agencies?.length,
-      error: agencyError?.message
-    });
 
     if (agencyError) {
       console.error('Database error:', agencyError);

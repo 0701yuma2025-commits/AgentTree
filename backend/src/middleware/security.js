@@ -34,8 +34,12 @@ const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // 本番環境では'unsafe-inline'と'unsafe-eval'を削除推奨
+      styleSrc: process.env.NODE_ENV === 'production'
+        ? ["'self'", 'https:']
+        : ["'self'", "'unsafe-inline'", 'https:'],
+      scriptSrc: process.env.NODE_ENV === 'production'
+        ? ["'self'"]
+        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: ["'self'", 'https://api.supabase.co', 'wss://supabase.co'],
       fontSrc: ["'self'", 'https:', 'data:'],

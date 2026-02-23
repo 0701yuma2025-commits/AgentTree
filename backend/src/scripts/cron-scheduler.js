@@ -87,7 +87,7 @@ async function monthlyClosing() {
           html: `
             <h2>エラー通知</h2>
             <p>月次締め処理中にエラーが発生しました。</p>
-            <pre>${error.message}</pre>
+            <p>詳細はサーバーログを確認してください。</p>
           `
         });
       }
@@ -133,6 +133,31 @@ async function calculateCommissions() {
 
     console.log(`${sales.length} 件の売上を処理します`);
 
+    // 全代理店データを取得
+    const { data: agencies, error: agenciesError } = await supabase
+      .from('agencies')
+      .select('*')
+      .eq('status', 'active');
+
+    if (agenciesError) throw agenciesError;
+
+    // 商品データを取得
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true);
+
+    if (productsError) throw productsError;
+
+    // 報酬設定を取得
+    const { data: settingsRows } = await supabase
+      .from('commission_settings')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const commissionSettings = settingsRows?.[0] || null;
+
     // 既存の報酬データを削除
     const { error: deleteError } = await supabase
       .from('commissions')
@@ -142,7 +167,7 @@ async function calculateCommissions() {
     if (deleteError) throw deleteError;
 
     // 報酬計算
-    const commissionsData = await calculateMonthlyCommissions(sales, targetMonth);
+    const commissionsData = calculateMonthlyCommissions(sales, agencies, products, targetMonth, commissionSettings);
 
     // 報酬データを挿入
     const { error: insertError } = await supabase
@@ -197,7 +222,7 @@ async function calculateCommissions() {
           html: `
             <h2>エラー通知</h2>
             <p>報酬計算処理中にエラーが発生しました。</p>
-            <pre>${error.message}</pre>
+            <p>詳細はサーバーログを確認してください。</p>
           `
         });
       }
@@ -480,7 +505,7 @@ async function processMonthlyPayments() {
           html: `
             <h2>エラー通知</h2>
             <p>月次支払い処理中にエラーが発生しました。</p>
-            <pre>${error.message}</pre>
+            <p>詳細はサーバーログを確認してください。</p>
           `
         });
       }

@@ -4,10 +4,18 @@
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { calculateMonthlyCommissions } = require('../utils/calculateCommission');
 const { Parser } = require('json2csv');
+
+// エクスポート用レート制限（1分あたり5回まで）
+const exportRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: true, message: 'エクスポートのリクエスト回数が上限を超えました。1分後に再試行してください。' }
+});
 
 /**
  * GET /api/commissions
@@ -150,33 +158,6 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    // デバッグ: 最初の3件のデータを確認
-    if (data && data.length > 0) {
-      console.log('=== API Response Debug ===');
-      console.log(`Total commissions found: ${data.length}`);
-      data.slice(0, 5).forEach((item, index) => {
-        console.log(`${index + 1}. Commission ID: ${item.id}`);
-        console.log(`   agency_id: ${item.agency_id}`);
-        console.log(`   month: ${item.month}`);
-        console.log(`   sale_id: ${item.sale_id}`);
-        console.log(`   sales object:`, item.sales);
-        console.log(`   base_amount: ${item.base_amount}, tier_bonus: ${item.tier_bonus}`);
-
-        // 売上検索の詳細ログ
-        if (!item.sales) {
-          console.log(`   ⚠ No sales data found for commission ${item.id}`);
-          if (!item.sale_id) {
-            console.log(`   ⚠ sale_id is null - should trigger fallback search`);
-          } else {
-            console.log(`   ⚠ sale_id exists but no sales data returned`);
-          }
-        }
-
-        console.log('   ---');
-      });
-      console.log('=== End Debug ===');
-    }
-
     res.json({
       success: true,
       data: data || []
@@ -198,8 +179,6 @@ router.get('/summary', authenticateToken, async (req, res) => {
   try {
     // クエリパラメータから月を取得、なければ現在月を使用
     const targetMonth = req.query.month || new Date().toISOString().slice(0, 7);
-    console.log('Summary API - Request month:', req.query.month, ', Target month:', targetMonth);
-
     let query = supabase
       .from('commissions')
       .select('base_amount, tier_bonus, campaign_bonus, final_amount, status')
@@ -249,17 +228,11 @@ router.post('/calculate',
     try {
       const { month = new Date().toISOString().slice(0, 7) } = req.body;
 
-      console.log('===== 報酬計算開始 =====');
-      console.log('対象月:', month);
-      console.log('リクエストユーザー:', req.user.email);
-
       // 月末日を正しく計算
       const [year, monthNum] = month.split('-').map(Number);
       const lastDay = new Date(year, monthNum, 0).getDate(); // 月末日を取得
       const monthStart = `${month}-01`;
       const monthEnd = `${month}-${String(lastDay).padStart(2, '0')}`;
-
-      console.log('期間:', monthStart, '〜', monthEnd);
 
       // 1. 対象月の売上データを取得
       const { data: sales, error: salesError } = await supabase
@@ -271,10 +244,7 @@ router.post('/calculate',
 
       if (salesError) throw salesError;
 
-      console.log('売上データ数:', sales ? sales.length : 0);
-
       if (!sales || sales.length === 0) {
-        console.log('売上データなし - 終了');
         return res.json({
           success: true,
           message: '対象月の売上データがありません',
@@ -314,9 +284,6 @@ router.post('/calculate',
         });
       }
 
-      console.log('既存報酬レコード数:', existingCommissions?.length || 0);
-      console.log('設定値を持つ売上数:', Object.keys(saleSettingsMap).length);
-
       // デフォルト設定値（設定値が保存されていない古いデータ用）
       const defaultSettings = {
         tier1_from_tier2_bonus: 2.00,
@@ -328,8 +295,6 @@ router.post('/calculate',
       };
 
       // 5. 売上ごとに個別に報酬を計算（各売上の登録時設定値を使用）
-      console.log('報酬計算実行中...');
-
       // 売上ごとに登録時の設定値を埋め込む
       const salesWithSettings = sales.map(sale => ({
         ...sale,
@@ -337,17 +302,6 @@ router.post('/calculate',
       }));
 
       const commissions = calculateMonthlyCommissions(salesWithSettings, agencies, products, month, null);
-      console.log('計算された報酬数:', commissions.length);
-
-      // デバッグ: 最初の報酬データを表示
-      if (commissions.length > 0) {
-        console.log('報酬データサンプル:', {
-          agency_name: commissions[0].agency_name,
-          status: commissions[0].status,
-          final_amount: commissions[0].final_amount,
-          carry_forward_reason: commissions[0].carry_forward_reason
-        });
-      }
 
       // DBに挿入するデータを準備（不要なフィールドを削除）
       const commissionsForDB = commissions.map(commission => ({
@@ -365,31 +319,21 @@ router.post('/calculate',
         carry_forward_reason: commission.carry_forward_reason || null
       }));
 
-      // 5. 既存の同月報酬データを削除（重複防止）
-      console.log('既存データ削除中...');
+      // 既存の同月報酬データを削除（重複防止）
       const { error: deleteError } = await supabase
         .from('commissions')
         .delete()
         .eq('month', month);
 
       if (deleteError) throw deleteError;
-      console.log('既存データ削除完了');
 
-      // 6. 新しい報酬データを挿入
-      console.log('DBに挿入するデータ数:', commissionsForDB.length);
-      if (commissionsForDB.length > 0) {
-        console.log('挿入データサンプル:', commissionsForDB[0]);
-      }
-
+      // 新しい報酬データを挿入
       const { data: insertedData, error: insertError } = await supabase
         .from('commissions')
         .insert(commissionsForDB)
         .select();
 
       if (insertError) throw insertError;
-
-      console.log('データ挿入完了');
-      console.log('===== 報酬計算完了 =====');
 
       res.json({
         success: true,
@@ -405,8 +349,7 @@ router.post('/calculate',
       console.error('Calculate commissions error:', error);
       res.status(500).json({
         error: true,
-        message: '報酬計算に失敗しました',
-        details: error.message
+        message: '報酬計算に失敗しました'
       });
     }
   }
@@ -600,7 +543,7 @@ router.put('/:id/status',
  * GET /api/commissions/export
  * 報酬データCSVエクスポート
  */
-router.get('/export', authenticateToken, async (req, res) => {
+router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
   try {
     const { month, status, agency_id } = req.query;
 
