@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { validatePassword, checkPasswordSimilarity } = require('../utils/passwordValidator');
@@ -208,16 +209,15 @@ router.post('/login', loginRateLimit, async (req, res) => {
       console.log('[2FA] ログイン時2FA処理開始');
 
       // メール2FA用の認証コードを生成して送信
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = generate6DigitCode();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5分後
+      const hashedCode = await bcrypt.hash(code, 10);
 
-      console.log('[2FA] 認証コード生成完了:', code);
-
-      // データベースに一時保存
+      // データベースに一時保存（ハッシュ化して保存）
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          two_factor_secret: code,
+          two_factor_secret: hashedCode,
           two_factor_verified_at: expiresAt.toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -835,7 +835,7 @@ const { sendEmail } = require('../utils/emailSender');
  * 6桁の認証コードを生成
  */
 function generate6DigitCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 /**
@@ -942,20 +942,21 @@ router.post('/2fa/email/verify', authenticateToken, async (req, res) => {
       });
     }
 
-    // コード検証
-    if (user.two_factor_secret !== code) {
-      return res.status(401).json({
-        success: false,
-        message: '認証コードが正しくありません'
-      });
-    }
-
-    // 有効期限チェック
+    // 有効期限チェック（bcrypt計算を省略するため先にチェック）
     const expiresAt = new Date(user.two_factor_verified_at);
     if (expiresAt < new Date()) {
       return res.status(401).json({
         success: false,
         message: '認証コードの有効期限が切れています。再度有効化をお試しください。'
+      });
+    }
+
+    // コード検証（bcryptで比較）
+    const isValid = await bcrypt.compare(code, user.two_factor_secret);
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        message: '認証コードが正しくありません'
       });
     }
 
@@ -1014,12 +1015,13 @@ router.post('/2fa/email/disable/request', authenticateToken, async (req, res) =>
     // 6桁の認証コードを生成
     const code = generate6DigitCode();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5分後
+    const hashedCode = await bcrypt.hash(code, 10);
 
-    // データベースに一時保存
+    // データベースに一時保存（ハッシュ化して保存）
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        two_factor_secret: code,
+        two_factor_secret: hashedCode,
         two_factor_verified_at: expiresAt.toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -1085,20 +1087,21 @@ router.post('/2fa/email/disable/verify', authenticateToken, async (req, res) => 
       });
     }
 
-    // コード検証
-    if (user.two_factor_secret !== code) {
-      return res.status(401).json({
-        success: false,
-        message: '認証コードが正しくありません'
-      });
-    }
-
-    // 有効期限チェック
+    // 有効期限チェック（bcrypt計算を省略するため先にチェック）
     const expiresAt = new Date(user.two_factor_verified_at);
     if (expiresAt < new Date()) {
       return res.status(401).json({
         success: false,
         message: '認証コードの有効期限が切れています'
+      });
+    }
+
+    // コード検証（bcryptで比較）
+    const isValidCode = await bcrypt.compare(code, user.two_factor_secret);
+    if (!isValidCode) {
+      return res.status(401).json({
+        success: false,
+        message: '認証コードが正しくありません'
       });
     }
 
@@ -1179,20 +1182,21 @@ router.post('/login/2fa/email', async (req, res) => {
       });
     }
 
-    // コード検証
-    if (user.two_factor_secret !== code) {
-      return res.status(401).json({
-        success: false,
-        message: '認証コードが正しくありません'
-      });
-    }
-
-    // 有効期限チェック（ログイン用コードは5分）
+    // 有効期限チェック（bcrypt計算を省略するため先にチェック）
     const expiresAt = new Date(user.two_factor_verified_at);
     if (expiresAt < new Date()) {
       return res.status(401).json({
         success: false,
         message: '認証コードの有効期限が切れています'
+      });
+    }
+
+    // コード検証（bcryptで比較）
+    const isValidCode = await bcrypt.compare(code, user.two_factor_secret);
+    if (!isValidCode) {
+      return res.status(401).json({
+        success: false,
+        message: '認証コードが正しくありません'
       });
     }
 
