@@ -68,10 +68,12 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.lte('timestamp', end_date);
     }
 
-    // 検索（ユーザーメール、説明文）— 特殊文字をエスケープ
+    // 検索（ユーザーメール、説明文）— PostgREST演算子・区切り文字を除去
     if (search) {
-      const escapedSearch = search.replace(/[%_\\]/g, '\\$&');
-      query = query.or(`user_email.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`);
+      const sanitized = search.replace(/[%_\\,().]/g, '');
+      if (sanitized.length > 0) {
+        query = query.or(`user_email.ilike.%${sanitized}%,description.ilike.%${sanitized}%`);
+      }
     }
 
     // ソート・ページネーション
