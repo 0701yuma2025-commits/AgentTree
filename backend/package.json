@@ -8,11 +8,6 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "batch:monthly": "node src/scripts/batch-processor.js monthly-closing",
-    "batch:commission": "node src/scripts/batch-processor.js calculate-commission",
-    "batch:backup": "node src/scripts/batch-processor.js daily-backup",
-    "batch:reminder": "node src/scripts/batch-processor.js payment-reminder",
-    "batch:check": "node src/scripts/batch-processor.js integrity-check",
     "scheduler": "node src/scripts/cron-scheduler.js"
   },
   "dependencies": {
@@ -34,7 +29,6 @@
     "qrcode": "^1.5.3",
     "rate-limit-redis": "^4.2.2",
     "resend": "^6.1.0",
-    "speakeasy": "^2.0.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
