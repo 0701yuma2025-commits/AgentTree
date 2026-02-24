@@ -54,68 +54,56 @@ router.get('/', authenticateToken, async (req, res) => {
 
     if (error) throw error;
 
-    // 各報酬レコードに対して売上情報を取得
+    // 売上情報を一括取得（N+1クエリ防止）
     if (data && data.length > 0) {
+      // 1. sale_idがあるレコード → 一括取得
+      const saleIds = [...new Set(data.filter(c => c.sale_id).map(c => c.sale_id))];
+      const saleMap = {};
+
+      if (saleIds.length > 0) {
+        const { data: salesBatch } = await supabase
+          .from('sales')
+          .select('id, sale_number, total_amount, sale_date')
+          .in('id', saleIds);
+
+        if (salesBatch) {
+          salesBatch.forEach(sale => { saleMap[sale.id] = sale; });
+        }
+      }
+
+      // 2. sale_idがないレコード（旧データ）→ 月別に一括取得
+      const commissionsWithoutSaleId = data.filter(c => !c.sale_id);
+      const months = [...new Set(commissionsWithoutSaleId.map(c => c.month))];
+      const monthlySalesCache = {};
+
+      for (const m of months) {
+        const [y, mn] = m.split('-').map(Number);
+        const lastDay = new Date(y, mn, 0).getDate();
+        const { data: monthSales } = await supabase
+          .from('sales')
+          .select('id, sale_number, total_amount, sale_date, agency_id')
+          .eq('status', 'confirmed')
+          .gte('sale_date', `${m}-01`)
+          .lte('sale_date', `${m}-${String(lastDay).padStart(2, '0')}`)
+          .order('sale_date', { ascending: true });
+
+        monthlySalesCache[m] = monthSales || [];
+      }
+
+      // 3. 各レコードに売上を紐付け
       for (const commission of data) {
-        if (commission.sale_id) {
-          // sale_idがある場合（新しいデータ）
-          const { data: saleData } = await supabase
-            .from('sales')
-            .select('id, sale_number, total_amount, sale_date')
-            .eq('id', commission.sale_id)
-            .single();
-
-          if (saleData) {
-            commission.sales = saleData;
+        if (commission.sale_id && saleMap[commission.sale_id]) {
+          commission.sales = saleMap[commission.sale_id];
+        } else if (!commission.sale_id && commission.month) {
+          const monthSales = monthlySalesCache[commission.month] || [];
+          // 同じ代理店の売上を検索
+          let matched = monthSales.find(s => s.agency_id === commission.agency_id);
+          // 階層ボーナスの場合は月の最初の売上を代表として使用
+          if (!matched && commission.base_amount === 0 && commission.tier_bonus > 0) {
+            matched = monthSales[0] || null;
           }
-        } else {
-          // sale_idがない場合（過去のデータ）、売上を推測
-          const monthStart = `${commission.month}-01`;
-          const [year, monthNum] = commission.month.split('-').map(Number);
-          const lastDay = new Date(year, monthNum, 0).getDate();
-          const monthEnd = `${commission.month}-${String(lastDay).padStart(2, '0')}`;
-
-          // まずは同じ代理店の売上を検索
-          let { data: salesData } = await supabase
-            .from('sales')
-            .select('id, sale_number, total_amount, sale_date')
-            .eq('agency_id', commission.agency_id)
-            .eq('status', 'confirmed')
-            .gte('sale_date', monthStart)
-            .lte('sale_date', monthEnd)
-            .order('sale_date', { ascending: true });
-
-          // 階層ボーナス（base_amount=0, tier_bonus>0）で売上が見つからない場合
-          if ((!salesData || salesData.length === 0) &&
-              commission.base_amount === 0 &&
-              commission.tier_bonus > 0) {
-
-            console.log(`Searching for hierarchy bonus sales for commission ${commission.id}`);
-
-            // 同月の全売上から階層ボーナスの元となる売上を検索
-            const { data: allSalesData, error: hierarchyError } = await supabase
-              .from('sales')
-              .select('id, sale_number, total_amount, sale_date, agency_id')
-              .eq('status', 'confirmed')
-              .gte('sale_date', monthStart)
-              .lte('sale_date', monthEnd)
-              .order('sale_date', { ascending: true });
-
-            if (hierarchyError) {
-              console.error(`Hierarchy sales search error for commission ${commission.id}:`, hierarchyError);
-            } else if (allSalesData && allSalesData.length > 0) {
-              // 階層ボーナスの場合、どの子代理店の売上かを特定するのは困難なので
-              // 同月の最初の売上を代表として使用
-              salesData = [allSalesData[0]];
-              console.log(`Found hierarchy bonus sale for commission ${commission.id}: ${allSalesData[0].sale_number}`);
-            } else {
-              console.log(`No hierarchy bonus sales found for commission ${commission.id} in ${commission.month}`);
-            }
-          }
-
-          // 売上を紐付け
-          if (salesData && salesData.length > 0) {
-            commission.sales = salesData[0];
+          if (matched) {
+            commission.sales = matched;
           }
         }
       }

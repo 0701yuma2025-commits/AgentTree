@@ -13,25 +13,18 @@ const { authenticateToken } = require('../middleware/auth');
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('=== Audit Logs API Called ===');
-    console.log('User:', req.user);
-    console.log('Query params:', req.query);
-
     const user = req.user;
 
     // 管理者のみアクセス可能
     if (user.role !== 'admin' && user.role !== 'super_admin') {
-      console.log('Access denied - insufficient role:', user.role);
       return res.status(403).json({
         error: true,
         message: '権限がありません'
       });
     }
 
-    // クエリパラメータ
+    // クエリパラメータ（バリデーション付き）
     const {
-      page = 1,
-      limit = 50,
       user_id,
       action,
       resource_type,
@@ -41,7 +34,9 @@ router.get('/', authenticateToken, async (req, res) => {
       search
     } = req.query;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
 
     // クエリ構築
     let query = supabase
@@ -83,12 +78,9 @@ router.get('/', authenticateToken, async (req, res) => {
       .order('timestamp', { ascending: false })
       .range(offset, offset + parseInt(limit) - 1);
 
-    console.log('Executing Supabase query...');
     const { data: logs, error, count } = await query;
-    console.log('Query result:', { logsCount: logs?.length, error, count });
 
     if (error) {
-      console.log('Supabase error detected:', error);
       throw error;
     }
 

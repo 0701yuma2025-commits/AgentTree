@@ -21,61 +21,39 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // 環境変数に基づいてJWT検証モードを切り替え
+    // JWT検証（常に署名を検証する）
     let decoded;
-    if (process.env.JWT_VERIFY_ENABLED === 'true') {
-      // 本格検証モード
-      try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET);
-      } catch (error) {
-        console.error('JWT verification error:', error.message);
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      console.error('JWT verification error:', error.message);
 
-        // エラー種別に応じて適切なレスポンスを返す
-        if (error.name === 'TokenExpiredError') {
-          return res.status(401).json({
-            error: true,
-            code: 'TOKEN_EXPIRED',
-            message: 'トークンの有効期限が切れています。再ログインしてください。',
-            expiredAt: error.expiredAt
-          });
-        } else if (error.name === 'JsonWebTokenError') {
-          return res.status(403).json({
-            error: true,
-            code: 'INVALID_TOKEN',
-            message: 'トークンが無効です'
-          });
-        } else if (error.name === 'NotBeforeError') {
-          return res.status(403).json({
-            error: true,
-            code: 'TOKEN_NOT_ACTIVE',
-            message: 'トークンがまだ有効になっていません',
-            date: error.date
-          });
-        } else {
-          return res.status(403).json({
-            error: true,
-            code: 'TOKEN_VERIFICATION_FAILED',
-            message: 'トークンの認証に失敗しました'
-          });
-        }
-      }
-    } else {
-      // 開発モード（デコードのみ）
-      try {
-        decoded = jwt.decode(token);
-        if (!decoded) {
-          return res.status(403).json({
-            error: true,
-            code: 'INVALID_TOKEN',
-            message: 'トークンが無効です'
-          });
-        }
-      } catch (error) {
-        console.error('JWT decode error:', error.message);
+      // エラー種別に応じて適切なレスポンスを返す
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          error: true,
+          code: 'TOKEN_EXPIRED',
+          message: 'トークンの有効期限が切れています。再ログインしてください。',
+          expiredAt: error.expiredAt
+        });
+      } else if (error.name === 'JsonWebTokenError') {
         return res.status(403).json({
           error: true,
           code: 'INVALID_TOKEN',
           message: 'トークンが無効です'
+        });
+      } else if (error.name === 'NotBeforeError') {
+        return res.status(403).json({
+          error: true,
+          code: 'TOKEN_NOT_ACTIVE',
+          message: 'トークンがまだ有効になっていません',
+          date: error.date
+        });
+      } else {
+        return res.status(403).json({
+          error: true,
+          code: 'TOKEN_VERIFICATION_FAILED',
+          message: 'トークンの認証に失敗しました'
         });
       }
     }

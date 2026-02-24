@@ -187,6 +187,15 @@ router.put('/:id/review', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { review_status, review_notes } = req.body;
 
+    // review_status のバリデーション
+    const validReviewStatuses = ['reviewed', 'approved', 'rejected'];
+    if (review_status && !validReviewStatuses.includes(review_status)) {
+      return res.status(400).json({
+        success: false,
+        message: `review_statusが無効です。有効な値: ${validReviewStatuses.join(', ')}`
+      });
+    }
+
     const { data, error } = await supabase
       .from('sales')
       .update({
@@ -331,10 +340,6 @@ router.get('/', authenticateToken, async (req, res) => {
  */
 router.get('/export', authenticateToken, async (req, res) => {
   try {
-    console.log('CSV Export requested:', {
-      user: req.user?.email,
-      query: req.query
-    });
     const { start_date, end_date, agency_id } = req.query;
 
     // 売上データを取得（外部結合なし）
@@ -352,30 +357,17 @@ router.get('/export', authenticateToken, async (req, res) => {
     }
 
     // 代理店フィルタ（代理店ユーザーは自分のデータのみ、管理者は全データ）
-    console.log('User info:', {
-      email: req.user?.email,
-      agency_id: req.user?.agency_id,
-      role: req.user?.role
-    });
-
     // 管理者以外の場合のみ代理店フィルタを適用
     if (req.user.role !== 'admin') {
       if (agency_id || req.user.agency?.id) {
-        console.log('Applying agency filter:', agency_id || req.user.agency?.id);
         query = query.eq('agency_id', agency_id || req.user.agency?.id);
       }
     } else if (agency_id) {
       // 管理者が特定の代理店を指定した場合のみフィルタ
-      console.log('Admin filtering by agency:', agency_id);
       query = query.eq('agency_id', agency_id);
     }
 
     const { data: sales, error } = await query;
-
-    console.log('Sales query result:', {
-      salesCount: sales?.length,
-      error: error
-    });
 
     if (error) throw error;
 
@@ -923,6 +915,23 @@ router.put('/:id', authenticateToken, async (req, res) => {
       status
     } = req.body;
 
+    // 入力バリデーション
+    if (quantity !== undefined && (typeof quantity !== 'number' || quantity < 1)) {
+      return res.status(400).json({ error: true, message: '数量は1以上の数値で指定してください' });
+    }
+    if (unit_price !== undefined && (typeof unit_price !== 'number' || unit_price < 0)) {
+      return res.status(400).json({ error: true, message: '単価は0以上の数値で指定してください' });
+    }
+    if (status !== undefined) {
+      const validStatuses = ['pending', 'confirmed', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: true, message: `ステータスが無効です。有効な値: ${validStatuses.join(', ')}` });
+      }
+    }
+    if (sale_date !== undefined && isNaN(Date.parse(sale_date))) {
+      return res.status(400).json({ error: true, message: '売上日の形式が無効です' });
+    }
+
     // 売上情報を取得
     const { data: currentSale, error: fetchError } = await supabase
       .from('sales')
@@ -1201,7 +1210,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
               // 既存の報酬レコードから登録時の設定値を取得
               if (relatedCommissions[0].calculation_details?.applied_settings) {
                 settings = relatedCommissions[0].calculation_details.applied_settings;
-                console.log('編集: 登録時の設定値を使用', settings);
+                // 登録時の設定値を使用
               } else {
                 // フォールバック: 設定値が保存されていない場合はデフォルト値
                 settings = {
@@ -1212,7 +1221,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
                   withholding_tax_rate: 10.21,
                   non_invoice_deduction_rate: 2.00
                 };
-                console.log('編集: デフォルト設定値を使用');
+                // デフォルト設定値を使用
               }
 
               // 報酬を再計算（登録時の設定値を使用）
@@ -1256,7 +1265,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
               }
             } else {
               // 報酬が存在しない場合：新規作成処理
-              console.log('編集: 報酬が存在しないため新規作成');
+              // 報酬が存在しないため新規作成
 
               // 現在の設定値を取得
               const { data: commissionSettings } = await supabase

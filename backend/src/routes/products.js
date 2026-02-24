@@ -5,7 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
-const { authenticateToken: authMiddleware } = require('../middleware/auth');
+const { authenticateToken: authMiddleware, requireAdmin } = require('../middleware/auth');
 const { generateProductCode } = require('../utils/generateCode');
 
 /**
@@ -255,7 +255,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 /**
  * 商品削除（論理削除、管理者と代理店）
  */
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

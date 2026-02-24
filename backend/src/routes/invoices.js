@@ -58,9 +58,6 @@ router.post('/generate', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: '報酬データが見つかりません' });
     }
 
-    // デバッグ: 代理店データを確認
-    console.log('代理店データ:', JSON.stringify(commission.agencies, null, 2));
-
     // 控除項目を計算詳細から取得、またはfinal_amountから逆算
     const calculationDetails = commission.calculation_details || {};
     let invoiceDeduction = calculationDetails.invoice_deduction || 0;
@@ -175,9 +172,6 @@ router.post('/generate', authenticateToken, async (req, res) => {
         invoice_number: commission.agencies.invoice_number
       }
     };
-
-    // デバッグ: issuerオブジェクトを確認
-    console.log('issuerオブジェクト:', JSON.stringify(invoiceData.issuer, null, 2));
 
     // PDF生成
     const pdfBuffer = await generateInvoicePDF(invoiceData);
