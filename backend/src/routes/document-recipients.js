@@ -60,20 +60,21 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data, error } = await supabase
+    // 認可チェックをクエリに含めてIDOR防止
+    let query = supabase
       .from('document_recipients')
       .select('*')
-      .eq('id', id)
-      .single();
+      .eq('id', id);
 
-    if (error) {
-      console.error('宛先テンプレート取得エラー:', error);
-      return res.status(404).json({ error: '宛先テンプレートが見つかりません' });
+    // 管理者以外は自分のテンプレートまたは共有テンプレートのみ
+    if (req.user.role !== 'admin') {
+      query = query.or(`user_id.eq.${req.user.id},user_id.is.null`);
     }
 
-    // 権限チェック: 自分のテンプレートまたは共有テンプレート（user_id IS NULL）のみアクセス可
-    if (data.user_id && data.user_id !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'アクセス権限がありません' });
+    const { data, error } = await query.single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: '宛先テンプレートが見つかりません' });
     }
 
     res.json(data);

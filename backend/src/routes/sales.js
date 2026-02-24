@@ -850,6 +850,11 @@ router.get('/summary', authenticateToken, async (req, res) => {
   try {
     const { period = 'month' } = req.query;
 
+    const validPeriods = ['week', 'month', 'year'];
+    if (!validPeriods.includes(period)) {
+      return res.status(400).json({ success: false, message: `periodが無効です。有効な値: ${validPeriods.join(', ')}` });
+    }
+
     let startDate = new Date();
     if (period === 'month') {
       startDate.setMonth(startDate.getMonth() - 1);

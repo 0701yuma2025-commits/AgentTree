@@ -10,6 +10,10 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { calculateMonthlyCommissions } = require('../utils/calculateCommission');
 const { Parser } = require('json2csv');
 
+// 月パラメータ(YYYY-MM)のバリデーション
+const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+const isValidMonth = (month) => MONTH_REGEX.test(month);
+
 // エクスポート用レート制限（1分あたり5回まで）
 const exportRateLimit = rateLimit({
   windowMs: 60 * 1000,
@@ -24,6 +28,11 @@ const exportRateLimit = rateLimit({
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { month, status, agency_id } = req.query;
+
+    // monthパラメータのバリデーション
+    if (month && !isValidMonth(month)) {
+      return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+    }
 
     let query = supabase
       .from('commissions')
@@ -166,6 +175,9 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/summary', authenticateToken, async (req, res) => {
   try {
     // クエリパラメータから月を取得、なければ現在月を使用
+    if (req.query.month && !isValidMonth(req.query.month)) {
+      return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+    }
     const targetMonth = req.query.month || new Date().toISOString().slice(0, 7);
     let query = supabase
       .from('commissions')
@@ -215,6 +227,10 @@ router.post('/calculate',
   async (req, res) => {
     try {
       const { month = new Date().toISOString().slice(0, 7) } = req.body;
+
+      if (!isValidMonth(month)) {
+        return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+      }
 
       // 月末日を正しく計算
       const [year, monthNum] = month.split('-').map(Number);
@@ -534,6 +550,10 @@ router.put('/:id/status',
 router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
   try {
     const { month, status, agency_id } = req.query;
+
+    if (month && !isValidMonth(month)) {
+      return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+    }
 
     let query = supabase
       .from('commissions')

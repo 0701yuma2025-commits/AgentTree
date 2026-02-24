@@ -68,9 +68,10 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.lte('timestamp', end_date);
     }
 
-    // 検索（ユーザーメール、説明文）
+    // 検索（ユーザーメール、説明文）— 特殊文字をエスケープ
     if (search) {
-      query = query.or(`user_email.ilike.%${search}%,description.ilike.%${search}%`);
+      const escapedSearch = search.replace(/[%_\\]/g, '\\$&');
+      query = query.or(`user_email.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`);
     }
 
     // ソート・ページネーション
@@ -98,14 +99,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get audit logs error:', error);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-      stack: error.stack
-    });
+    console.error('Get audit logs error:', error.message);
     res.status(500).json({
       error: true,
       message: '監査ログの取得に失敗しました',

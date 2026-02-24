@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { validatePassword, checkPasswordSimilarity } = require('../utils/passwordValidator');
-const { loginRateLimit, passwordResetRateLimit } = require('../middleware/rateLimiter');
+const { loginRateLimit, passwordResetRateLimit, generalRateLimit } = require('../middleware/rateLimiter');
 const { logLogin, logLogout } = require('../middleware/auditLog');
 const { generateAgencyCode } = require('../utils/generateCode');
 
@@ -361,7 +361,7 @@ router.post('/refresh', async (req, res) => {
 /**
  * メールアドレス変更
  */
-router.put('/change-email', authenticateToken, async (req, res) => {
+router.put('/change-email', passwordResetRateLimit, authenticateToken, async (req, res) => {
   try {
     const { new_email, password } = req.body;
     const userId = req.user.id;
@@ -454,7 +454,7 @@ router.put('/change-email', authenticateToken, async (req, res) => {
 /**
  * パスワード変更
  */
-router.put('/change-password', authenticateToken, async (req, res) => {
+router.put('/change-password', passwordResetRateLimit, authenticateToken, async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
     const userId = req.user.id;
@@ -624,7 +624,7 @@ router.post('/reset-password', async (req, res) => {
  * POST /api/auth/set-password
  * パスワード設定（代理店承認後の初回ログイン用）
  */
-router.post('/set-password', async (req, res) => {
+router.post('/set-password', passwordResetRateLimit, async (req, res) => {
   try {
     const { token, password } = req.body;
 
@@ -1124,7 +1124,7 @@ router.post('/2fa/email/disable/verify', authenticateToken, async (req, res) => 
  * POST /api/auth/login/2fa/email
  * ログイン時のメール2FA検証
  */
-router.post('/login/2fa/email', async (req, res) => {
+router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
   try {
     const { email, code } = req.body;
 

@@ -391,11 +391,8 @@ router.put('/:id/approve',
 
       // 承認通知メールを送信（トークンを含む）
       emailService.sendAgencyApprovedEmail({ ...data, passwordResetToken })
-        .then(result => {
-          console.log('承認メール送信:', result);
-        })
         .catch(err => {
-          console.error('承認メール送信エラー:', err);
+          console.error('承認メール送信エラー:', err.message);
         });
 
       res.json({
@@ -477,11 +474,8 @@ router.put('/:id/reject',
 
       // 却下通知メールを送信
       emailService.sendAgencyRejectedEmail(data, rejection_reason)
-        .then(result => {
-          console.log('却下メール送信:', result);
-        })
         .catch(err => {
-          console.error('却下メール送信エラー:', err);
+          console.error('却下メール送信エラー:', err.message);
         });
 
       res.json({
@@ -585,8 +579,6 @@ router.put('/:id/suspend',
       const { id } = req.params;
       const { suspension_reason } = req.body;
 
-      console.log('Suspend agency attempt:', { id, suspension_reason });
-
       // 既存のmetadataを取得
       const { data: currentAgency } = await supabase
         .from('agencies')
@@ -609,17 +601,11 @@ router.put('/:id/suspend',
         .select()
         .single();
 
-      if (error) {
-        console.error('Suspend agency DB error detail:', error);
-        throw error;
-      }
-
-      console.log('Suspend agency success:', data);
+      if (error) throw error;
 
       // 停止通知メールを送信（非同期で実行）
       emailService.sendAgencySuspendedEmail(data, suspension_reason)
-        .then(() => console.log('停止通知メール送信成功'))
-        .catch((err) => console.error('停止通知メール送信エラー:', err));
+        .catch((err) => console.error('停止通知メール送信エラー:', err.message));
 
       res.json({
         success: true,
@@ -627,7 +613,7 @@ router.put('/:id/suspend',
         message: '代理店を停止しました'
       });
     } catch (error) {
-      console.error('Suspend agency error:', error.message, error.details);
+      console.error('Suspend agency error:', error.message);
       res.status(500).json({
         error: true,
         message: '停止処理に失敗しました'
