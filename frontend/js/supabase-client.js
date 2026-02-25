@@ -9,7 +9,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Supabaseクライアント作成
 if (typeof window !== 'undefined' && window.supabase) {
   window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log('Supabase client initialized');
 } else {
   console.error('Supabase library not loaded');
 }

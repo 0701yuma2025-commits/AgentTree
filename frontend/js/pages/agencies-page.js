@@ -18,7 +18,6 @@ class AgenciesPage {
   async loadAgencies(forceReload = false) {
     try {
       const agencies = await agenciesAPI.getAgencies();
-      console.log('Agencies data from API:', agencies);
 
       // フィルタリング
       const filteredAgencies = this.applyAgenciesFilters(agencies);
@@ -201,15 +200,11 @@ class AgenciesPage {
    * 代理店停止
    */
   async suspendAgency(id) {
-    console.log('suspendAgency called with id:', id);
     const suspensionReason = prompt('停止理由を入力してください:');
-    console.log('suspension reason:', suspensionReason);
     if (suspensionReason && suspensionReason.trim()) {
       if (confirm('この代理店を停止しますか？')) {
         try {
-          console.log('Calling API to suspend agency...');
           const result = await agenciesAPI.suspendAgency(id, suspensionReason.trim());
-          console.log('API result:', result);
           alert(result.message || '停止しました');
           await this.loadAgencies();
         } catch (error) {
@@ -228,14 +223,11 @@ class AgenciesPage {
   async reactivateAgency(id) {
     if (confirm('この代理店を再有効化しますか？')) {
       try {
-        console.log('Calling reactivateAgency for id:', id);
         const result = await agenciesAPI.reactivateAgency(id);
-        console.log('Reactivate result:', result);
         alert(result.message || '再有効化しました');
         await this.loadAgencies();
       } catch (error) {
-        console.error('Reactivate agency full error:', error);
-        console.error('Error response:', error.response);
+        console.error('Reactivate agency error:', error);
         alert(error.response?.data?.message || error.message || '再有効化に失敗しました');
       }
     }

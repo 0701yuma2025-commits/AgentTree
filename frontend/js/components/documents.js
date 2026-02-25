@@ -93,8 +93,6 @@ class DocumentsManager {
 
     const user = JSON.parse(localStorage.getItem('agency_system_user') || '{}');
     const isAdmin = user.role === 'admin' || user.role === 'super_admin';
-    console.log('User role check:', { role: user.role, isAdmin });
-
     listContainer.innerHTML = `
       <table class="data-table">
         <thead>
@@ -117,13 +115,6 @@ class DocumentsManager {
    * 書類行の生成
    */
   getDocumentRow(doc, isAdmin) {
-    console.log('Document row:', {
-      docId: doc.id,
-      status: doc.status,
-      isAdmin: isAdmin,
-      showButtons: isAdmin && doc.status === 'pending'
-    });
-
     const statusMap = {
       'pending': '<span class="status status-pending">未確認</span>',
       'verified': '<span class="status status-active">確認済</span>',

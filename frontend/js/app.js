@@ -465,9 +465,7 @@ class App {
    * 初期データ読み込み
    */
   async loadInitialData() {
-    console.log('loadInitialData called');
     await this.dashboardPage.loadDashboard();
-    console.log('loadDashboard completed');
   }
 
   // --- Dashboard delegation stubs ---

@@ -309,8 +309,6 @@ class CommissionsPage {
       return;
     }
 
-    console.log('Displaying commissions:', commissions);
-
     commissions.forEach(commission => {
       const row = document.createElement('tr');
 
@@ -342,8 +340,6 @@ class CommissionsPage {
 
       // ステータス変更ボタンを表示（一旦全ユーザーに表示）
       const actionButtons = this.getActionButtons(commission);
-      console.log(`Commission ${commission.id} status: ${commission.status}, action buttons: ${actionButtons}`);
-
       // 売上番号の表示（代理店ユーザーは自社売上のみリンク表示）
       let saleNumberCell = '-';
       if (commission.sales?.sale_number) {

@@ -236,10 +236,8 @@ class SalesPage {
    */
   async showSaleDetail(saleId) {
     try {
-      console.log('showSaleDetail called with saleId:', saleId);
       // 売上情報を取得
       const response = await apiClient.get(`/sales/${saleId}`);
-      console.log('Sale detail API response:', response);
 
       if (!response || !response.success) {
         console.error('Invalid response:', response);
@@ -248,7 +246,6 @@ class SalesPage {
       }
 
       const sale = response.data;
-      console.log('Sale data:', sale);
 
       // モーダルに詳細情報を表示
       const modalBody = document.getElementById('modalBody');
@@ -323,7 +320,6 @@ class SalesPage {
         alert('\u30E2\u30FC\u30C0\u30EB\u8981\u7D20\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093');
         return;
       }
-      console.log('Showing modal');
       modal.classList.remove('hidden');
 
     } catch (error) {

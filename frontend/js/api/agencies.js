@@ -88,11 +88,9 @@ class AgenciesAPI {
    */
   async suspendAgency(id, suspensionReason) {
     try {
-      console.log('API suspendAgency called:', { id, suspensionReason });
       const response = await apiClient.put(`/agencies/${id}/suspend`, {
         suspension_reason: suspensionReason
       });
-      console.log('API suspendAgency response:', response);
       return response.data;
     } catch (error) {
       console.error('API Suspend agency error:', error);

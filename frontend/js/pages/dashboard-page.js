@@ -17,10 +17,10 @@ class DashboardPage {
    */
   async loadDashboard() {
     try {
-      console.log('loadDashboard: Fetching dashboard stats...');
+      // ダッシュボードデータ取得
       // ダッシュボード統計データ取得
       const dashboardStats = await apiClient.get('/dashboard/stats');
-      console.log('Dashboard stats response:', dashboardStats);
+
 
       if (dashboardStats.success && dashboardStats.data) {
         const stats = dashboardStats.data;
@@ -75,7 +75,6 @@ class DashboardPage {
         if (stats.monthlyTrend) {
             this.renderMonthlyChart(stats.monthlyTrend);
         } else {
-          console.log('No monthly trend data in stats');
         }
 
         // 組織売上サマリー（代理店のみ）

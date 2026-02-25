@@ -40,11 +40,9 @@ class NetworkPage {
   async loadNetworkData() {
     try {
       const response = await apiClient.get('/network/agencies');
-      console.log('API Response:', response);
 
       if (response.success && response.data) {
         this.graphData = response.data;
-        console.log('Network data loaded:', this.graphData);
       } else {
         console.error('API returned error:', response);
         throw new Error(response.message || 'データ取得に失敗しました');

@@ -15,8 +15,6 @@ class AuditLogsPage {
    * ページ初期化
    */
   async init() {
-    console.log('Initializing Audit Logs Page...');
-
     // イベントリスナー設定
     this.setupEventListeners();
 
