@@ -306,14 +306,20 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
       console.error('Payment record creation error:', recordError);
     }
 
-    res.json({
+    const response = {
       success: true,
       message: '支払いが確定されました',
       data: {
         updated_count: data?.length || 0,
         total_amount: data?.reduce((sum, c) => sum + c.final_amount, 0) || 0
       }
-    });
+    };
+
+    if (recordError) {
+      response.warning = '支払いは確定されましたが、支払い履歴の記録に失敗しました。管理者に連絡してください。';
+    }
+
+    res.json(response);
 
   } catch (error) {
     console.error('Confirm payment error:', error);

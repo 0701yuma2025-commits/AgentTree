@@ -4,10 +4,18 @@
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const emailService = require('../services/emailService');
+
+// 招待トークン検証用レート制限（1分あたり10回まで）
+const validateRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: true, message: 'リクエスト回数が上限を超えました。1分後に再試行してください。' }
+});
 
 /**
  * GET /api/invitations
@@ -115,7 +123,7 @@ router.post('/',
  * GET /api/invitations/validate/:token
  * トークン検証
  */
-router.get('/validate/:token', async (req, res) => {
+router.get('/validate/:token', validateRateLimit, async (req, res) => {
   try {
     const { token } = req.params;
 
