@@ -34,12 +34,12 @@ class SalesPage {
             pageData.forEach(sale => {
               const row = document.createElement('tr');
               row.innerHTML = `
-                <td>${sale.sale_number}</td>
+                <td>${escapeHtml(sale.sale_number)}</td>
                 <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
-                <td>${sale.customer_name}</td>
-                <td>${sale.product?.name || sale.products?.name || '-'}</td>
-                <td>${sale.quantity}</td>
-                <td>\u00A5${sale.total_amount.toLocaleString()}</td>
+                <td>${escapeHtml(sale.customer_name)}</td>
+                <td>${escapeHtml(sale.product?.name || sale.products?.name || '-')}</td>
+                <td>${Number(sale.quantity)}</td>
+                <td>\u00A5${Number(sale.total_amount).toLocaleString()}</td>
                 <td>
                   <button class="btn btn-secondary" onclick="app.showSaleDetail('${sale.id}')">\u8A73\u7D30</button>
                 </td>
@@ -264,7 +264,7 @@ class SalesPage {
           <div class="detail-section">
             <h3>\u57FA\u672C\u60C5\u5831</h3>
             <table class="detail-table">
-              <tr><th>\u58F2\u4E0A\u756A\u53F7</th><td>${sale.sale_number || '-'}</td></tr>
+              <tr><th>\u58F2\u4E0A\u756A\u53F7</th><td>${escapeHtml(sale.sale_number) || '-'}</td></tr>
               <tr><th>\u58F2\u4E0A\u65E5</th><td>${new Date(sale.sale_date).toLocaleDateString()}</td></tr>
               <tr><th>\u767B\u9332\u65E5\u6642</th><td>${new Date(sale.created_at).toLocaleString()}</td></tr>
             </table>
@@ -273,35 +273,35 @@ class SalesPage {
           <div class="detail-section">
             <h3>\u8CA9\u58F2\u4EE3\u7406\u5E97</h3>
             <table class="detail-table">
-              <tr><th>\u4EE3\u7406\u5E97\u30B3\u30FC\u30C9</th><td>${sale.agency?.agency_code || '-'}</td></tr>
-              <tr><th>\u4F1A\u793E\u540D</th><td>${sale.agency?.company_name || '-'}</td></tr>
-              <tr><th>\u968E\u5C64</th><td>${sale.agency ? 'Tier ' + sale.agency.tier_level : '-'}</td></tr>
+              <tr><th>\u4EE3\u7406\u5E97\u30B3\u30FC\u30C9</th><td>${escapeHtml(sale.agency?.agency_code) || '-'}</td></tr>
+              <tr><th>\u4F1A\u793E\u540D</th><td>${escapeHtml(sale.agency?.company_name) || '-'}</td></tr>
+              <tr><th>\u968E\u5C64</th><td>${sale.agency ? 'Tier ' + Number(sale.agency.tier_level) : '-'}</td></tr>
             </table>
           </div>
 
           <div class="detail-section">
             <h3>\u9867\u5BA2\u60C5\u5831</h3>
             <table class="detail-table">
-              <tr><th>\u9867\u5BA2\u540D</th><td>${sale.customer_name || '-'}</td></tr>
-              <tr><th>\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9</th><td>${sale.customer_email || '-'}</td></tr>
-              <tr><th>\u96FB\u8A71\u756A\u53F7</th><td>${sale.customer_phone || '-'}</td></tr>
+              <tr><th>\u9867\u5BA2\u540D</th><td>${escapeHtml(sale.customer_name) || '-'}</td></tr>
+              <tr><th>\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9</th><td>${escapeHtml(sale.customer_email) || '-'}</td></tr>
+              <tr><th>\u96FB\u8A71\u756A\u53F7</th><td>${escapeHtml(sale.customer_phone) || '-'}</td></tr>
             </table>
           </div>
 
           <div class="detail-section">
             <h3>\u5546\u54C1\u30FB\u91D1\u984D\u60C5\u5831</h3>
             <table class="detail-table">
-              <tr><th>\u5546\u54C1\u540D</th><td>${sale.product?.name || sale.products?.name || '-'}</td></tr>
-              <tr><th>\u6570\u91CF</th><td>${sale.quantity}</td></tr>
+              <tr><th>\u5546\u54C1\u540D</th><td>${escapeHtml(sale.product?.name || sale.products?.name || '-')}</td></tr>
+              <tr><th>\u6570\u91CF</th><td>${Number(sale.quantity)}</td></tr>
               <tr><th>\u5358\u4FA1</th><td>\u00A5${sale.unit_price?.toLocaleString() || '-'}</td></tr>
-              <tr><th>\u5408\u8A08\u91D1\u984D</th><td><strong>\u00A5${sale.total_amount.toLocaleString()}</strong></td></tr>
+              <tr><th>\u5408\u8A08\u91D1\u984D</th><td><strong>\u00A5${Number(sale.total_amount).toLocaleString()}</strong></td></tr>
             </table>
           </div>
 
           ${sale.notes ? `
           <div class="detail-section">
             <h3>\u5099\u8003</h3>
-            <p>${sale.notes}</p>
+            <p>${escapeHtml(sale.notes)}</p>
           </div>
           ` : ''}
 
@@ -392,28 +392,28 @@ class SalesPage {
 
             <div class="form-group">
               <label for="customerName">\u9867\u5BA2\u540D*</label>
-              <input type="text" id="customerName" value="${sale.customer_name || ''}" ${readonly('customer')} required>
+              <input type="text" id="customerName" value="${escapeHtml(sale.customer_name)}" ${readonly('customer')} required>
             </div>
 
             <div class="form-group">
               <label for="customerEmail">\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9</label>
-              <input type="email" id="customerEmail" value="${sale.customer_email || ''}" ${readonly('customer')}>
+              <input type="email" id="customerEmail" value="${escapeHtml(sale.customer_email)}" ${readonly('customer')}>
             </div>
 
             <div class="form-group">
               <label for="customerPhone">\u96FB\u8A71\u756A\u53F7</label>
-              <input type="tel" id="customerPhone" value="${sale.customer_phone || ''}" ${readonly('customer')}>
+              <input type="tel" id="customerPhone" value="${escapeHtml(sale.customer_phone)}" ${readonly('customer')}>
             </div>
 
             <div class="form-group">
               <label for="customerAddress">\u4F4F\u6240</label>
-              <input type="text" id="customerAddress" value="${sale.customer_address || ''}" ${readonly('customer')}>
+              <input type="text" id="customerAddress" value="${escapeHtml(sale.customer_address)}" ${readonly('customer')}>
             </div>
 
             <div class="form-group">
               <label for="productId">\u5546\u54C1*</label>
               <select id="productId" ${readonly('sale')} required>
-                ${products.map(p => `<option value="${p.id}" ${sale.product_id === p.id ? 'selected' : ''}>${p.name} (\u00A5${p.price.toLocaleString()})</option>`).join('')}
+                ${products.map(p => `<option value="${p.id}" ${sale.product_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)} (\u00A5${Number(p.price).toLocaleString()})</option>`).join('')}
               </select>
             </div>
 
@@ -429,7 +429,7 @@ class SalesPage {
 
             <div class="form-group">
               <label for="notes">\u5099\u8003</label>
-              <textarea id="notes" rows="3" ${readonly('sale')}>${sale.notes || ''}</textarea>
+              <textarea id="notes" rows="3" ${readonly('sale')}>${escapeHtml(sale.notes)}</textarea>
             </div>
 
             <div class="modal-buttons">
@@ -445,16 +445,16 @@ class SalesPage {
               ${history.map(h => `
                 <div style="padding: 12px; border-bottom: 1px solid #f0f0f0;">
                   <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <strong style="color: #4A90E2;">${h.field_name}</strong>
+                    <strong style="color: #4A90E2;">${escapeHtml(h.field_name)}</strong>
                     <span style="font-size: 0.85em; color: #999;">${new Date(h.changed_at).toLocaleString()}</span>
                   </div>
                   <div style="font-size: 0.9em; color: #666;">
-                    <span style="color: #999;">\u5909\u66F4\u524D:</span> <span style="background: #fff1f0; padding: 2px 6px; border-radius: 3px;">${h.old_value || '(\u7A7A)'}</span>
+                    <span style="color: #999;">\u5909\u66F4\u524D:</span> <span style="background: #fff1f0; padding: 2px 6px; border-radius: 3px;">${escapeHtml(h.old_value) || '(\u7A7A)'}</span>
                     \u2192
-                    <span style="color: #999;">\u5909\u66F4\u5F8C:</span> <span style="background: #f6ffed; padding: 2px 6px; border-radius: 3px;">${h.new_value || '(\u7A7A)'}</span>
+                    <span style="color: #999;">\u5909\u66F4\u5F8C:</span> <span style="background: #f6ffed; padding: 2px 6px; border-radius: 3px;">${escapeHtml(h.new_value) || '(\u7A7A)'}</span>
                   </div>
                   <div style="font-size: 0.85em; color: #999; margin-top: 4px;">
-                    \u5909\u66F4\u8005: ${h.changed_by.name} (${h.changed_by.email})
+                    \u5909\u66F4\u8005: ${escapeHtml(h.changed_by.name)} (${escapeHtml(h.changed_by.email)})
                   </div>
                 </div>
               `).join('')}
@@ -552,9 +552,9 @@ class SalesPage {
         <div class="sale-history">
           <h2>\u58F2\u4E0A\u5909\u66F4\u5C65\u6B74</h2>
           <div style="background: #f5f5f5; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-            <strong>\u58F2\u4E0A\u756A\u53F7:</strong> ${sale.sale_number || '-'}<br>
-            <strong>\u9867\u5BA2\u540D:</strong> ${sale.customer_name || '-'}<br>
-            <strong>\u5408\u8A08\u91D1\u984D:</strong> \u00A5${sale.total_amount.toLocaleString()}
+            <strong>\u58F2\u4E0A\u756A\u53F7:</strong> ${escapeHtml(sale.sale_number) || '-'}<br>
+            <strong>\u9867\u5BA2\u540D:</strong> ${escapeHtml(sale.customer_name) || '-'}<br>
+            <strong>\u5408\u8A08\u91D1\u984D:</strong> \u00A5${Number(sale.total_amount).toLocaleString()}
           </div>
 
           ${history.length === 0 ? `
@@ -566,14 +566,14 @@ class SalesPage {
               ${history.map((h, index) => `
                 <div style="padding: 16px; border-bottom: 1px solid #f0f0f0; ${index % 2 === 0 ? 'background: #fafafa;' : ''}">
                   <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <strong style="color: #4A90E2; font-size: 1.1em;">${h.field_name}</strong>
+                    <strong style="color: #4A90E2; font-size: 1.1em;">${escapeHtml(h.field_name)}</strong>
                     <span style="font-size: 0.9em; color: #999;">${new Date(h.changed_at).toLocaleString('ja-JP')}</span>
                   </div>
                   <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; margin: 10px 0;">
                     <div>
                       <div style="font-size: 0.85em; color: #999; margin-bottom: 4px;">\u5909\u66F4\u524D</div>
                       <div style="background: #fff1f0; padding: 8px 12px; border-radius: 4px; border: 1px solid #ffccc7; min-height: 36px;">
-                        ${h.old_value || '<span style="color: #ccc;">(\u7A7A)</span>'}
+                        ${escapeHtml(h.old_value) || '<span style="color: #ccc;">(\u7A7A)</span>'}
                       </div>
                     </div>
                     <div style="text-align: center; color: #999;">
@@ -582,12 +582,12 @@ class SalesPage {
                     <div>
                       <div style="font-size: 0.85em; color: #999; margin-bottom: 4px;">\u5909\u66F4\u5F8C</div>
                       <div style="background: #f6ffed; padding: 8px 12px; border-radius: 4px; border: 1px solid #b7eb8f; min-height: 36px;">
-                        ${h.new_value || '<span style="color: #ccc;">(\u7A7A)</span>'}
+                        ${escapeHtml(h.new_value) || '<span style="color: #ccc;">(\u7A7A)</span>'}
                       </div>
                     </div>
                   </div>
                   <div style="font-size: 0.9em; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e8e8e8;">
-                    <strong>\u5909\u66F4\u8005:</strong> ${h.changed_by.name} <span style="color: #999;">(${h.changed_by.email})</span>
+                    <strong>\u5909\u66F4\u8005:</strong> ${escapeHtml(h.changed_by.name)} <span style="color: #999;">(${escapeHtml(h.changed_by.email)})</span>
                   </div>
                 </div>
               `).join('')}

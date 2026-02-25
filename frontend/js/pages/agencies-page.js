@@ -127,11 +127,11 @@ class AgenciesPage {
       }
 
       row.innerHTML = `
-        <td>${agency.agency_code || '-'}</td>
-        <td>${agency.company_name || '-'}</td>
+        <td>${escapeHtml(agency.agency_code) || '-'}</td>
+        <td>${escapeHtml(agency.company_name) || '-'}</td>
         <td>Tier ${agency.tier_level || '-'}</td>
-        <td>${agency.representative_name || '-'}</td>
-        <td>${agency.contact_email || '-'}</td>
+        <td>${escapeHtml(agency.representative_name) || '-'}</td>
+        <td>${escapeHtml(agency.contact_email) || '-'}</td>
         <td>${statusBadge}</td>
         <td>${actionButtons}</td>
       `;

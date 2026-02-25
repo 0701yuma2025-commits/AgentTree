@@ -8,6 +8,7 @@ const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const { getSubordinateAgencyIds } = require('../../utils/agencyHelpers');
 const { Parser } = require('json2csv');
+const { sanitizeCsvRow } = require('../../utils/csvSanitizer');
 
 /**
  * GET /api/sales/export
@@ -80,8 +81,8 @@ router.get('/export', authenticateToken, async (req, res) => {
       }
     }
 
-    // CSV用にデータを整形
-    const csvData = sales.map(sale => ({
+    // CSV用にデータを整形（数式インジェクション対策済み）
+    const csvData = sales.map(sale => sanitizeCsvRow({
       売上番号: sale.sale_number,
       売上日: sale.sale_date,
       代理店コード: agencyMap[sale.agency_id]?.agency_code || '',

@@ -1,4 +1,15 @@
 /**
+ * グローバルHTMLエスケープ関数
+ * XSS防止: ユーザー入力をinnerHTMLに挿入する前に必ず使用する
+ */
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+
+/**
  * メインアプリケーション
  */
 

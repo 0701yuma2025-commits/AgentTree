@@ -7,6 +7,7 @@ const router = express.Router();
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const { Parser } = require('json2csv');
+const { sanitizeCsvRow } = require('../../utils/csvSanitizer');
 
 /**
  * GET /api/agencies/export
@@ -64,7 +65,7 @@ router.get('/export', authenticateToken, async (req, res) => {
     if (error) throw error;
 
     // CSV用にデータを整形
-    const csvData = agencies.map(agency => ({
+    const csvData = agencies.map(agency => sanitizeCsvRow({
       代理店コード: agency.agency_code,
       会社名: agency.company_name,
       階層: `Tier ${agency.tier_level}`,

@@ -4,6 +4,7 @@
 
 const { Parser } = require('json2csv');
 const iconv = require('iconv-lite');
+const { sanitizeCsvValue } = require('./csvSanitizer');
 
 /**
  * 全銀フォーマット（総合振込）用データを生成
@@ -112,8 +113,27 @@ function generateCSVFormat(payments) {
     { label: 'ステータス', value: 'status' }
   ];
 
+  // 数式インジェクション対策: 文字列値をサニタイズ
+  const sanitizedPayments = payments.map(p => {
+    const sanitized = { ...p };
+    sanitized.agency_code = sanitizeCsvValue(p.agency_code);
+    sanitized.agency_name = sanitizeCsvValue(p.agency_name);
+    sanitized.status = sanitizeCsvValue(p.status);
+    if (p.bank_account) {
+      sanitized.bank_account = {
+        ...p.bank_account,
+        bank_name: sanitizeCsvValue(p.bank_account.bank_name),
+        branch_name: sanitizeCsvValue(p.bank_account.branch_name),
+        account_type: sanitizeCsvValue(p.bank_account.account_type),
+        account_number: sanitizeCsvValue(p.bank_account.account_number),
+        account_holder: sanitizeCsvValue(p.bank_account.account_holder),
+      };
+    }
+    return sanitized;
+  });
+
   const json2csvParser = new Parser({ fields, withBOM: true });
-  const csv = json2csvParser.parse(payments);
+  const csv = json2csvParser.parse(sanitizedPayments);
 
   return csv;
 }

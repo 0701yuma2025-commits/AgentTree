@@ -62,10 +62,10 @@ class DashboardPage {
           if (recentSalesContainer) {
             recentSalesContainer.innerHTML = stats.recentSales.map(sale => `
               <div class="recent-sale-item">
-                <span class="sale-number">${sale.sale_number}</span>
-                <span class="customer">${sale.agency_name}</span>
-                <span class="amount">\u00A5${sale.total_amount.toLocaleString()}</span>
-                <span class="date">${sale.sale_date}</span>
+                <span class="sale-number">${escapeHtml(sale.sale_number)}</span>
+                <span class="customer">${escapeHtml(sale.agency_name)}</span>
+                <span class="amount">\u00A5${Number(sale.total_amount).toLocaleString()}</span>
+                <span class="date">${escapeHtml(sale.sale_date)}</span>
               </div>
             `).join('');
           }
@@ -143,9 +143,9 @@ class DashboardPage {
         topAgenciesList.innerHTML = data.top_agencies.map((agency, index) => `
           <div class="top-agency-item">
             <span class="rank">${index + 1}</span>
-            <span class="name">${agency.agency_name}</span>
-            <span class="amount">\u00A5${agency.total_amount.toLocaleString()}</span>
-            <span class="count">${agency.sale_count}\u4EF6</span>
+            <span class="name">${escapeHtml(agency.agency_name)}</span>
+            <span class="amount">\u00A5${Number(agency.total_amount).toLocaleString()}</span>
+            <span class="count">${Number(agency.sale_count)}\u4EF6</span>
           </div>
         `).join('');
       } else {

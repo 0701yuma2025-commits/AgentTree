@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { sanitizeCsvValue } = require('../utils/csvSanitizer');
 
 /**
  * GET /api/audit-logs
@@ -292,7 +293,7 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
     // CSV生成
     const csvHeader = 'Timestamp,User Email,Action,Resource Type,Resource ID,Description,Status,IP Address\n';
     const csvRows = logs.map(log => {
-      return `${log.timestamp},"${log.user_email}",${log.action},${log.resource_type},${log.resource_id || ''},"${log.description}",${log.status},${log.ip_address}`;
+      return `${log.timestamp},"${sanitizeCsvValue(log.user_email)}",${sanitizeCsvValue(log.action)},${sanitizeCsvValue(log.resource_type)},${sanitizeCsvValue(log.resource_id || '')},"${sanitizeCsvValue(log.description)}",${sanitizeCsvValue(log.status)},${log.ip_address}`;
     }).join('\n');
 
     const csv = csvHeader + csvRows;

@@ -32,15 +32,15 @@ class AgenciesDetailPage {
             <table class="detail-table">
               <tr>
                 <th>代理店コード</th>
-                <td>${agencyData.agency_code || '-'}</td>
+                <td>${escapeHtml(agencyData.agency_code) || '-'}</td>
               </tr>
               <tr>
                 <th>会社名</th>
-                <td>${agencyData.company_name || '-'}</td>
+                <td>${escapeHtml(agencyData.company_name) || '-'}</td>
               </tr>
               <tr>
                 <th>会社種別</th>
-                <td>${agencyData.company_type || '-'}</td>
+                <td>${escapeHtml(agencyData.company_type) || '-'}</td>
               </tr>
               <tr>
                 <th>階層</th>
@@ -62,11 +62,11 @@ class AgenciesDetailPage {
             <table class="detail-table">
               <tr>
                 <th>代表者名</th>
-                <td>${agencyData.representative_name || '-'}</td>
+                <td>${escapeHtml(agencyData.representative_name) || '-'}</td>
               </tr>
               <tr>
                 <th>電話番号</th>
-                <td>${agencyData.representative_phone || '-'}</td>
+                <td>${escapeHtml(agencyData.representative_phone) || '-'}</td>
               </tr>
               <tr>
                 <th>生年月日</th>
@@ -80,15 +80,15 @@ class AgenciesDetailPage {
             <table class="detail-table">
               <tr>
                 <th>メールアドレス</th>
-                <td>${agencyData.contact_email || agencyData.email || '-'}</td>
+                <td>${escapeHtml(agencyData.contact_email || agencyData.email) || '-'}</td>
               </tr>
               <tr>
                 <th>電話番号</th>
-                <td>${agencyData.contact_phone || '-'}</td>
+                <td>${escapeHtml(agencyData.contact_phone) || '-'}</td>
               </tr>
               <tr>
                 <th>住所</th>
-                <td>${agencyData.address || '-'}</td>
+                <td>${escapeHtml(agencyData.address) || '-'}</td>
               </tr>
             </table>
           </div>
@@ -98,28 +98,28 @@ class AgenciesDetailPage {
             <table class="detail-table">
               <tr>
                 <th>インボイス番号</th>
-                <td>${agencyData.invoice_number || '-'}</td>
+                <td>${escapeHtml(agencyData.invoice_number) || '-'}</td>
               </tr>
               ${agencyData.bank_account ? `
               <tr>
                 <th>銀行名</th>
-                <td>${agencyData.bank_account.bank_name || '-'}</td>
+                <td>${escapeHtml(agencyData.bank_account.bank_name) || '-'}</td>
               </tr>
               <tr>
                 <th>支店名</th>
-                <td>${agencyData.bank_account.branch_name || '-'}</td>
+                <td>${escapeHtml(agencyData.bank_account.branch_name) || '-'}</td>
               </tr>
               <tr>
                 <th>口座種別</th>
-                <td>${agencyData.bank_account.account_type || '-'}</td>
+                <td>${escapeHtml(agencyData.bank_account.account_type) || '-'}</td>
               </tr>
               <tr>
                 <th>口座番号</th>
-                <td>${agencyData.bank_account.account_number || '-'}</td>
+                <td>${escapeHtml(agencyData.bank_account.account_number) || '-'}</td>
               </tr>
               <tr>
                 <th>口座名義</th>
-                <td>${agencyData.bank_account.account_holder || '-'}</td>
+                <td>${escapeHtml(agencyData.bank_account.account_holder) || '-'}</td>
               </tr>
               ` : `
               <tr>
@@ -136,11 +136,11 @@ class AgenciesDetailPage {
               ${agencyData.tax_info ? `
               <tr>
                 <th>法人番号</th>
-                <td>${agencyData.tax_info.tax_id || '-'}</td>
+                <td>${escapeHtml(agencyData.tax_info.tax_id) || '-'}</td>
               </tr>
               <tr>
                 <th>税務署</th>
-                <td>${agencyData.tax_info.tax_office || '-'}</td>
+                <td>${escapeHtml(agencyData.tax_info.tax_office) || '-'}</td>
               </tr>
               ` : `
               <tr>
@@ -164,7 +164,7 @@ class AgenciesDetailPage {
               </tr>
               <tr>
                 <th>親代理店</th>
-                <td>${agencyData.parent_agency_name || '-'}</td>
+                <td>${escapeHtml(agencyData.parent_agency_name) || '-'}</td>
               </tr>
             </table>
           </div>
@@ -249,11 +249,11 @@ class AgenciesDetailPage {
           <div class="history-item">
             <div class="history-date">${date}</div>
             <div class="history-content">
-              <div class="history-type ${statusClass}">${item.description}</div>
+              <div class="history-type ${statusClass}">${escapeHtml(item.description)}</div>
               <div class="history-details">
                 ${item.type === 'registration' ?
-                  `ステータス: ${item.details.status}, 階層: Tier ${item.details.tier_level}` :
-                  `メール: ${item.details.email || ''}`
+                  `ステータス: ${escapeHtml(item.details.status)}, 階層: Tier ${Number(item.details.tier_level) || '-'}` :
+                  `メール: ${escapeHtml(item.details.email)}`
                 }
               </div>
             </div>
@@ -295,7 +295,7 @@ class AgenciesDetailPage {
               <h3>基本情報</h3>
               <div class="form-group">
                 <label for="edit_company_name">会社名 *</label>
-                <input type="text" id="edit_company_name" value="${agency.company_name || ''}" required>
+                <input type="text" id="edit_company_name" value="${escapeHtml(agency.company_name)}" required>
               </div>
               <div class="form-group">
                 <label for="edit_company_type">会社種別 *</label>
@@ -306,7 +306,7 @@ class AgenciesDetailPage {
               </div>
               <div class="form-group">
                 <label for="edit_representative_name">代表者名 *</label>
-                <input type="text" id="edit_representative_name" value="${agency.representative_name || ''}" required>
+                <input type="text" id="edit_representative_name" value="${escapeHtml(agency.representative_name)}" required>
               </div>
             </div>
 
@@ -314,17 +314,17 @@ class AgenciesDetailPage {
               <h3>連絡先情報</h3>
               <div class="form-group">
                 <label for="edit_contact_email">メールアドレス *</label>
-                <input type="email" id="edit_contact_email" value="${agency.contact_email || ''}" required>
+                <input type="email" id="edit_contact_email" value="${escapeHtml(agency.contact_email)}" required>
                 <small class="text-muted">請求書・領収書に記載されるメールアドレスです</small>
               </div>
               <div class="form-group">
                 <label for="edit_contact_phone">電話番号</label>
-                <input type="tel" id="edit_contact_phone" value="${agency.contact_phone || ''}">
+                <input type="tel" id="edit_contact_phone" value="${escapeHtml(agency.contact_phone)}">
                 <small class="text-muted">請求書・領収書に記載される電話番号です</small>
               </div>
               <div class="form-group">
                 <label for="edit_representative_phone">代表者電話番号</label>
-                <input type="tel" id="edit_representative_phone" value="${agency.representative_phone || ''}">
+                <input type="tel" id="edit_representative_phone" value="${escapeHtml(agency.representative_phone)}">
               </div>
               <div class="form-group">
                 <label for="edit_birth_date">生年月日</label>
@@ -332,12 +332,12 @@ class AgenciesDetailPage {
               </div>
               <div class="form-group">
                 <label for="edit_postal_code">郵便番号</label>
-                <input type="text" id="edit_postal_code" value="${agency.postal_code || ''}" placeholder="例：100-0001">
+                <input type="text" id="edit_postal_code" value="${escapeHtml(agency.postal_code)}" placeholder="例：100-0001">
                 <small class="text-muted">請求書・領収書に記載される郵便番号です</small>
               </div>
               <div class="form-group">
                 <label for="edit_address">住所</label>
-                <textarea id="edit_address" rows="3" placeholder="例：東京都千代田区千代田1-1">${agency.address || ''}</textarea>
+                <textarea id="edit_address" rows="3" placeholder="例：東京都千代田区千代田1-1">${escapeHtml(agency.address)}</textarea>
                 <small class="text-muted">請求書・領収書に記載される住所です</small>
               </div>
             </div>
@@ -346,11 +346,11 @@ class AgenciesDetailPage {
               <h3>銀行口座情報</h3>
               <div class="form-group">
                 <label for="edit_bank_name">銀行名</label>
-                <input type="text" id="edit_bank_name" value="${agency.bank_account?.bank_name || ''}" placeholder="例：みずほ銀行">
+                <input type="text" id="edit_bank_name" value="${escapeHtml(agency.bank_account?.bank_name)}" placeholder="例：みずほ銀行">
               </div>
               <div class="form-group">
                 <label for="edit_branch_name">支店名</label>
-                <input type="text" id="edit_branch_name" value="${agency.bank_account?.branch_name || ''}" placeholder="例：新宿支店">
+                <input type="text" id="edit_branch_name" value="${escapeHtml(agency.bank_account?.branch_name)}" placeholder="例：新宿支店">
               </div>
               <div class="form-group">
                 <label for="edit_account_type">口座種別</label>
@@ -363,11 +363,11 @@ class AgenciesDetailPage {
               </div>
               <div class="form-group">
                 <label for="edit_account_number">口座番号</label>
-                <input type="text" id="edit_account_number" value="${agency.bank_account?.account_number || ''}" placeholder="例：1234567">
+                <input type="text" id="edit_account_number" value="${escapeHtml(agency.bank_account?.account_number)}" placeholder="例：1234567">
               </div>
               <div class="form-group">
                 <label for="edit_account_holder">口座名義</label>
-                <input type="text" id="edit_account_holder" value="${agency.bank_account?.account_holder || ''}" placeholder="例：カブシキガイシャ エービーシー">
+                <input type="text" id="edit_account_holder" value="${escapeHtml(agency.bank_account?.account_holder)}" placeholder="例：カブシキガイシャ エービーシー">
               </div>
             </div>
 
@@ -382,15 +382,15 @@ class AgenciesDetailPage {
               </div>
               <div class="form-group">
                 <label for="edit_invoice_number">インボイス登録番号</label>
-                <input type="text" id="edit_invoice_number" value="${agency.invoice_number || ''}" placeholder="例：T1234567890123">
+                <input type="text" id="edit_invoice_number" value="${escapeHtml(agency.invoice_number)}" placeholder="例：T1234567890123">
               </div>
               <div class="form-group">
                 <label for="edit_tax_id">法人番号</label>
-                <input type="text" id="edit_tax_id" value="${agency.tax_info?.tax_id || ''}" placeholder="例：1234567890123">
+                <input type="text" id="edit_tax_id" value="${escapeHtml(agency.tax_info?.tax_id)}" placeholder="例：1234567890123">
               </div>
               <div class="form-group">
                 <label for="edit_tax_office">税務署</label>
-                <input type="text" id="edit_tax_office" value="${agency.tax_info?.tax_office || ''}" placeholder="例：新宿税務署">
+                <input type="text" id="edit_tax_office" value="${escapeHtml(agency.tax_info?.tax_office)}" placeholder="例：新宿税務署">
               </div>
             </div>
 

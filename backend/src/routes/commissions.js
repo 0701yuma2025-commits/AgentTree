@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { calculateMonthlyCommissions } = require('../utils/calculateCommission');
+const { sanitizeCsvRow } = require('../utils/csvSanitizer');
 const { Parser } = require('json2csv');
 
 // 月パラメータ(YYYY-MM)のバリデーション
@@ -585,8 +586,8 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
 
     if (error) throw error;
 
-    // CSV用にデータを整形
-    const csvData = commissions.map(commission => ({
+    // CSV用にデータを整形（数式インジェクション対策済み）
+    const csvData = commissions.map(commission => sanitizeCsvRow({
       対象月: commission.month,
       代理店コード: commission.agencies?.agency_code || '',
       代理店名: commission.agencies?.company_name || '',

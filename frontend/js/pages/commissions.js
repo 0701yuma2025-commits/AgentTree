@@ -349,10 +349,10 @@ class CommissionsPage {
       if (commission.sales?.sale_number) {
         // 基本報酬がある場合のみリンク表示（自社売上）
         if (commission.base_amount > 0) {
-          saleNumberCell = `<a href="#" onclick="window.commissionsPageInstance.viewSaleDetail('${commission.sale_id || commission.sales?.id}'); return false;" style="color: #0066cc; text-decoration: none; cursor: pointer;">${commission.sales.sale_number}</a>`;
+          saleNumberCell = `<a href="#" onclick="window.commissionsPageInstance.viewSaleDetail('${commission.sale_id || commission.sales?.id}'); return false;" style="color: #0066cc; text-decoration: none; cursor: pointer;">${escapeHtml(commission.sales.sale_number)}</a>`;
         } else {
           // 階層ボーナスの場合はリンクなしで表示
-          saleNumberCell = `<span style="color: #666;">${commission.sales.sale_number} (階層)</span>`;
+          saleNumberCell = `<span style="color: #666;">${escapeHtml(commission.sales.sale_number)} (階層)</span>`;
         }
       }
 
@@ -613,15 +613,15 @@ class CommissionsPage {
                 <h3>基本情報</h3>
                 <div class="detail-row">
                   <label>売上番号:</label>
-                  <span>${sale.sale_number || '-'}</span>
+                  <span>${escapeHtml(sale.sale_number) || '-'}</span>
                 </div>
                 <div class="detail-row">
                   <label>売上日:</label>
-                  <span>${sale.sale_date || '-'}</span>
+                  <span>${escapeHtml(sale.sale_date) || '-'}</span>
                 </div>
                 <div class="detail-row">
                   <label>代理店:</label>
-                  <span>${sale.agency?.company_name || '-'} (${sale.agency?.agency_code || '-'})</span>
+                  <span>${escapeHtml(sale.agency?.company_name) || '-'} (${escapeHtml(sale.agency?.agency_code) || '-'})</span>
                 </div>
               </div>
 
@@ -629,15 +629,15 @@ class CommissionsPage {
                 <h3>顧客情報</h3>
                 <div class="detail-row">
                   <label>顧客名:</label>
-                  <span>${sale.customer_name || '-'}</span>
+                  <span>${escapeHtml(sale.customer_name) || '-'}</span>
                 </div>
                 <div class="detail-row">
                   <label>顧客メール:</label>
-                  <span>${sale.customer_email || '-'}</span>
+                  <span>${escapeHtml(sale.customer_email) || '-'}</span>
                 </div>
                 <div class="detail-row">
                   <label>顧客電話:</label>
-                  <span>${sale.customer_phone || '-'}</span>
+                  <span>${escapeHtml(sale.customer_phone) || '-'}</span>
                 </div>
               </div>
 
@@ -645,7 +645,7 @@ class CommissionsPage {
                 <h3>商品情報</h3>
                 <div class="detail-row">
                   <label>商品:</label>
-                  <span>${sale.product?.name || '-'}</span>
+                  <span>${escapeHtml(sale.product?.name) || '-'}</span>
                 </div>
                 <div class="detail-row">
                   <label>数量:</label>
@@ -802,8 +802,8 @@ class CommissionsPage {
                 <select id="recipientTemplateSelect" class="form-control">
                   <option value="">-- 新規入力 --</option>
                   ${templates.map(t => `
-                    <option value="${t.id}" data-template='${JSON.stringify(t)}'>
-                      ${t.template_name} ${t.is_favorite ? '★' : ''}
+                    <option value="${t.id}" data-template='${escapeHtml(JSON.stringify(t))}'>
+                      ${escapeHtml(t.template_name)} ${t.is_favorite ? '★' : ''}
                     </option>
                   `).join('')}
                 </select>
