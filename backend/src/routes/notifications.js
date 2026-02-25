@@ -14,7 +14,10 @@ const emailService = require('../services/emailService');
  */
 router.get('/settings', authenticateToken, async (req, res) => {
   try {
-    const agencyId = req.user.agencyId;
+    const agencyId = req.user.agency_id;
+    if (!agencyId) {
+      return res.status(403).json({ success: false, message: '代理店情報がありません' });
+    }
 
     const { data: settings, error } = await supabase
       .from('notification_settings')
@@ -58,7 +61,10 @@ router.get('/settings', authenticateToken, async (req, res) => {
  */
 router.put('/settings', authenticateToken, async (req, res) => {
   try {
-    const agencyId = req.user.agencyId;
+    const agencyId = req.user.agency_id;
+    if (!agencyId) {
+      return res.status(403).json({ success: false, message: '代理店情報がありません' });
+    }
     const settings = req.body;
 
     // 既存の設定をチェック
@@ -114,7 +120,10 @@ router.put('/settings', authenticateToken, async (req, res) => {
  */
 router.get('/history', authenticateToken, async (req, res) => {
   try {
-    const agencyId = req.user.agencyId;
+    const agencyId = req.user.agency_id;
+    if (!agencyId) {
+      return res.status(403).json({ success: false, message: '代理店情報がありません' });
+    }
     const { page = 1, limit = 20, status } = req.query;
 
     let query = supabase
@@ -161,7 +170,10 @@ router.get('/history', authenticateToken, async (req, res) => {
 router.put('/:id/read', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const agencyId = req.user.agencyId;
+    const agencyId = req.user.agency_id;
+    if (!agencyId) {
+      return res.status(403).json({ success: false, message: '代理店情報がありません' });
+    }
 
     const { data, error } = await supabase
       .from('notification_history')
@@ -195,7 +207,10 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
  */
 router.get('/unread-count', authenticateToken, async (req, res) => {
   try {
-    const agencyId = req.user.agencyId;
+    const agencyId = req.user.agency_id;
+    if (!agencyId) {
+      return res.json({ success: true, count: 0 });
+    }
 
     const { count, error } = await supabase
       .from('notification_history')
@@ -241,7 +256,7 @@ router.post('/test', authenticateToken, async (req, res) => {
 
     // 通知履歴に記録
     await supabase.from('notification_history').insert({
-      agency_id: req.user.agencyId,
+      agency_id: req.user.agency_id,
       notification_type: 'test',
       subject: 'テスト通知',
       content: 'これはテスト通知です',

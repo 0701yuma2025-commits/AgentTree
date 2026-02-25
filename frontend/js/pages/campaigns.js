@@ -49,7 +49,7 @@ const campaignsPage = {
 
       return `
         <tr>
-          <td>${campaign.name}</td>
+          <td>${escapeHtml(campaign.name)}</td>
           <td>${this.formatDate(campaign.start_date)}</td>
           <td>${this.formatDate(campaign.end_date)}</td>
           <td>${bonusDisplay}</td>
@@ -174,7 +174,7 @@ const campaignsPage = {
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" name="targetProducts" value="${p.id}" id="product_${p.id}">
                   <label class="form-check-label" for="product_${p.id}">
-                    ${p.name || p.product_name}
+                    ${escapeHtml(p.name || p.product_name)}
                   </label>
                 </div>
               `).join('') : '<p class="text-muted">商品がありません</p>'}
@@ -355,12 +355,12 @@ const campaignsPage = {
           <form id="editCampaignForm">
             <div class="form-group">
               <label for="campaignName">キャンペーン名 <span class="required">*</span></label>
-              <input type="text" id="campaignName" class="form-control" value="${campaign.name}" required>
+              <input type="text" id="campaignName" class="form-control" value="${escapeHtml(campaign.name)}" required>
             </div>
 
             <div class="form-group">
               <label for="campaignDescription">説明</label>
-              <textarea id="campaignDescription" class="form-control" rows="3">${campaign.description || ''}</textarea>
+              <textarea id="campaignDescription" class="form-control" rows="3">${escapeHtml(campaign.description)}</textarea>
             </div>
 
             <div class="form-row">
@@ -415,7 +415,7 @@ const campaignsPage = {
                            ${campaign.target_products && campaign.target_products.includes(p.id) ? 'checked' :
                              (!campaign.target_products || campaign.target_products.length === 0 ? 'checked' : '')}>
                     <label class="form-check-label" for="product_${p.id}">
-                      ${p.name || p.product_name}
+                      ${escapeHtml(p.name || p.product_name)}
                     </label>
                   </div>
                 `).join('') : '<p class="text-muted">商品がありません</p>'}

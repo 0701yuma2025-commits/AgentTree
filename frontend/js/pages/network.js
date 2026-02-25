@@ -84,8 +84,8 @@ class NetworkPage {
       .nodeLabel(node => {
         return `
           <div style="background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px;">
-            <h3 style="margin: 0 0 5px 0;">${node.name}</h3>
-            <p style="margin: 5px 0;"><strong>代理店コード:</strong> ${node.code}</p>
+            <h3 style="margin: 0 0 5px 0;">${escapeHtml(node.name)}</h3>
+            <p style="margin: 5px 0;"><strong>代理店コード:</strong> ${escapeHtml(node.code)}</p>
             <p style="margin: 5px 0;"><strong>Tier:</strong> ${node.tier}</p>
             <p style="margin: 5px 0;"><strong>売上:</strong> ¥${node.sales.toLocaleString()}</p>
             <p style="margin: 5px 0;"><strong>報酬:</strong> ¥${node.commission.toLocaleString()}</p>

@@ -119,14 +119,16 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
         exportData = generateZenginFormat(payments, companyInfo);
         // Shift-JISに変換
         exportData = convertToShiftJIS(exportData);
-        filename = `transfer_${month.replace('-', '')}.txt`;
+        const safeMonthZengin = month.replace(/[^0-9]/g, '');
+        filename = `transfer_${safeMonthZengin}.txt`;
         contentType = 'text/plain; charset=Shift_JIS';
         break;
 
       case 'readable':
         // 人間が読みやすい形式
         exportData = generateReadableFormat(payments, month);
-        filename = `payment_details_${month}.txt`;
+        const safeMonthReadable = month.replace(/[^0-9-]/g, '');
+        filename = `payment_details_${safeMonthReadable}.txt`;
         contentType = 'text/plain; charset=utf-8';
         break;
 
@@ -134,7 +136,8 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
       default:
         // CSV形式（デフォルト）
         exportData = generateCSVFormat(payments);
-        filename = `payments_${month}.csv`;
+        const safeMonthCsv = month.replace(/[^0-9-]/g, '');
+        filename = `payments_${safeMonthCsv}.csv`;
         contentType = 'text/csv; charset=utf-8';
         break;
     }

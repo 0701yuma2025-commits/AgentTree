@@ -412,8 +412,8 @@ class InvoicesPage {
                                 <select id="recipientTemplateSelect" class="form-control">
                                     <option value="">-- 新規入力 --</option>
                                     ${templates.map(t => `
-                                        <option value="${t.id}" data-template='${JSON.stringify(t)}'>
-                                            ${t.template_name} ${t.is_favorite ? '★' : ''}
+                                        <option value="${t.id}" data-template='${escapeHtml(JSON.stringify(t))}'>
+                                            ${escapeHtml(t.template_name)} ${t.is_favorite ? '★' : ''}
                                         </option>
                                     `).join('')}
                                 </select>
@@ -487,14 +487,18 @@ class InvoicesPage {
                 // テンプレート選択時の処理
                 document.getElementById('recipientTemplateSelect').addEventListener('change', (e) => {
                     if (e.target.value) {
-                        const template = JSON.parse(e.target.selectedOptions[0].dataset.template);
-                        document.getElementById('recipient_company_name').value = template.company_name || '';
-                        document.getElementById('recipient_postal_code').value = template.postal_code || '';
-                        document.getElementById('recipient_address').value = template.address || '';
-                        document.getElementById('recipient_department').value = template.department || '';
-                        document.getElementById('recipient_contact_person').value = template.contact_person || '';
-                        document.getElementById('recipient_phone').value = template.phone || '';
-                        document.getElementById('recipient_email').value = template.email || '';
+                        try {
+                            const template = JSON.parse(e.target.selectedOptions[0].dataset.template);
+                            document.getElementById('recipient_company_name').value = template.company_name || '';
+                            document.getElementById('recipient_postal_code').value = template.postal_code || '';
+                            document.getElementById('recipient_address').value = template.address || '';
+                            document.getElementById('recipient_department').value = template.department || '';
+                            document.getElementById('recipient_contact_person').value = template.contact_person || '';
+                            document.getElementById('recipient_phone').value = template.phone || '';
+                            document.getElementById('recipient_email').value = template.email || '';
+                        } catch (parseError) {
+                            console.error('Template parse error:', parseError);
+                        }
                     }
                 });
 

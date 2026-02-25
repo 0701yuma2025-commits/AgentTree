@@ -241,7 +241,7 @@ class AuditLogsPage {
       changesHtml = `
         <div class="log-detail-section">
           <h4>変更内容</h4>
-          <pre>${JSON.stringify(log.changes, null, 2)}</pre>
+          <pre>${escapeHtml(JSON.stringify(log.changes, null, 2))}</pre>
         </div>
       `;
     }
@@ -251,7 +251,7 @@ class AuditLogsPage {
       metadataHtml = `
         <div class="log-detail-section">
           <h4>メタデータ</h4>
-          <pre>${JSON.stringify(log.metadata, null, 2)}</pre>
+          <pre>${escapeHtml(JSON.stringify(log.metadata, null, 2))}</pre>
         </div>
       `;
     }

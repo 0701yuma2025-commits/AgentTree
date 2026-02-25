@@ -625,7 +625,8 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
     const csv = json2csvParser.parse(csvData);
 
     // ファイル名を生成
-    const filename = `commissions_${month || new Date().toISOString().split('T')[0]}.csv`;
+    const safeMonth = (month || new Date().toISOString().split('T')[0]).replace(/[^0-9-]/g, '');
+    const filename = `commissions_${safeMonth}.csv`;
 
     // CSVをダウンロード
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
