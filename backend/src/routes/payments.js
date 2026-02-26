@@ -7,6 +7,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { safeErrorMessage } = require('../utils/errorHelper');
 
 // エクスポート用レート制限（1分あたり5回まで）
 const exportRateLimit = rateLimit({
@@ -91,11 +92,10 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
 
     const payments = Object.values(paymentsByAgency);
 
-    // 銀行口座情報がない代理店を警告
+    // 銀行口座情報がない代理店を警告（代理店名のみログ。口座情報はログに出さない）
     const missingBankInfo = payments.filter(p => !p.bank_account || !p.bank_account.bank_code);
     if (missingBankInfo.length > 0) {
-      console.warn('以下の代理店の銀行口座情報が不完全です:',
-        missingBankInfo.map(p => p.agency_name).join(', '));
+      console.warn(`銀行口座情報が不完全な代理店: ${missingBankInfo.length}件`);
     }
 
     let exportData;
@@ -154,7 +154,7 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
     res.status(500).json({
       success: false,
       message: 'エクスポートに失敗しました',
-      error: error.message
+      error: safeErrorMessage(error)
     });
   }
 });
@@ -248,7 +248,7 @@ router.get('/preview', authenticateToken, requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'プレビューの取得に失敗しました',
-      error: error.message
+      error: safeErrorMessage(error)
     });
   }
 });
@@ -326,7 +326,7 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '支払い確定に失敗しました',
-      error: error.message
+      error: safeErrorMessage(error)
     });
   }
 });

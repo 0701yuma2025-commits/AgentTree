@@ -47,10 +47,15 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    // origin が無いリクエスト（サーバー間通信等）は本番では拒否
+    if (!origin) {
+      if (process.env.NODE_ENV === 'production') {
+        return callback(new Error('Origin header required'));
+      }
+      return callback(null, true);
+    }
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -95,13 +100,23 @@ app.use('/api/network', require('./src/routes/network'));
 app.use('/api/audit-logs', require('./src/routes/audit-logs'));
 app.use('/api/document-recipients', require('./src/routes/document-recipients'));
 
-// ヘルスチェック
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  });
+// ヘルスチェック（DB接続確認付き）
+app.get('/health', async (req, res) => {
+  try {
+    const { supabase } = require('./src/config/supabase');
+    const { error } = await supabase.from('users').select('id').limit(1);
+    res.json({
+      status: error ? 'DEGRADED' : 'OK',
+      timestamp: new Date().toISOString(),
+      db: error ? 'disconnected' : 'connected'
+    });
+  } catch (e) {
+    res.status(503).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      db: 'disconnected'
+    });
+  }
 });
 
 // 404ハンドラー
@@ -117,7 +132,18 @@ app.use((err, req, res, next) => {
   console.error('Error:', err);
 
   const status = err.status || 500;
-  const message = err.message || 'サーバーエラーが発生しました';
+
+  // 本番環境では内部エラーの詳細をクライアントに露出しない
+  let message;
+  if (status < 500) {
+    // 4xx: クライアントエラーはメッセージを返して良い
+    message = err.message || 'リクエストエラーが発生しました';
+  } else if (process.env.NODE_ENV === 'development') {
+    message = err.message || 'サーバーエラーが発生しました';
+  } else {
+    // 5xx 本番: 汎用メッセージのみ
+    message = 'サーバーエラーが発生しました。しばらく後にお試しください。';
+  }
 
   res.status(status).json({
     error: true,
@@ -128,13 +154,29 @@ app.use((err, req, res, next) => {
 
 // サーバー起動
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 
   // スケジューラーを起動
   if (process.env.ENABLE_SCHEDULER !== 'false') {
     startScheduler();
   }
 });
+
+// Graceful shutdown
+const shutdown = (signal) => {
+  console.log(`${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('Server closed.');
+    process.exit(0);
+  });
+  // 10秒以内にクローズできなければ強制終了
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout.');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

@@ -7,6 +7,7 @@ const router = express.Router();
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const emailService = require('../../services/emailService');
+const { safeErrorMessage } = require('../../utils/errorHelper');
 
 /**
  * 異常検知通知を送信
@@ -160,7 +161,7 @@ router.get('/anomalies', authenticateToken, async (req, res) => {
     console.error('Get anomaly sales error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -215,7 +216,7 @@ router.put('/:id/review', authenticateToken, async (req, res) => {
     console.error('Review sale error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });

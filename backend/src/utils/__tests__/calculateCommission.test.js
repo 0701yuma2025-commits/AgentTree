@@ -1,11 +1,9 @@
 /**
  * 報酬計算ユニットテスト
  *
- * 【既知のバグ（別スコープ）】
- * cron-scheduler.js が calculateMonthlyCommissions(sales, targetMonth) と
- * 2引数で呼んでおり、関数シグネチャ (sales, agencies, products, month, settings) と不一致。
- * 第2引数 agencies に文字列 "2026-01" が渡るため、agencyMap が空 → 常に空配列を返す。
- * 修正は別スコープだが、テストケース「cronバグ再現」で挙動をドキュメント化する。
+ * 【修正済み】cron-scheduler.js の calculateMonthlyCommissions 呼び出しは
+ * 5引数 (sales, agencies, products, targetMonth, commissionSettings) に修正済み。
+ * 下記「cronバグ再現」テストは2引数呼び出し時の防御動作を確認するために残す。
  */
 
 const {

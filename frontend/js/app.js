@@ -24,7 +24,13 @@ class App {
     // ローカルストレージからユーザー情報を取得
     const userStr = localStorage.getItem('agency_system_user');
     if (userStr) {
-      this.user = JSON.parse(userStr);
+      try {
+        this.user = JSON.parse(userStr);
+      } catch (e) {
+        console.error('ユーザー情報の復元に失敗しました。再ログインしてください。');
+        localStorage.removeItem('agency_system_user');
+        localStorage.removeItem('agency_system_token');
+      }
     }
     this.init();
   }
@@ -531,16 +537,23 @@ class App {
 
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${invitation.email}</td>
-            <td>${invitation.agencies?.company_name || '-'}</td>
+            <td>${escapeHtml(invitation.email)}</td>
+            <td>${escapeHtml(invitation.agencies?.company_name || '-')}</td>
             <td>${new Date(invitation.expires_at).toLocaleDateString()}</td>
             <td><span class="badge badge-${status}">${status}</span></td>
             <td>${new Date(invitation.created_at).toLocaleDateString()}</td>
             <td>
               ${status === 'pending' ?
-                `<button class="btn btn-sm" onclick="app.copyInviteLink('${invitation.token}')">リンクコピー</button>` : '-'}
+                `<button class="btn btn-sm" data-invite-token="${escapeHtml(invitation.token)}">リンクコピー</button>` : '-'}
             </td>
           `;
+          // イベント委譲でトークンコピーを処理
+          const copyBtn = row.querySelector('[data-invite-token]');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+              app.copyInviteLink(copyBtn.dataset.inviteToken);
+            });
+          }
           tbody.appendChild(row);
         });
       }

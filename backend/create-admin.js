@@ -12,13 +12,30 @@ const supabase = createClient(
 
 async function createAdmin() {
   try {
-    const email = 'admin@example.com';
-    const password = 'Admin123';
-    const fullName = 'System Admin';
+    const email = process.env.ADMIN_EMAIL || process.argv[2];
+    const password = process.env.ADMIN_PASSWORD || process.argv[3];
+    const fullName = process.env.ADMIN_NAME || process.argv[4] || 'System Admin';
 
-    console.log('📝 管理者アカウントを作成しています...');
+    if (!email || !password) {
+      console.error('使用方法:');
+      console.error('  環境変数: ADMIN_EMAIL=xxx ADMIN_PASSWORD=xxx node create-admin.js');
+      console.error('  引数:     node create-admin.js <email> <password> [name]');
+      console.error('');
+      console.error('パスワード要件: 8文字以上、大文字・小文字・数字・特殊文字を含む');
+      process.exit(1);
+    }
+
+    // パスワード強度の基本チェック
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) ||
+        !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      console.error('パスワードが要件を満たしていません:');
+      console.error('  - 8文字以上');
+      console.error('  - 大文字・小文字・数字・特殊文字をそれぞれ1つ以上含む');
+      process.exit(1);
+    }
+
+    console.log('管理者アカウントを作成しています...');
     console.log(`Email: ${email}`);
-    console.log(`Password: ${password}`);
     console.log('');
 
     // Supabase Authでユーザーを作成
@@ -86,14 +103,9 @@ async function createAdmin() {
     }
 
     console.log('');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('  ログイン情報');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`  URL: http://localhost:8000`);
-    console.log(`  Email: admin@example.com`);
-    console.log(`  Password: ${password}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('');
+    console.log('管理者アカウントの作成が完了しました。');
+    console.log(`Email: ${email}`);
+    console.log('(パスワードはセキュリティのため表示しません)');
 
   } catch (error) {
     console.error('❌ エラーが発生しました:', error.message);

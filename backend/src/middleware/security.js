@@ -114,53 +114,12 @@ const sanitizeInput = (req, res, next) => {
 
 /**
  * SQLインジェクション対策
- * 危険な文字列パターンを検出
+ *
+ * Supabaseクライアントはパラメータ化クエリを使用するため、
+ * SQL文字列の直接組み立てはなく、SQLインジェクションのリスクは低い。
+ * このミドルウェアはno-opとして残し、防御の記録とする。
  */
 const preventSQLInjection = (req, res, next) => {
-  // SQLインジェクションの一般的なパターン
-  const sqlPatterns = [
-    /(\b)(DELETE|DROP|EXEC(UTE)?|INSERT|SELECT|UNION|UPDATE)(\b)/gi,
-    /(\-\-)|(\;)|(\|\|)|(\/\*[\w\W]*?\*\/)/g,
-    /(x?or|and)\s*\d+\s*=\s*\d+/gi,
-    /\b(1\s*=\s*1|2\s*=\s*2)\b/gi
-  ];
-
-  // チェック対象の値を検証
-  const checkForSQLInjection = (value) => {
-    if (typeof value !== 'string') return false;
-
-    // パスワードとメールアドレスフィールドはスキップ
-    return false; // 実際のSQLクエリはパラメータ化されているため、過度な制限は避ける
-
-    // 厳密にチェックする場合は以下を有効化
-    // return sqlPatterns.some(pattern => pattern.test(value));
-  };
-
-  // リクエスト全体をチェック
-  const checkObject = (obj) => {
-    if (!obj) return false;
-
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const value = obj[key];
-        if (typeof value === 'string' && checkForSQLInjection(value)) {
-          return true;
-        } else if (typeof value === 'object') {
-          if (checkObject(value)) return true;
-        }
-      }
-    }
-    return false;
-  };
-
-  // SQLインジェクションパターンが検出された場合
-  if (checkObject(req.body) || checkObject(req.query) || checkObject(req.params)) {
-    return res.status(400).json({
-      error: true,
-      message: '不正なリクエストです'
-    });
-  }
-
   next();
 };
 

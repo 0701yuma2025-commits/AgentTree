@@ -7,6 +7,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { safeErrorMessage } = require('../utils/errorHelper');
 
 /**
  * GET /api/campaigns
@@ -59,7 +60,7 @@ router.get('/', authenticateToken, async (req, res) => {
     console.error('Get campaigns error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -90,7 +91,7 @@ router.get('/active', authenticateToken, async (req, res) => {
     console.error('Get active campaigns error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -142,7 +143,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     console.error('Get campaign detail error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -230,7 +231,7 @@ router.post('/',
       console.error('Create campaign error:', error);
       res.status(500).json({
         success: false,
-        message: error.message
+        message: safeErrorMessage(error)
       });
     }
   }
@@ -348,7 +349,7 @@ router.put('/:id',
       console.error('Update campaign error:', error);
       res.status(500).json({
         success: false,
-        message: error.message
+        message: safeErrorMessage(error)
       });
     }
   }
@@ -394,7 +395,7 @@ router.delete('/:id',
       console.error('Delete campaign error:', error);
       res.status(500).json({
         success: false,
-        message: error.message
+        message: safeErrorMessage(error)
       });
     }
   }

@@ -110,6 +110,10 @@ async function calculateCommissions() {
     const month = String(lastMonth.getMonth() + 1).padStart(2, '0');
     const targetMonth = `${year}-${month}`;
 
+    // 翌月の1日を正しく計算（12月→翌年1月の跨ぎに対応）
+    const nextMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 1);
+    const nextMonthStr = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
+
     console.log(`対象月: ${targetMonth}`);
 
     // 前月の確定済み売上を取得
@@ -122,7 +126,7 @@ async function calculateCommissions() {
       `)
       .eq('status', 'confirmed')
       .gte('sale_date', `${targetMonth}-01`)
-      .lt('sale_date', `${year}-${String(parseInt(month) + 1).padStart(2, '0')}-01`);
+      .lt('sale_date', nextMonthStr);
 
     if (salesError) throw salesError;
 

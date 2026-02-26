@@ -7,6 +7,7 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken: authMiddleware, requireAdmin } = require('../middleware/auth');
 const { generateProductCode } = require('../utils/generateCode');
+const { safeErrorMessage } = require('../utils/errorHelper');
 
 /**
  * 商品一覧取得
@@ -29,7 +30,7 @@ router.get('/', authMiddleware, async (req, res) => {
     console.error('Get products error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -64,7 +65,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     console.error('Get product error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -143,7 +144,7 @@ router.post('/', authMiddleware, async (req, res) => {
     console.error('Create product error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -247,7 +248,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     console.error('Update product error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });
@@ -287,7 +288,7 @@ router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
     console.error('Delete product error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error)
     });
   }
 });

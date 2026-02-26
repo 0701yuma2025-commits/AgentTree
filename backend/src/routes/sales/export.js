@@ -8,6 +8,7 @@ const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const { getSubordinateAgencyIds } = require('../../utils/agencyHelpers');
 const { Parser } = require('json2csv');
+const { safeErrorMessage } = require('../../utils/errorHelper');
 const { sanitizeCsvRow } = require('../../utils/csvSanitizer');
 
 /**
@@ -110,7 +111,7 @@ router.get('/export', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Export sales error details:', {
-      message: error.message,
+      message: safeErrorMessage(error),
       code: error.code,
       details: error.details
     });
