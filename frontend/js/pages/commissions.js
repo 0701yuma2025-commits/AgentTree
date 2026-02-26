@@ -774,7 +774,7 @@ class CommissionsPage {
 
     } catch (error) {
       console.error('Download receipt error:', error);
-      alert('領収書のダウンロードに失敗しました: ' + error.message);
+      alert('領収書のダウンロードに失敗しました');
     }
   }
 

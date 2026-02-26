@@ -188,7 +188,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('月次集計明細書生成エラー:', error);
-            alert('月次集計明細書の生成に失敗しました: ' + error.message);
+            alert('月次集計明細書の生成に失敗しました');
         } finally {
             generateBtn.disabled = false;
             generateBtn.textContent = '月次集計明細書生成';
@@ -388,7 +388,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('PDFダウンロードエラー:', error);
-            alert('PDFのダウンロードに失敗しました: ' + error.message);
+            alert('PDFのダウンロードに失敗しました');
         }
     }
 
@@ -644,7 +644,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('振込データプレビューエラー:', error);
-            alert('振込データのプレビューに失敗しました: ' + error.message);
+            alert('振込データのプレビューに失敗しました');
             previewArea.classList.add('hidden');
         }
     }
@@ -696,7 +696,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('振込データダウンロードエラー:', error);
-            alert('振込データのダウンロードに失敗しました: ' + error.message);
+            alert('振込データのダウンロードに失敗しました');
         } finally {
             exportBtn.disabled = false;
             exportBtn.textContent = 'ダウンロード';
@@ -745,7 +745,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('振込確定エラー:', error);
-            alert('振込確定処理に失敗しました: ' + error.message);
+            alert('振込確定処理に失敗しました');
         } finally {
             confirmBtn.disabled = false;
             confirmBtn.textContent = '振込実行を確定';

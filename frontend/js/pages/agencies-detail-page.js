@@ -738,7 +738,7 @@ class AgenciesDetailPage {
       this.app.hideModal();
       await this.app.agenciesPage.loadAgencies();
     } catch (error) {
-      alert('登録に失敗しました: ' + error.message);
+      alert('登録に失敗しました');
     }
   }
 }

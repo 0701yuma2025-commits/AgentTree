@@ -325,7 +325,7 @@ class SalesPage {
     } catch (error) {
       console.error('Show sale detail error:', error);
       console.error('Error stack:', error.stack);
-      alert('\u58F2\u4E0A\u8A73\u7D30\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ' + error.message);
+      alert('\u58F2\u4E0A\u8A73\u7D30\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
     }
   }
 
@@ -822,7 +822,7 @@ class SalesPage {
         }
       }
     } catch (error) {
-      alert('\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ' + error.message);
+      alert('\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
     }
   }
 }

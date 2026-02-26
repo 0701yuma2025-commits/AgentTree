@@ -82,7 +82,7 @@ async function detectSalesSpike(newSale, thresholdPercent = 500) {
     console.error('売上スパイク検知エラー:', error);
     return {
       detected: false,
-      error: error.message
+      error: '検知処理中にエラーが発生しました'
     };
   }
 }
@@ -122,7 +122,7 @@ async function detectRapidSalesEntry(agencyId, timeWindowHours = 24, maxCount = 
     console.error('大量売上登録検知エラー:', error);
     return {
       detected: false,
-      error: error.message
+      error: '検知処理中にエラーが発生しました'
     };
   }
 }
@@ -191,7 +191,7 @@ async function detectAbnormalAmount(sale, maxAmount = 10000000) {
     console.error('異常金額検知エラー:', error);
     return {
       detected: false,
-      error: error.message
+      error: '検知処理中にエラーが発生しました'
     };
   }
 }

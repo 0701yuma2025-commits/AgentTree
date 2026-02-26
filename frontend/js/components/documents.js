@@ -182,7 +182,7 @@ class DocumentsManager {
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('アップロードに失敗しました: ' + error.message);
+      alert('アップロードに失敗しました');
     }
   }
 
@@ -199,7 +199,7 @@ class DocumentsManager {
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('承認に失敗しました: ' + error.message);
+      alert('承認に失敗しました');
     }
   }
 
@@ -217,7 +217,7 @@ class DocumentsManager {
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('却下に失敗しました: ' + error.message);
+      alert('却下に失敗しました');
     }
   }
 
@@ -234,7 +234,7 @@ class DocumentsManager {
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('削除に失敗しました: ' + error.message);
+      alert('削除に失敗しました');
     }
   }
 }

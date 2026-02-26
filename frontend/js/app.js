@@ -801,7 +801,21 @@ class App {
     const paymentDate = prompt('支払日を入力してください (YYYY-MM-DD)', new Date().toISOString().slice(0, 10));
     if (!paymentDate) return;
 
+    // 日付フォーマットの検証
+    if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(paymentDate)) {
+      alert('日付は YYYY-MM-DD 形式で入力してください（例: 2026-02-26）');
+      return;
+    }
+
     const paymentMethod = prompt('支払方法を入力してください (bank_transfer/cash/other)', 'bank_transfer');
+
+    // 支払方法の検証
+    const validMethods = ['bank_transfer', 'cash', 'other'];
+    if (paymentMethod && !validMethods.includes(paymentMethod)) {
+      alert('支払方法は bank_transfer / cash / other のいずれかを入力してください');
+      return;
+    }
+
     const transactionId = prompt('取引ID・振込番号（任意）');
 
     try {
@@ -864,7 +878,7 @@ class App {
         alert(response.message || '報酬計算に失敗しました');
       }
     } catch (error) {
-      alert('報酬計算中にエラーが発生しました: ' + error.message);
+      alert('報酬計算中にエラーが発生しました');
     }
   }
 
