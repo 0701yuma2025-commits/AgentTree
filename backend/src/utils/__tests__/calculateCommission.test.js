@@ -508,6 +508,71 @@ describe('generateCommissionSummary', () => {
 // ══════════════════════════════════════════════════════════
 // デフォルト定数のエクスポート確認
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// エッジケース・境界値
+// ══════════════════════════════════════════════════════════
+describe('エッジケース・境界値', () => {
+  test('売上金額0円 → base=0', () => {
+    const sale = makeSale({ total_amount: 0 });
+    const agency = makeAgency({ tier_level: 2 });
+    const result = calculateCommissionForSale(sale, agency);
+    expect(result.base_amount).toBe(0);
+    expect(result.final_amount).toBe(0);
+  });
+
+  test('売上金額が負の値 → 負の報酬（ビジネスルール上はありえないが計算は通る）', () => {
+    const sale = makeSale({ total_amount: -100000 });
+    const agency = makeAgency({ tier_level: 2 });
+    const result = calculateCommissionForSale(sale, agency);
+    // -100000 * 8 / 100 = -8000 → Math.floor → -8000
+    expect(result.base_amount).toBe(-8000);
+  });
+
+  test('売上金額1円 → base=0（端数切捨て）', () => {
+    const sale = makeSale({ total_amount: 1 });
+    const agency = makeAgency({ tier_level: 2 });
+    const result = calculateCommissionForSale(sale, agency);
+    // 1 * 8 / 100 = 0.08 → Math.floor → 0
+    expect(result.base_amount).toBe(0);
+  });
+
+  test('非常に大きな売上金額（1億円）', () => {
+    const sale = makeSale({ total_amount: 100000000 });
+    const agency = makeAgency({ tier_level: 1 });
+    const result = calculateCommissionForSale(sale, agency);
+    expect(result.base_amount).toBe(10000000);
+  });
+
+  test('Tier境界: Tier2とTier3の報酬差', () => {
+    const sale = makeSale({ total_amount: 1000000 });
+    const agencyTier2 = makeAgency({ tier_level: 2 });
+    const agencyTier3 = makeAgency({ tier_level: 3 });
+    const resultTier2 = calculateCommissionForSale(sale, agencyTier2);
+    const resultTier3 = calculateCommissionForSale(sale, agencyTier3);
+    // Tier2: 8% = 80,000, Tier3: 6% = 60,000
+    expect(resultTier2.base_amount).toBe(80000);
+    expect(resultTier3.base_amount).toBe(60000);
+    expect(resultTier2.base_amount - resultTier3.base_amount).toBe(20000);
+  });
+
+  test('undefinedフィールドを含むsale → デフォルト動作', () => {
+    const sale = { id: 'sale-u', agency_id: 'ag-1', total_amount: 100000 };
+    const agency = makeAgency();
+    const result = calculateCommissionForSale(sale, agency);
+    expect(result.base_amount).toBe(8000);
+    expect(result.sale_id).toBe('sale-u');
+  });
+
+  test('キャンペーンボーナス: 閾値ちょうど → ボーナス発生', () => {
+    // Tier1の閾値は5,000,000
+    expect(calculateCampaignBonus(5000000, 1)).toBe(250000);
+  });
+
+  test('キャンペーンボーナス: 閾値1円未満 → ボーナスなし', () => {
+    expect(calculateCampaignBonus(2499999, 1)).toBe(0);
+  });
+});
+
 describe('定数エクスポート', () => {
   test('DEFAULT_TIER_RATES が正しい値', () => {
     expect(DEFAULT_TIER_RATES).toEqual({ 1: 10, 2: 8, 3: 6, 4: 4 });

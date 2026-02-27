@@ -37,7 +37,9 @@
     "nodemon": "^3.0.2"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFiles": ["./jest.setup.js"],
+    "testPathIgnorePatterns": ["/node_modules/", "__mocks__"]
   },
   "engines": {
     "node": ">=18.0.0"
