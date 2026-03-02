@@ -1,1283 +1,550 @@
-# Agency System v2 - システムアーキテクチャドキュメント
+# AgentTree - システムアーキテクチャ
 
-## 目次
-1. [システム概要](#1-システム概要)
-2. [技術スタック](#2-技術スタック)
-3. [ディレクトリ構造](#3-ディレクトリ構造)
-4. [データベース設計](#4-データベース設計)
-5. [バックエンドアーキテクチャ](#5-バックエンドアーキテクチャ)
-6. [フロントエンドアーキテクチャ](#6-フロントエンドアーキテクチャ)
-7. [認証・セキュリティ](#7-認証セキュリティ)
-8. [コミッション計算エンジン](#8-コミッション計算エンジン)
-9. [自動化・バッチ処理](#9-自動化バッチ処理)
-10. [API設計](#10-api設計)
-11. [デプロイメント](#11-デプロイメント)
-12. [データフロー図](#12-データフロー図)
+多段階営業代理店管理システム（Multi-tier Sales Agency Management System）
 
----
+## 概要
 
-## 1. システム概要
+営業代理店の階層管理・売上追跡・報酬計算・請求書/領収書発行を一元管理するWebアプリケーション。
+最大4段階の代理店階層をサポートし、Tier別報酬・キャンペーンボーナス・源泉徴収・インボイス制度に対応。
 
-### 1.1 システムの目的
-Agency System v2は、多階層販売代理店ネットワークを管理するための包括的なプラットフォームです。
-
-### 1.2 主要機能
-| 機能カテゴリ | 機能 |
-|-------------|------|
-| 代理店管理 | 4階層の代理店構造、招待制登録、承認ワークフロー |
-| 売上管理 | 売上記録、集計、レポート生成 |
-| コミッション計算 | 階層別料率、階層ボーナス、キャンペーン連動、源泉徴収 |
-| 請求書発行 | PDF生成、QRコード埋め込み、テンプレート管理 |
-| 決済管理 | 支払いスケジュール、銀行振込ファイル生成 |
-| 監査ログ | 全操作の追跡、CSV出力、統計分析 |
-| ネットワーク可視化 | 3D階層構造表示（Three.js） |
-
-### 1.3 ユーザーロール
 ```
-┌─────────────┬────────────────────────────────────────────┐
-│ ロール      │ 権限                                       │
-├─────────────┼────────────────────────────────────────────┤
-│ admin       │ 全機能アクセス、システム設定、全代理店管理 │
-│ agency      │ 自身と下位代理店の管理、売上・コミッション閲覧 │
-│ viewer      │ 閲覧のみ                                   │
-└─────────────┴────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│                      Frontend                          │
+│              Vanilla JS SPA (Render)                   │
+│         https://agenttree-frontend.onrender.com        │
+└────────────────────┬───────────────────────────────────┘
+                     │ HTTPS (REST API)
+                     │ JWT Bearer Token
+┌────────────────────┴───────────────────────────────────┐
+│                      Backend                           │
+│              Express.js (Render)                       │
+│           https://agenttree.onrender.com               │
+└────────────────────┬───────────────────────────────────┘
+                     │
+┌────────────────────┴───────────────────────────────────┐
+│                     Database                           │
+│              Supabase (PostgreSQL)                     │
+│              + Storage (ファイル)                       │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. 技術スタック
+## 技術スタック
 
-### 2.1 バックエンド
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Backend Stack                        │
-├─────────────────────────────────────────────────────────┤
-│  Runtime      │ Node.js v18+                            │
-│  Framework    │ Express.js 4.18.2                       │
-│  Database     │ PostgreSQL (Supabase)                   │
-│  Auth         │ JWT (jsonwebtoken 9.0.2) + Supabase Auth│
-│  2FA          │ Speakeasy 2.0.0 (TOTP)                  │
-│  Validation   │ express-validator 7.0.1                 │
-│  Security     │ helmet 7.1.0, bcrypt 6.0.0              │
-│  Rate Limit   │ express-rate-limit 7.1.5                │
-│  PDF生成      │ pdfkit 0.17.2                           │
-│  QRコード     │ qrcode 1.5.3                            │
-│  スケジューラ │ node-cron 4.2.1                         │
-│  メール       │ Resend 6.1.0                            │
-│  キャッシュ   │ ioredis 5.8.0 (オプション)              │
-│  CSV出力      │ json2csv 6.0.0-alpha.2                  │
-│  文字コード   │ iconv-lite 0.7.0                        │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 2.2 フロントエンド
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Frontend Stack                        │
-├─────────────────────────────────────────────────────────┤
-│  言語         │ Pure JavaScript (ES6+)                  │
-│  スタイル     │ CSS3 (カスタムプロパティ)               │
-│  HTTP通信     │ Fetch API                               │
-│  状態管理     │ LocalStorage + カスタム実装             │
-│  3D描画       │ Three.js (CDN)                          │
-│  グラフ       │ Chart.js (CDN)                          │
-│  ビルドツール │ なし（静的ファイル配信）                │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 2.3 インフラストラクチャ
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Infrastructure                        │
-├─────────────────────────────────────────────────────────┤
-│  データベース │ Supabase (PostgreSQL + 認証 + Storage)  │
-│  ホスティング │ Render.com                              │
-│  Redis        │ オプション（レート制限用）              │
-└─────────────────────────────────────────────────────────┘
-```
+| レイヤー | 技術 | バージョン |
+|---------|------|-----------|
+| Frontend | Vanilla JavaScript (SPA) | ES2020+ |
+| Backend | Node.js + Express | Node >=18, Express 4.18 |
+| Database | Supabase (PostgreSQL) | supabase-js 2.39 |
+| Auth | JWT (jsonwebtoken) | 9.0 |
+| PDF | PDFKit + QRCode | 0.17 |
+| Email | Resend API | 6.1 |
+| テスト | Jest + Supertest | Jest 29, Supertest 7.2 |
+| デプロイ | Render (Backend + Frontend) | Auto-deploy from main |
 
 ---
 
-## 3. ディレクトリ構造
+## ディレクトリ構成
 
 ```
 agency-system-v2/
-│
-├── backend/                          # バックエンドアプリケーション
-│   ├── server.js                     # エントリーポイント
-│   ├── package.json                  # 依存関係定義
-│   ├── .env.example                  # 環境変数テンプレート
-│   │
+├── backend/                    # Express.js APIサーバー (~16,500行)
+│   ├── server.js               # エントリーポイント (ミドルウェア・ルート登録)
+│   ├── package.json
+│   ├── jest.setup.js
 │   └── src/
 │       ├── config/
-│       │   └── supabase.js           # Supabaseクライアント初期化
-│       │
+│       │   └── supabase.js     # Supabaseクライアント初期化
 │       ├── middleware/
-│       │   ├── auth.js               # JWT認証・ロールベースアクセス制御
-│       │   ├── security.js           # セキュリティヘッダー・入力検証
-│       │   ├── advancedRateLimit.js  # 多層レート制限
-│       │   ├── rateLimiter.js        # エンドポイント別レート制限
-│       │   └── auditLog.js           # 監査ログ記録
-│       │
-│       ├── routes/                   # APIエンドポイント（16ファイル）
-│       │   ├── auth.js               # 認証関連
-│       │   ├── agencies.js           # 代理店管理
-│       │   ├── sales.js              # 売上管理
-│       │   ├── commissions.js        # コミッション管理
-│       │   ├── invoices.js           # 請求書生成
-│       │   ├── products.js           # 商品管理
-│       │   ├── campaigns.js          # キャンペーン管理
-│       │   ├── network.js            # ネットワーク可視化データ
-│       │   ├── audit-logs.js         # 監査ログ
-│       │   ├── document-recipients.js # 書類送付先テンプレート
-│       │   ├── commission-settings.js # コミッション設定
-│       │   ├── notifications.js      # 通知管理
-│       │   ├── payments.js           # 決済処理
-│       │   ├── documents.js          # ドキュメント管理
-│       │   ├── dashboard.js          # ダッシュボード集計
-│       │   └── invitations.js        # 招待管理
-│       │
+│       │   ├── auth.js         # JWT認証・ロール認可
+│       │   ├── auditLog.js     # 監査ログ (非同期記録)
+│       │   ├── security.js     # HTTPS強制, ヘッダー, サニタイズ, SQLi防止, IP遮断
+│       │   ├── advancedRateLimit.js  # エンドポイント別レート制限
+│       │   ├── rateLimiter.js  # 基本レート制限
+│       │   └── __tests__/
+│       ├── routes/
+│       │   ├── auth.js         # POST /login, /logout, /refresh-token
+│       │   ├── auth/
+│       │   │   ├── account.js  # PUT /change-email, /change-password
+│       │   │   └── two-factor.js  # 2FA TOTP設定・検証
+│       │   ├── agencies.js     # CRUD + 階層管理
+│       │   ├── agencies/
+│       │   │   ├── status.js   # 承認/却下/停止/再開
+│       │   │   └── export-history.js
+│       │   ├── sales.js        # 売上CRUD
+│       │   ├── sales/
+│       │   │   ├── mutations.js   # 売上作成・更新・削除
+│       │   │   ├── history.js     # 変更履歴
+│       │   │   ├── anomaly.js     # 異常検知・レビュー
+│       │   │   └── export.js      # CSVエクスポート・サマリー
+│       │   ├── commissions.js     # 報酬計算・一覧・承認
+│       │   ├── commission-settings.js  # 報酬設定マスタ
+│       │   ├── invoices.js        # 請求書/領収書PDF生成
+│       │   ├── documents.js       # 書類アップロード・承認
+│       │   ├── document-recipients.js  # 宛先テンプレート
+│       │   ├── payments.js        # 支払い処理・全銀ファイル出力
+│       │   ├── products.js        # 商品CRUD
+│       │   ├── campaigns.js       # キャンペーン管理
+│       │   ├── dashboard.js       # KPIダッシュボード
+│       │   ├── notifications.js   # 通知送信・履歴
+│       │   ├── network.js         # 階層ネットワークデータ
+│       │   ├── invitations.js     # 代理店招待
+│       │   ├── audit-logs.js      # 監査ログ検索・CSVエクスポート
+│       │   └── __tests__/         # 全ルートのテスト (17ファイル)
 │       ├── services/
-│       │   └── emailService.js       # メール送信サービス
-│       │
-│       ├── scripts/
-│       │   └── cron-scheduler.js     # 定期実行タスク
-│       │
-│       └── utils/
-│           ├── calculateCommission.js # コミッション計算エンジン
-│           ├── ageValidator.js       # 年齢確認（18歳以上）
-│           ├── generateCode.js       # コード生成
-│           ├── emailSender.js        # メール送信
-│           ├── anomalyDetection.js   # 異常検知
-│           ├── bankExport.js         # 銀行振込ファイル生成
-│           ├── passwordValidator.js  # パスワード強度検証
-│           ├── twoFactor.js          # 2FA関連処理
-│           └── pdf-generator.js      # PDF生成
+│       │   └── emailService.js    # Resend APIメール送信
+│       ├── utils/
+│       │   ├── calculateCommission.js  # 多段階報酬計算エンジン
+│       │   ├── anomalyDetection.js     # 異常検知アルゴリズム
+│       │   ├── pdf-generator.js        # PDF生成 (請求書/領収書/明細書)
+│       │   ├── passwordValidator.js    # パスワード強度・類似性検証
+│       │   ├── ageValidator.js         # 年齢検証 (18歳以上)
+│       │   ├── bankExport.js           # 全銀フォーマット出力
+│       │   ├── csvSanitizer.js         # CSVインジェクション防止
+│       │   ├── agencyHelpers.js        # 傘下代理店ID取得
+│       │   ├── generateCode.js         # コード自動生成
+│       │   ├── errorHelper.js          # エラーハンドリング
+│       │   ├── pagination.js           # ページネーション
+│       │   ├── emailSender.js          # メール送信ラッパー
+│       │   └── __tests__/              # ユーティリティテスト (12ファイル)
+│       └── scripts/
+│           └── cron-scheduler.js       # 定時バッチ処理
 │
-├── frontend/                         # フロントエンドアプリケーション
-│   ├── index.html                    # SPAシェル
-│   │
-│   ├── js/
-│   │   ├── app.js                    # メインアプリケーション
-│   │   ├── config.js                 # 設定
-│   │   ├── supabase-client.js        # Supabaseクライアント
-│   │   │
-│   │   ├── api/                      # APIクライアント
-│   │   │   ├── client.js             # ベースクライアント（シングルトン）
-│   │   │   └── ...                   # 各種APIクライアント
-│   │   │
-│   │   ├── pages/                    # ページコントローラー
-│   │   │   └── ...                   # 各ページモジュール
-│   │   │
-│   │   ├── components/               # 再利用可能UIコンポーネント
-│   │   │
-│   │   └── utils/                    # ユーティリティ関数
-│   │
-│   └── css/
-│       ├── style.css                 # メインスタイル
-│       └── modal.css                 # モーダルスタイル
+├── frontend/                   # Vanilla JS SPA (~15,000行)
+│   ├── index.html              # メインSPA (ログイン/2FA/メイン画面)
+│   ├── invite-accept.html      # 招待受付ページ
+│   ├── reset-password.html     # パスワードリセット
+│   ├── set-password.html       # 初期パスワード設定
+│   ├── package.json
+│   ├── jest.setup.js
+│   ├── css/
+│   │   ├── style.css           # メインスタイル (2,873行)
+│   │   └── modal.css           # モーダルスタイル
+│   └── js/
+│       ├── app.js              # SPAルーター・ナビゲーション
+│       ├── config.js           # API URL・定数
+│       ├── api/                # APIクライアント層
+│       │   ├── client.js       # fetch ラッパー (認証ヘッダー・エラー処理)
+│       │   ├── auth.js
+│       │   ├── agencies.js
+│       │   ├── sales.js
+│       │   ├── commissions.js
+│       │   ├── commission-settings.js
+│       │   ├── campaigns.js
+│       │   ├── products.js
+│       │   ├── documents.js
+│       │   ├── document-recipients.js
+│       │   └── audit-logs.js
+│       ├── pages/              # ページコントローラー
+│       │   ├── dashboard-page.js      # KPIカード・チャート
+│       │   ├── agencies-page.js       # 代理店一覧
+│       │   ├── agencies-detail-page.js # 代理店詳細
+│       │   ├── sales-page.js          # 売上管理
+│       │   ├── commissions.js         # 報酬一覧・分析
+│       │   ├── commission-settings.js # 報酬設定
+│       │   ├── invoices.js            # 請求書/領収書
+│       │   ├── documents.js           # 書類管理
+│       │   ├── products.js            # 商品管理
+│       │   ├── campaigns.js           # キャンペーン
+│       │   ├── network.js             # 3D階層ネットワーク (Three.js)
+│       │   ├── audit-logs.js          # 監査ログ
+│       │   └── settings.js            # 設定 (アカウント・会社情報)
+│       ├── utils/
+│       │   ├── ageValidator.js
+│       │   └── tableHelper.js         # テーブル描画・ソート・ページネーション
+│       ├── components/
+│       │   └── documents.js
+│       └── __tests__/                 # フロントエンドテスト (3ファイル)
 │
-├── database/                         # データベーススキーマ・マイグレーション
-│   ├── schema.sql                    # 基本スキーマ
-│   ├── seed.sql                      # 初期データ
-│   ├── add-bank-tax-fields.sql       # 銀行・税務フィールド追加
-│   ├── add-commission-fields.sql     # コミッションフィールド追加
-│   ├── alter-products-table.sql      # 商品テーブル拡張
-│   ├── create-audit-logs.sql         # 監査ログテーブル
-│   ├── add-2fa-columns.sql           # 2FAカラム追加
-│   └── ...                           # その他マイグレーション（29ファイル）
+├── database/                   # DBスキーマ・マイグレーション
+│   ├── full-setup.sql          # 完全セットアップ (全テーブル・トリガー・インデックス)
+│   ├── migrations/
+│   │   └── 001_add_operator_invoice_number.sql
+│   └── README.md               # テストデータ構成
 │
-└── docs/
-    ├── README.md
-    ├── PROJECT_STRUCTURE.md
-    ├── FEATURE_DOCUMENT_RECIPIENTS.md
-    └── TODO_REQUIREMENTS.md
+├── .env                        # 環境変数 (実値)
+├── .env.example                # 環境変数テンプレート
+├── .gitignore
+└── ARCHITECTURE.md             # このファイル
 ```
 
 ---
 
-## 4. データベース設計
+## データベース設計
 
-### 4.1 ER図（主要エンティティ）
+### ER図 (主要テーブル)
+
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              DATABASE SCHEMA                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
+users ──────────────── agencies (1:1 user_id)
+                          │
+                          ├── agencies (self-ref: parent_agency_id) ← 最大4階層
+                          │
+                          ├── sales ──── commissions
+                          │                  │
+                          │                  └── payment_history
+                          │
+                          ├── agency_documents
+                          │
+                          ├── invitations (inviter/parent)
+                          │
+                          └── notification_settings
+                               notification_history
 
-                                    ┌──────────────┐
-                                    │    users     │
-                                    ├──────────────┤
-                                    │ id (UUID)    │
-                                    │ email        │
-                                    │ password_hash│
-                                    │ role         │
-                                    │ is_active    │
-                                    │ created_at   │
-                                    └──────┬───────┘
-                                           │
-                                           │ 1:1
-                                           ▼
-┌─────────────────┐               ┌──────────────────┐               ┌─────────────────┐
-│   invitations   │──────────────▶│     agencies     │◀──────────────│    products     │
-├─────────────────┤   creates     ├──────────────────┤   sold_by     ├─────────────────┤
-│ id (UUID)       │               │ id (UUID)        │               │ id (UUID)       │
-│ email           │               │ agency_code      │               │ product_code    │
-│ inviter_agency_id│              │ company_name     │               │ name            │
-│ token           │               │ tier_level (1-4) │               │ category        │
-│ tier_level      │               │ parent_agency_id │───┐           │ price           │
-│ expires_at      │               │ status           │   │ self-ref  │ tier1_commission│
-└─────────────────┘               │ bank_account(JSON)│◀──┘          │ tier2_commission│
-                                  │ tax_info (JSON)  │               │ tier3_commission│
-                                  │ company_type     │               │ tier4_commission│
-                                  └────────┬─────────┘               └─────────────────┘
-                                           │
-                                           │ 1:N
-                                           ▼
-                                  ┌──────────────────┐
-                                  │      sales       │
-                                  ├──────────────────┤
-                                  │ id (UUID)        │
-                                  │ sale_number      │
-                                  │ agency_id        │───────────────┐
-                                  │ product_id       │               │
-                                  │ total_amount     │               │
-                                  │ sale_date        │               │
-                                  │ status           │               │
-                                  └────────┬─────────┘               │
-                                           │                         │
-                                           │ 1:N                     │
-                                           ▼                         │
-                                  ┌──────────────────┐               │
-                                  │   commissions    │◀──────────────┘
-                                  ├──────────────────┤
-                                  │ id (UUID)        │
-                                  │ agency_id        │
-                                  │ sale_id          │
-                                  │ month (YYYY-MM)  │
-                                  │ base_amount      │
-                                  │ tier_bonus       │
-                                  │ campaign_bonus   │
-                                  │ withholding_tax  │
-                                  │ final_amount     │
-                                  │ status           │
-                                  └──────────────────┘
+products ──── sales (product_id)
+campaigns ──── commissions (campaign_id)
 
-        ┌────────────────┐        ┌────────────────┐        ┌────────────────────┐
-        │   campaigns    │        │  audit_logs    │        │ document_recipients│
-        ├────────────────┤        ├────────────────┤        ├────────────────────┤
-        │ id (UUID)      │        │ id (UUID)      │        │ id (UUID)          │
-        │ name           │        │ user_id        │        │ agency_id          │
-        │ bonus_rate     │        │ action         │        │ recipient_name     │
-        │ bonus_amount   │        │ resource_type  │        │ postal_code        │
-        │ target_tier_   │        │ resource_id    │        │ address            │
-        │   levels[]     │        │ ip_address     │        │ is_default         │
-        │ conditions     │        │ details (JSON) │        │ last_used_at       │
-        │ start_date     │        │ created_at     │        └────────────────────┘
-        │ end_date       │        └────────────────┘
-        └────────────────┘
-
-        ┌────────────────────┐    ┌────────────────┐        ┌────────────────────┐
-        │commission_settings │    │ notifications  │        │  payment_history   │
-        ├────────────────────┤    ├────────────────┤        ├────────────────────┤
-        │ id (UUID)          │    │ id (UUID)      │        │ id (UUID)          │
-        │ tier1_base_rate    │    │ user_id        │        │ agency_id          │
-        │ tier2_base_rate    │    │ title          │        │ amount             │
-        │ tier3_base_rate    │    │ message        │        │ payment_method     │
-        │ tier4_base_rate    │    │ type           │        │ reference_number   │
-        │ tier1_from_tier2   │    │ read           │        │ status             │
-        │ tier2_from_tier3   │    │ created_at     │        │ payment_date       │
-        │ tier3_from_tier4   │    └────────────────┘        └────────────────────┘
-        │ withholding_rate   │
-        │ min_payment_amount │
-        └────────────────────┘
+commission_settings (グローバル設定マスタ)
+audit_logs (全操作の監査記録)
+sale_change_history (売上変更追跡)
+document_recipients (宛先テンプレート)
+notification_templates (通知テンプレート)
 ```
 
-### 4.2 主要テーブル詳細
+### テーブル一覧 (15テーブル)
 
-#### users（ユーザー）
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | UUID | 主キー（自動生成） |
-| email | VARCHAR(255) | メールアドレス（ユニーク） |
-| password_hash | TEXT | bcryptハッシュ化パスワード |
-| full_name | VARCHAR(255) | 氏名 |
-| phone | VARCHAR(20) | 電話番号 |
-| role | VARCHAR(50) | ロール（admin/agency/viewer） |
-| is_active | BOOLEAN | アクティブ状態 |
-| last_login_at | TIMESTAMP | 最終ログイン日時 |
+| テーブル | 概要 | 主なカラム |
+|---------|------|-----------|
+| `users` | ユーザー認証 | email, password_hash, role, 2FA fields |
+| `agencies` | 代理店 | company_name, tier_level(1-4), parent_agency_id, bank_account(JSONB), invoice_number |
+| `products` | 商品 | product_code, price, tier1~4_commission_rate |
+| `sales` | 売上 | sale_number, agency_id, total_amount, anomaly_score |
+| `commissions` | 報酬 | base_amount, tier_bonus, campaign_bonus, withholding_tax, final_amount, month |
+| `commission_settings` | 報酬設定 | minimum_payment_amount, tier別ボーナス率, 源泉徴収率, インボイス控除率 |
+| `campaigns` | キャンペーン | bonus_rate, target_tier_levels, start/end_date |
+| `payment_history` | 支払い履歴 | agency_id, amount, payment_method |
+| `invitations` | 招待 | token, tier_level, expires_at |
+| `agency_documents` | 書類 | document_type, file_url, status(pending/verified/rejected) |
+| `document_recipients` | 宛先テンプレート | template_name, company_name, address |
+| `notification_settings` | 通知設定 | email_enabled, frequency |
+| `notification_history` | 通知履歴 | type, subject, status |
+| `notification_templates` | 通知テンプレート | template_code, body_template |
+| `sale_change_history` | 売上変更履歴 | field_name, old_value, new_value |
+| `audit_logs` | 監査ログ | action, resource_type, changes(JSONB), ip_address |
 
-#### agencies（代理店）
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | UUID | 主キー |
-| user_id | UUID | 紐づくユーザーID |
-| agency_code | VARCHAR(50) | 自動生成のユニークコード |
-| company_name | VARCHAR(255) | 会社名/代理店名 |
-| representative_name | VARCHAR(255) | 代表者名 |
-| tier_level | INTEGER(1-4) | 階層レベル |
-| parent_agency_id | UUID | 親代理店（自己参照） |
-| status | VARCHAR(50) | pending/active/suspended |
-| company_type | VARCHAR(20) | 法人/個人 |
-| bank_account | JSONB | 銀行口座情報 |
-| tax_info | JSONB | 税務情報 |
-| withholding_tax_flag | BOOLEAN | 源泉徴収対象フラグ |
-| birth_date | DATE | 生年月日（18歳以上確認用） |
-| invoice_number | VARCHAR(50) | インボイス登録番号 |
+### DBの特徴
 
-#### bank_account JSONB構造
-```json
-{
-  "bank_name": "三菱UFJ銀行",
-  "branch_name": "新宿支店",
-  "account_type": "普通",
-  "account_number": "1234567",
-  "account_holder": "カブシキガイシャ エービーシー"
-}
+- **UUID主キー**: 全テーブルで `gen_random_uuid()` 使用
+- **自動採番**: 代理店コード(`AGN2026XXXX`)、売上番号(`SL202601-00001`)、商品コード(`PRD00000001`)
+- **自動トリガー**: `updated_at`自動更新、源泉徴収フラグ自動設定、通知設定自動作成
+- **バリデーション制約**: 18歳以上、銀行口座JSONB構造、報酬率0-100%
+- **JSONB活用**: bank_account, tax_info, metadata, conditions, changes
+
+---
+
+## 認証・認可フロー
+
+```
+[ログイン]
+  Email + Password → POST /api/auth/login
+                       ↓
+                  bcrypt照合 → JWT生成 (7日) + RefreshToken (30日)
+                       ↓
+                  (2FA有効時) → TOTP検証 → トークン発行
+                       ↓
+                  localStorage保存 → 全APIリクエストに Bearer Token付与
+
+[リクエスト認証]
+  Authorization: Bearer <JWT>
+      ↓
+  authenticateToken ミドルウェア
+      ↓ JWT検証 → req.user に { id, role, agency } セット
+      ↓
+  requireAdmin / requireAgency (ロール別ガード)
 ```
 
-#### tax_info JSONB構造
-```json
-{
-  "tax_id": "1234567890123",
-  "tax_office": "新宿税務署",
-  "invoice_registered": true,
-  "fiscal_year_end": "03-31"
-}
+### ロール
+
+| ロール | 権限 |
+|-------|------|
+| `admin` / `super_admin` | 全データCRUD、代理店承認/却下、報酬確定、監査ログ |
+| `agency` | 自社+傘下のデータ閲覧、売上登録、請求書/領収書生成 |
+
+---
+
+## セキュリティ対策
+
+### ミドルウェアスタック (適用順)
+
+```
+1. /health               ← セキュリティ前 (ヘルスチェック)
+2. enforceHTTPS          ← 本番HTTPS強制
+3. securityHeaders       ← helmet + カスタムヘッダー
+4. ipBlocklist           ← IP遮断リスト
+5. bruteForceProtection  ← ブルートフォース検知
+6. CORS                  ← Origin制限 (localhost:3000/8000, Render)
+7. globalApiRateLimiter  ← 全API: 100req/15min
+8. loginRateLimiter      ← ログイン: 5回/15min
+9. passwordResetRateLimiter ← リセット: 3回/1時間
+10. express.json          ← ボディパーサー (10MB上限)
+11. sanitizeInput         ← XSS入力サニタイズ
+12. preventSQLInjection   ← SQLiパターン検出
+13. CSRF検証              ← Origin/Refererチェック (本番のみ)
 ```
 
-#### products（商品）
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | UUID | 主キー |
-| product_code | VARCHAR(50) | 商品コード（自動採番PRD00000001形式） |
-| name | VARCHAR(255) | 商品名 |
-| description | TEXT | 説明 |
-| price | DECIMAL(12,2) | 価格 |
-| category | VARCHAR(100) | カテゴリ |
-| tier1_commission_rate | DECIMAL(5,2) | Tier1報酬率（デフォルト10%） |
-| tier2_commission_rate | DECIMAL(5,2) | Tier2報酬率（デフォルト8%） |
-| tier3_commission_rate | DECIMAL(5,2) | Tier3報酬率（デフォルト6%） |
-| tier4_commission_rate | DECIMAL(5,2) | Tier4報酬率（デフォルト4%） |
-| is_active | BOOLEAN | 有効フラグ |
+### その他のセキュリティ施策
 
-#### sales（売上）
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | UUID | 主キー |
-| sale_number | VARCHAR(50) | 売上番号（自動採番） |
-| agency_id | UUID | 代理店ID |
-| product_id | UUID | 商品ID |
-| customer_name | VARCHAR(255) | 顧客名 |
-| sale_date | DATE | 売上日 |
-| quantity | INTEGER | 数量 |
-| unit_price | DECIMAL(12,2) | 単価 |
-| total_amount | DECIMAL(12,2) | 合計金額 |
-| status | VARCHAR(50) | pending/confirmed/cancelled |
+- パスワード: bcrypt, 8文字以上, 大小英数字+記号, 類似性チェック
+- 2FA: TOTP (Time-based One-Time Password)
+- トークン: JWT有効期限7日, リフレッシュトークン30日
+- 監査ログ: 全変更操作を記録 (IP, UserAgent, before/after diff)
+- CSVサニタイズ: 数式インジェクション防止
+- ファイルアップロード: MIME制限 (JPEG/PNG/GIF/PDF), 10MB上限
 
-#### commissions（コミッション）
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| id | UUID | 主キー |
-| agency_id | UUID | 代理店ID |
-| sale_id | UUID | 売上ID（NULL可：月次集計用） |
-| month | VARCHAR(7) | 対象月（YYYY-MM形式） |
-| tier_level | INTEGER | 階層レベル |
-| base_amount | DECIMAL(12,2) | 基本コミッション額 |
-| tier_bonus | DECIMAL(12,2) | 階層ボーナス額 |
-| campaign_bonus | DECIMAL(12,2) | キャンペーンボーナス額 |
-| withholding_tax | DECIMAL(12,2) | 源泉徴収税額 |
-| final_amount | DECIMAL(12,2) | 最終支払額 |
-| status | VARCHAR(50) | pending/confirmed/carried_forward/paid |
-| carry_forward_reason | TEXT | 繰越理由 |
-| payment_date | DATE | 支払日 |
+---
 
-### 4.3 インデックス設計
-```sql
--- 代理店関連
-CREATE INDEX idx_agencies_parent_id ON agencies(parent_agency_id);
-CREATE INDEX idx_agencies_tier_level ON agencies(tier_level);
-CREATE INDEX idx_agencies_status ON agencies(status);
-CREATE INDEX idx_agencies_company_type ON agencies(company_type);
-CREATE INDEX idx_agencies_invoice_number ON agencies(invoice_number);
+## 報酬計算エンジン
 
--- 売上関連
-CREATE INDEX idx_sales_agency_id ON sales(agency_id);
-CREATE INDEX idx_sales_sale_date ON sales(sale_date);
+### 計算フロー
 
--- コミッション関連
-CREATE INDEX idx_commissions_agency_id ON commissions(agency_id);
-CREATE INDEX idx_commissions_month ON commissions(month);
-CREATE INDEX idx_commissions_agency_month ON commissions(agency_id, month);
-CREATE INDEX idx_commissions_status ON commissions(status);
+```
+売上登録 → 商品のTier別報酬率取得 → 基本報酬算出
+              ↓
+         階層ボーナス計算 (親Tierから子Tierへの差分)
+              ↓
+         キャンペーンボーナス加算
+              ↓
+         インボイス未登録控除 (非登録事業者: 2%減額)
+              ↓
+         源泉徴収税計算 (個人事業者: 10.21%)
+              ↓
+         最低支払額判定 (¥10,000未満 → 繰越)
+              ↓
+         最終報酬額確定
+```
 
--- 招待関連
-CREATE INDEX idx_invitations_token ON invitations(token);
-CREATE INDEX idx_invitations_expires_at ON invitations(expires_at);
+### 階層ボーナス構造
 
--- 商品関連
-CREATE INDEX idx_products_product_code ON products(product_code);
-CREATE INDEX idx_products_category ON products(category);
-CREATE INDEX idx_products_is_active ON products(is_active);
+```
+Tier 1 (直販代理店)    ← 商品別 tier1_commission_rate
+  └─ Tier 2 (二次代理店) ← tier2_commission_rate + 親からの 2.0% ボーナス
+       └─ Tier 3          ← tier3_commission_rate + 親からの 1.5% ボーナス
+            └─ Tier 4      ← tier4_commission_rate + 親からの 1.0% ボーナス
 ```
 
 ---
 
-## 5. バックエンドアーキテクチャ
+## APIエンドポイント一覧
 
-### 5.1 リクエストフロー
+### 認証 (`/api/auth`)
+| Method | Path | 認証 | 説明 |
+|--------|------|------|------|
+| POST | `/login` | - | ログイン |
+| POST | `/logout` | JWT | ログアウト |
+| POST | `/refresh-token` | - | トークン更新 |
+| PUT | `/change-email` | JWT | メール変更 |
+| PUT | `/change-password` | JWT | パスワード変更 |
+| POST | `/reset-password-request` | - | リセット申請 |
+| POST | `/reset-password` | - | パスワードリセット |
+| POST | `/2fa/setup` | JWT | 2FA設定 |
+| POST | `/2fa/verify` | JWT | 2FA検証 |
+
+### 代理店 (`/api/agencies`)
+| Method | Path | 認証 | 説明 |
+|--------|------|------|------|
+| GET | `/` | JWT | 一覧取得 |
+| POST | `/` | Admin | 新規作成 |
+| GET | `/:id` | JWT | 詳細取得 |
+| PUT | `/:id` | JWT | 更新 |
+| PUT | `/:id/approve` | Admin | 承認 |
+| PUT | `/:id/reject` | Admin | 却下 |
+| PUT | `/:id/suspend` | Admin | 停止 |
+| PUT | `/:id/reactivate` | Admin | 再開 |
+
+### 売上 (`/api/sales`)
+| Method | Path | 認証 | 説明 |
+|--------|------|------|------|
+| GET | `/` | JWT | 一覧取得 |
+| POST | `/` | JWT | 売上登録 |
+| PUT | `/:id` | JWT | 売上更新 |
+| DELETE | `/:id` | JWT | 売上削除 |
+| GET | `/:id/history` | JWT | 変更履歴 |
+| GET | `/anomalies` | Admin | 異常売上一覧 |
+| PUT | `/:id/review` | Admin | 異常レビュー |
+| GET | `/export` | JWT | CSVエクスポート |
+| GET | `/summary` | JWT | サマリー |
+
+### 報酬 (`/api/commissions`)
+| Method | Path | 認証 | 説明 |
+|--------|------|------|------|
+| GET | `/` | JWT | 一覧取得 |
+| POST | `/calculate` | Admin | 報酬計算実行 |
+
+### 請求書/領収書 (`/api/invoices`)
+| Method | Path | 認証 | 説明 |
+|--------|------|------|------|
+| GET | `/` | JWT | 請求書一覧 |
+| GET | `/agencies` | Admin | 代理店一覧 (月次集計用) |
+| POST | `/generate` | JWT | 請求書PDF生成 |
+| POST | `/receipt` | JWT | 領収書PDF生成 |
+| POST | `/generate-from-sale` | JWT | 売上ベース請求書PDF |
+| POST | `/receipt-from-sale` | JWT | 売上ベース領収書PDF |
+| POST | `/admin-monthly-summary` | Admin | 月次集計明細書PDF |
+| POST | `/receipt-monthly` | JWT | 月次領収書PDF |
+
+### その他
+| Prefix | 主なエンドポイント |
+|--------|------------------|
+| `/api/products` | 商品CRUD |
+| `/api/campaigns` | キャンペーンCRUD |
+| `/api/payments` | 支払い処理・全銀出力 |
+| `/api/documents` | 書類アップロード・承認 |
+| `/api/document-recipients` | 宛先テンプレートCRUD |
+| `/api/notifications` | 通知送信・履歴 |
+| `/api/dashboard` | KPIデータ |
+| `/api/network` | 階層ネットワークデータ |
+| `/api/invitations` | 代理店招待 |
+| `/api/audit-logs` | 監査ログ検索・CSV |
+| `/api/commission-settings` | 報酬設定マスタ |
+
+---
+
+## フロントエンド構成
+
+### SPA ページ遷移
+
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           REQUEST FLOW                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-   Client Request
-        │
-        ▼
-┌───────────────────┐
-│   Express.js      │
-│   (server.js)     │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                         MIDDLEWARE STACK (順序通り)                        │
-├───────────────────────────────────────────────────────────────────────────┤
-│  1. enforceHTTPS        - HTTPS強制（本番環境）                           │
-│  2. securityHeaders     - セキュリティヘッダー（Helmet）                  │
-│  3. ipBlocklist         - IPブロックリスト                                │
-│  4. bruteForceProtection- ブルートフォース対策                            │
-│  5. cors()              - CORS設定                                        │
-│  6. globalApiRateLimiter- API全体のレート制限                             │
-│  7. 特定エンドポイント用レート制限                                        │
-│     - loginRateLimiter (/api/auth/login)                                  │
-│     - passwordResetRateLimiter (/api/auth/reset-password-request)         │
-│     - invitationRateLimiter (/api/invitations)                            │
-│  8. express.json()      - JSONパーサー（10MB制限）                        │
-│  9. sanitizeInput       - 入力サニタイズ                                  │
-│ 10. preventSQLInjection - SQLインジェクション防止                         │
-└─────────┬─────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                           ROUTE LAYER (16モジュール)                       │
-├───────────────────────────────────────────────────────────────────────────┤
-│  /api/auth/*              - 認証エンドポイント                            │
-│  /api/agencies/*          - 代理店管理                                    │
-│  /api/sales/*             - 売上管理                                      │
-│  /api/commissions/*       - コミッション管理                              │
-│  /api/invoices/*          - 請求書生成                                    │
-│  /api/products/*          - 商品管理                                      │
-│  /api/campaigns/*         - キャンペーン管理                              │
-│  /api/network/*           - ネットワークデータ                            │
-│  /api/audit-logs/*        - 監査ログ                                      │
-│  /api/document-recipients/* - 書類送付先                                  │
-│  /api/commission-settings/* - コミッション設定                            │
-│  /api/notifications/*     - 通知                                          │
-│  /api/payments/*          - 決済処理                                      │
-│  /api/documents/*         - ドキュメント                                  │
-│  /api/dashboard/*         - ダッシュボード                                │
-│  /api/invitations/*       - 招待                                          │
-└─────────┬─────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                          UTILITY / SERVICE LAYER                           │
-├───────────────────────────────────────────────────────────────────────────┤
-│  utils/calculateCommission.js - コミッション計算ロジック                   │
-│  services/emailService.js     - メール送信                                 │
-│  utils/bankExport.js          - 銀行振込ファイル生成                       │
-│  utils/pdf-generator.js       - PDF生成                                    │
-│  utils/anomalyDetection.js    - 異常検知                                   │
-└─────────┬─────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                         DATA ACCESS LAYER                                  │
-├───────────────────────────────────────────────────────────────────────────┤
-│  Supabase Client (config/supabase.js)                                     │
-│  - PostgreSQL接続                                                         │
-│  - 認証管理                                                               │
-│  - ストレージ管理                                                         │
-└───────────────────────────────────────────────────────────────────────────┘
+index.html (単一HTML)
+  ├── #login          ← ログイン画面
+  ├── #two-factor     ← 2FA入力画面
+  └── #app            ← メインアプリ
+       ├── dashboard       ← KPIカード + チャート
+       ├── agencies        ← 代理店一覧 + 詳細
+       ├── sales           ← 売上管理
+       ├── commissions     ← 報酬一覧
+       ├── invoices        ← 請求書/領収書
+       ├── products        ← 商品管理
+       ├── campaigns       ← キャンペーン
+       ├── documents       ← 書類管理
+       ├── network         ← 3D階層ネットワーク (Three.js Force-Graph)
+       ├── audit-logs      ← 監査ログ (Admin)
+       ├── commission-settings ← 報酬設定 (Admin)
+       └── settings        ← アカウント・会社情報
 ```
 
-### 5.2 ミドルウェア詳細
+### API通信パターン
 
-#### security.js
 ```javascript
-// 提供する機能
-module.exports = {
-  enforceHTTPS,      // 本番環境でHTTPS強制
-  securityHeaders,   // Helmetによるセキュリティヘッダー設定
-  sanitizeInput,     // 入力値からHTMLタグを除去
-  preventSQLInjection, // SQLインジェクションパターン検知
-  ipBlocklist        // IPブロックリスト管理
-};
+// js/api/client.js - 共通HTTPクライアント
+apiClient.get('/endpoint')     // GET + タイムスタンプキャッシュバスター
+apiClient.post('/endpoint', body)  // POST + JSON
+apiClient.put('/endpoint', body)
+apiClient.delete('/endpoint')
+apiClient.postForBlob('/endpoint', body)  // PDF受信用
+
+// 自動処理:
+// - Authorization: Bearer <token> ヘッダー付与
+// - 401 TOKEN_EXPIRED → トークン削除 + ログイン画面遷移
+// - 403 → { success: false } 返却
+// - ネットワークエラー → 標準エラーオブジェクト
 ```
 
-#### advancedRateLimit.js
+---
+
+## テスト構成
+
+### 統計
+
+| 区分 | スイート | テスト数 |
+|------|---------|---------|
+| Backend ルート | 17 | ~300 |
+| Backend ユーティリティ | 12 | ~100 |
+| Backend ミドルウェア | 3 | ~40 |
+| Frontend | 3 | 42 |
+| **合計** | **35** | **~486** |
+
+### テストパターン
+
+**Backend ルートテスト** (supertest):
 ```javascript
-// 提供する機能
-module.exports = {
-  loginRateLimiter,         // ログイン: 5回/15分
-  invitationRateLimiter,    // 招待: 10回/1時間
-  globalApiRateLimiter,     // API全体: 100回/15分
-  passwordResetRateLimiter, // パスワードリセット: 制限あり
-  bruteForceProtection      // アカウントロックアウト
-};
+// 共通パターン: Supabaseチェーンモック + JWT認証モック
+const mockSupabase = createSupabaseMock();  // from().select().eq()... チェーン
+jest.mock('../../config/supabase', () => ({ supabase: mockSupabase }));
+jest.mock('../../middleware/auth', () => ({ authenticateToken: /* JWT検証mock */ }));
+
+// リクエスト
+const res = await request(app).get('/api/endpoint')
+  .set('Authorization', `Bearer ${token()}`);
+expect(res.status).toBe(200);
 ```
 
----
-
-## 6. フロントエンドアーキテクチャ
-
-### 6.1 アプリケーション構造
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      FRONTEND ARCHITECTURE (SPA)                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           index.html (SPA Shell)                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────────────────────────────────────────────┐ │
-│  │   Sidebar    │  │                  Main Content Area                   │ │
-│  │   Navigation │  │  各ページはCSSで hidden/shown を切り替え             │ │
-│  │              │  │                                                      │ │
-│  │  - Dashboard │  │  ┌────────────────────────────────────────────────┐ │ │
-│  │  - Agencies  │  │  │  Active Page Content                          │ │ │
-│  │  - Sales     │  │  │  (JavaScript で動的に制御)                     │ │ │
-│  │  - Commission│  │  │                                                │ │ │
-│  │  - Network   │  │  └────────────────────────────────────────────────┘ │ │
-│  │  - Audit Log │  │                                                      │ │
-│  │  - Settings  │  │                                                      │ │
-│  └──────────────┘  └──────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 6.2 JavaScript モジュール構成
-```
-app.js (メインコントローラー)
-    │
-    ├── config.js                    # API URL, ストレージキー等
-    │
-    ├── supabase-client.js           # Supabaseクライアント
-    │
-    ├── api/
-    │   └── client.js                # APIクライアント（シングルトン）
-    │       - fetch wrapper
-    │       - Authorization ヘッダー自動付与
-    │       - 401/403 でログインへリダイレクト
-    │       - エラーハンドリング
-    │
-    ├── pages/                       # ページコントローラー
-    │   ├── dashboard.js             # ダッシュボード
-    │   ├── agencies.js              # 代理店管理
-    │   ├── sales.js                 # 売上管理
-    │   ├── commissions.js           # コミッション
-    │   ├── network.js               # 3Dネットワーク (Three.js)
-    │   ├── audit-logs.js            # 監査ログ
-    │   └── settings.js              # 設定
-    │
-    ├── components/                  # 再利用可能コンポーネント
-    │
-    └── utils/                       # ユーティリティ
-```
-
-### 6.3 状態管理
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          STATE MANAGEMENT                                    │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-LocalStorage
-    ├── auth_token          # JWTアクセストークン
-    ├── refresh_token       # リフレッシュトークン
-    ├── user_info           # ユーザー情報（JSON）
-    └── preferences         # ユーザー設定
-
-メモリ内状態
-    ├── currentPage         # 現在表示中のページ
-    ├── tableData           # テーブルデータキャッシュ
-    ├── filters             # フィルター条件
-    └── pagination          # ページネーション状態
-```
-
----
-
-## 7. 認証・セキュリティ
-
-### 7.1 認証フロー
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         AUTHENTICATION FLOW                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-【ログインフロー】
-
-    Client                    Backend                   Supabase
-      │                         │                         │
-      │ POST /api/auth/login    │                         │
-      │ {email, password}       │                         │
-      │────────────────────────>│                         │
-      │                         │                         │
-      │                         │ 認証リクエスト           │
-      │                         │────────────────────────>│
-      │                         │                         │
-      │                         │ 認証結果                │
-      │                         │<────────────────────────│
-      │                         │                         │
-      │                         │ 2FA有効チェック          │
-      │                         │                         │
-      │ (2FA有効の場合)         │                         │
-      │ {requires_2fa: true}    │                         │
-      │<────────────────────────│                         │
-      │                         │                         │
-      │ POST /api/auth/verify-2fa                         │
-      │ {token, code}           │                         │
-      │────────────────────────>│                         │
-      │                         │                         │
-      │ {access_token,          │                         │
-      │  refresh_token,         │                         │
-      │  user}                  │                         │
-      │<────────────────────────│                         │
-```
-
-### 7.2 JWTトークン
+**Frontend テスト** (jsdom):
 ```javascript
-// ペイロード構造
-{
-    "sub": "user-uuid",           // ユーザーID
-    "email": "user@example.com",  // メールアドレス
-    "role": "agency",             // ロール
-    "agency_id": "agency-uuid",   // 所属代理店ID
-    "iat": 1234567890,            // 発行日時
-    "exp": 1234567890 + 604800    // 有効期限（7日）
-}
-
-// トークン有効期限
-// - アクセストークン: 7日
-// - リフレッシュトークン: 30日
+// Vanilla JSをnew Function()でロード → グローバルオブジェクト経由でテスト
+const fn = new Function('window', 'CONFIG', 'localStorage', code);
+fn(mockWindow, global.CONFIG, global.localStorage);
 ```
 
-### 7.3 ロールベースアクセス制御（RBAC）
-```
-┌────────────┬─────────────┬─────────────┬─────────────┐
-│ リソース    │   admin     │   agency    │   viewer    │
-├────────────┼─────────────┼─────────────┼─────────────┤
-│ 全代理店   │ CRUD        │ -           │ -           │
-│ 自社代理店 │ CRUD        │ RU          │ R           │
-│ 下位代理店 │ CRUD        │ CR          │ R           │
-│ 売上       │ CRUD        │ CRU(自社)   │ R           │
-│ コミッション│ CRUD       │ R(自社)     │ R           │
-│ 商品       │ CRUD        │ R           │ R           │
-│ キャンペーン│ CRUD       │ R           │ R           │
-│ 監査ログ   │ R           │ R(自社)     │ -           │
-│ 設定       │ CRUD        │ -           │ -           │
-│ 招待       │ CRUD        │ C(下位のみ) │ -           │
-└────────────┴─────────────┴─────────────┴─────────────┘
+### カバレッジ主要数値 (Backend)
 
-C=Create, R=Read, U=Update, D=Delete
-```
-
-### 7.4 セキュリティ対策一覧
-```
-【認証・認可】
-├── JWT認証（ステートレス）
-├── 2要素認証（TOTP - Speakeasy）
-├── パスワードハッシュ化（bcrypt）
-├── トークンリフレッシュ機構
-└── ロールベースアクセス制御
-
-【通信】
-├── HTTPS強制（本番環境）
-├── CORS設定（ホワイトリスト方式）
-│   - http://localhost:3000
-│   - http://localhost:8000
-│   - https://agenttree-frontend.onrender.com
-└── セキュリティヘッダー（Helmet.js）
-
-【入力検証】
-├── express-validator による検証
-├── HTMLタグサニタイズ
-├── SQLインジェクション防止（パターン検知）
-└── リクエストサイズ制限（10MB）
-
-【レート制限】
-├── ログイン: 5回/15分
-├── パスワードリセット: 制限あり
-├── 招待送信: 10回/1時間
-├── API全体: 100回/15分
-└── Redis連携（分散環境対応・オプション）
-
-【監査】
-├── 全操作の監査ログ記録
-├── IPアドレス記録
-├── ユーザーエージェント記録
-└── 操作詳細（JSON）記録
-```
+| 区分 | Statements |
+|------|-----------|
+| utils/ | 92.35% |
+| routes/ (主要) | 40-88% |
+| middleware/ | テスト済み |
 
 ---
 
-## 8. コミッション計算エンジン
+## デプロイ
 
-### 8.1 デフォルト料率設定
+### インフラ構成
+
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      DEFAULT COMMISSION RATES                                │
-└─────────────────────────────────────────────────────────────────────────────┘
+GitHub (main branch)
+    │
+    ├── Render: Backend (Auto-deploy)
+    │   ├── Web Service: agenttree.onrender.com
+    │   ├── Node.js 18+
+    │   ├── Start: node server.js
+    │   └── Environment Variables (.env)
+    │
+    └── Render: Frontend (Static Site)
+        ├── agenttree-frontend.onrender.com
+        └── Static files (HTML/CSS/JS)
 
-【基本コミッション率（Tier別）】
-┌────────┬────────────────┐
-│  Tier  │ デフォルト料率  │
-├────────┼────────────────┤
-│ Tier 1 │ 10.00%         │
-│ Tier 2 │  8.00%         │
-│ Tier 3 │  6.00%         │
-│ Tier 4 │  4.00%         │
-└────────┴────────────────┘
-
-【階層ボーナス率（上位Tierが下位Tierの売上から受け取る）】
-┌─────────────────────────┬────────────────┐
-│  ボーナス対象            │ デフォルト料率  │
-├─────────────────────────┼────────────────┤
-│ Tier1 ← Tier2の売上     │ 2.0%           │
-│ Tier2 ← Tier3の売上     │ 1.5%           │
-│ Tier3 ← Tier4の売上     │ 1.0%           │
-│ Tier4                   │ 0%（なし）     │
-└─────────────────────────┴────────────────┘
-
-【その他設定】
-- インボイス未登録控除: 2.0%
-- 源泉徴収率: 10.21%
-- 最低支払額: ¥10,000
+Supabase
+    ├── PostgreSQL Database
+    └── Storage (書類ファイル)
 ```
 
-### 8.2 計算フロー
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                   COMMISSION CALCULATION FLOW                                │
-└─────────────────────────────────────────────────────────────────────────────┘
+### 環境変数
 
-入力: agency_id, month (YYYY-MM)
-
-Step 1: 売上データ取得
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 対象月の確定済み売上（status = 'confirmed'）を取得                          │
-└─────────────────────────────────────────────────────────────────────────────┘
-        │
-        ▼
-Step 2: 基本コミッション計算
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 商品マスタの tier{N}_commission_rate を使用                                 │
-│ （未設定の場合はデフォルト料率を適用）                                      │
-│                                                                             │
-│ base_amount = sale.total_amount × commission_rate / 100                    │
-│ ※ 端数切り捨て（Math.floor）                                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-        │
-        ▼
-Step 3: 階層ボーナス計算
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 親代理店チェーンを遡り、各親にボーナスを付与                                │
-│                                                                             │
-│ tier_bonus = sale.total_amount × hierarchy_bonus_rate / 100                │
-│                                                                             │
-│ ※ 親代理店にはtier_bonus付きの別レコードを作成                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-        │
-        ▼
-Step 4: キャンペーンボーナス適用
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 有効なキャンペーンの条件チェック:                                          │
-│ - 期間（start_date <= sale_date <= end_date）                              │
-│ - 対象商品                                                                 │
-│ - 対象Tier                                                                 │
-│ - 最小売上額                                                               │
-│                                                                             │
-│ ボーナスタイプ:                                                            │
-│ - percentage: sale.total_amount × bonus_value / 100                        │
-│ - fixed: bonus_value（固定額）                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-        │
-        ▼
-Step 5: 控除計算
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 【インボイス未登録控除】                                                    │
-│ if (!agency.invoice_registered):                                            │
-│   invoice_deduction = base_amount × 2% (設定値)                            │
-│                                                                             │
-│ 【源泉徴収（個人事業主の場合）】                                            │
-│ if (agency.company_type === '個人' || agency.withholding_tax_flag):        │
-│   taxable = base_amount - invoice_deduction                                │
-│   withholding_tax = taxable × 10.21%                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-        │
-        ▼
-Step 6: 最終金額計算 & 最低支払額チェック
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ final_amount = base_amount                                                  │
-│              + tier_bonus                                                   │
-│              + campaign_bonus                                               │
-│              - invoice_deduction                                            │
-│              - withholding_tax                                              │
-│                                                                             │
-│ 【最低支払額チェック（代理店単位で集計）】                                  │
-│ if (月次合計 < MIN_PAYMENT_AMOUNT):                                         │
-│   status = 'carried_forward'                                                │
-│   carry_forward_reason = '最低支払額未満'                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-出力: コミッションレコード（売上単位 + 親ボーナス単位）
-```
-
-### 8.3 計算例
-```
-【条件】
-- Tier 3 代理店が ¥100,000 の売上を計上
-- 商品のTier3報酬率: 6%
-- 親代理店: Tier 2 (親ボーナス率 1.5%)
-- 祖父代理店: Tier 1 (親ボーナス率 2.0%)
-- 代理店は個人事業主（源泉徴収対象）
-
-【計算結果】
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Tier 3 代理店のコミッション                                                 │
-│   base_amount = ¥100,000 × 6% = ¥6,000                                     │
-│   withholding_tax = ¥6,000 × 10.21% = ¥612                                 │
-│   final_amount = ¥6,000 - ¥612 = ¥5,388                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Tier 2 親代理店の階層ボーナス                                               │
-│   tier_bonus = ¥100,000 × 1.5% = ¥1,500                                    │
-│   final_amount = ¥1,500                                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Tier 1 祖父代理店の階層ボーナス                                             │
-│   tier_bonus = ¥100,000 × 2.0% = ¥2,000                                    │
-│   final_amount = ¥2,000                                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 9. 自動化・バッチ処理
-
-### 9.1 npm scripts
-```json
-{
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "scheduler": "node src/scripts/cron-scheduler.js",
-    "batch:monthly": "node src/scripts/batch-processor.js monthly-closing",
-    "batch:commission": "node src/scripts/batch-processor.js calculate-commission",
-    "batch:backup": "node src/scripts/batch-processor.js daily-backup",
-    "batch:reminder": "node src/scripts/batch-processor.js payment-reminder",
-    "batch:check": "node src/scripts/batch-processor.js integrity-check"
-  }
-}
-```
-
-### 9.2 定期実行スケジュール（cron-scheduler.js）
-```
-┌─────────────────┬───────────────────┬────────────────────────────────────────┐
-│ 実行タイミング   │ cron式            │ 処理内容                              │
-├─────────────────┼───────────────────┼────────────────────────────────────────┤
-│ 月末 23:59      │ 59 23 L * *       │ 月次締め処理                          │
-│                 │                   │ - 売上確定                            │
-│                 │                   │ - 締め通知メール送信                  │
-├─────────────────┼───────────────────┼────────────────────────────────────────┤
-│ 毎月1日 02:00   │ 0 2 1 * *         │ コミッション自動計算                  │
-│                 │                   │ - 全代理店のコミッション計算          │
-│                 │                   │ - 結果保存                            │
-├─────────────────┼───────────────────┼────────────────────────────────────────┤
-│ 毎月20日 09:00  │ 0 9 20 * *        │ 支払いリマインダー                    │
-│                 │                   │ - 代理店への支払い予定通知            │
-│                 │                   │ - 銀行情報確認依頼                    │
-├─────────────────┼───────────────────┼────────────────────────────────────────┤
-│ 毎月25日 10:00  │ 0 10 25 * *       │ 支払い処理                            │
-│                 │                   │ - 銀行振込ファイル生成                │
-│                 │                   │ - ステータス更新                      │
-├─────────────────┼───────────────────┼────────────────────────────────────────┤
-│ 毎日 03:00      │ 0 3 * * *         │ 整合性チェック                        │
-├─────────────────┼───────────────────┼────────────────────────────────────────┤
-│ 毎日 04:00      │ 0 4 * * *         │ バックアップ                          │
-└─────────────────┴───────────────────┴────────────────────────────────────────┘
-```
-
-### 9.3 月次処理フロー
-```
-    月末 23:59           1日 02:00           20日 09:00        25日 10:00
-        │                    │                    │                  │
-        ▼                    ▼                    ▼                  ▼
-   ┌─────────┐          ┌─────────┐          ┌─────────┐       ┌─────────┐
-   │ 月次締め │          │コミッション│        │リマインダー│     │ 支払い  │
-   │ 処理    │─────────▶│ 計算    │─────────▶│ 送信    │──────▶│ 処理    │
-   └─────────┘          └─────────┘          └─────────┘       └─────────┘
-        │                    │                    │                  │
-        ▼                    ▼                    ▼                  ▼
-   売上ステータス        全代理店の             支払い予定        振込ファイル
-   確定                  コミッション計算       通知メール        生成
-```
-
----
-
-## 10. API設計
-
-### 10.1 エンドポイント一覧
-
-#### 認証 `/api/auth`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| POST | /login | ログイン |
-| POST | /logout | ログアウト |
-| POST | /refresh | トークンリフレッシュ |
-| POST | /register | ユーザー登録（招待経由） |
-| POST | /reset-password-request | パスワードリセット要求 |
-| POST | /verify-2fa | 2要素認証検証 |
-| POST | /setup-2fa | 2FA設定 |
-| DELETE | /disable-2fa | 2FA無効化 |
-
-#### 代理店 `/api/agencies`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | 代理店一覧 |
-| GET | /:id | 代理店詳細 |
-| POST | / | 代理店作成 |
-| PUT | /:id | 代理店更新 |
-| DELETE | /:id | 代理店削除 |
-| PUT | /:id/approve | 代理店承認 |
-
-#### 売上 `/api/sales`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | 売上一覧 |
-| GET | /summary | 売上集計 |
-| GET | /:id | 売上詳細 |
-| POST | / | 売上登録 |
-| PUT | /:id | 売上更新 |
-| DELETE | /:id | 売上削除 |
-
-#### コミッション `/api/commissions`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | コミッション一覧 |
-| GET | /summary | コミッション集計 |
-| POST | /calculate | コミッション計算実行 |
-| PUT | /:id | ステータス更新 |
-
-#### 請求書 `/api/invoices`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | 請求書一覧 |
-| POST | /generate | PDF生成 |
-
-#### 商品 `/api/products`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | 商品一覧 |
-| POST | / | 商品作成 |
-| PUT | /:id | 商品更新 |
-| DELETE | /:id | 商品削除 |
-
-#### キャンペーン `/api/campaigns`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | キャンペーン一覧 |
-| POST | / | キャンペーン作成 |
-| PUT | /:id | キャンペーン更新 |
-| DELETE | /:id | キャンペーン削除 |
-
-#### ネットワーク `/api/network`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | ネットワーク階層データ |
-
-#### 監査ログ `/api/audit-logs`
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | / | 監査ログ一覧 |
-| GET | /stats/summary | 統計サマリー |
-| GET | /export/csv | CSV出力 |
-
-#### その他
-| Endpoint | 説明 |
-|----------|------|
-| /api/document-recipients | 書類送付先テンプレート管理 |
-| /api/commission-settings | コミッション設定 |
-| /api/notifications | 通知管理 |
-| /api/payments | 決済処理 |
-| /api/documents | ドキュメント管理 |
-| /api/dashboard | ダッシュボードデータ |
-| /api/invitations | 招待管理 |
-| /health | ヘルスチェック |
-
-### 10.2 レスポンス形式
-```javascript
-// 成功レスポンス
-{
-    "success": true,
-    "data": { ... },
-    "meta": {
-        "total": 100,
-        "page": 1,
-        "limit": 20
-    }
-}
-
-// エラーレスポンス
-{
-    "error": true,
-    "message": "エラーメッセージ",
-    "details": [ ... ]  // バリデーションエラー時
-}
-```
-
-### 10.3 HTTPステータスコード
-| Code | 使用場面 |
-|------|----------|
-| 200 | 成功（GET, PUT, DELETE） |
-| 201 | 作成成功（POST） |
-| 400 | 不正なリクエスト |
-| 401 | 認証エラー |
-| 403 | 認可エラー |
-| 404 | リソースが見つからない |
-| 429 | レート制限超過 |
-| 500 | サーバー内部エラー |
-
----
-
-## 11. デプロイメント
-
-### 11.1 環境構成
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        DEPLOYMENT ARCHITECTURE                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-                              ┌─────────────────┐
-                              │    Internet     │
-                              └────────┬────────┘
-                                       │
-              ┌────────────────────────┴────────────────────────┐
-              │                                                 │
-              ▼                                                 ▼
-    ┌──────────────────┐                             ┌──────────────────┐
-    │    Frontend      │                             │     Backend      │
-    │  (Render.com)    │                             │   (Render.com)   │
-    │                  │                             │                  │
-    │  Static Files    │──────── API Calls ────────▶│  Express.js      │
-    │  Port: 3000/8000 │                             │  Port: 3001      │
-    └──────────────────┘                             └────────┬─────────┘
-                                                              │
-                              ┌────────────────────────────────┤
-                              │                                │
-                              ▼                                ▼
-                    ┌──────────────────┐             ┌──────────────────┐
-                    │    Supabase      │             │     Redis        │
-                    │                  │             │   (Optional)     │
-                    │  PostgreSQL      │             │                  │
-                    │  Auth            │             │  Rate Limiting   │
-                    │  Storage         │             │                  │
-                    └──────────────────┘             └──────────────────┘
-```
-
-### 11.2 環境変数
 ```bash
-# .env.example
+# 必須 (起動時検証)
+JWT_SECRET=                      # JWT署名キー
+JWT_REFRESH_SECRET=              # リフレッシュトークン署名キー
+SUPABASE_URL=                    # Supabase URL
+SUPABASE_SERVICE_KEY=            # Supabase Service Role Key
 
-# Supabase
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=7d
-JWT_REFRESH_EXPIRES_IN=30d
-
-# Server
-PORT=3001
-NODE_ENV=production
-FRONTEND_URL=https://agenttree-frontend.onrender.com
-
-# Redis (Optional)
-REDIS_URL=redis://localhost:6379
-
-# Email (Resend)
-RESEND_API_KEY=re_xxxxxx
-EMAIL_FROM=noreply@yourdomain.com
-
-# Scheduler
-ENABLE_SCHEDULER=true
+# オプション
+PORT=3001                        # サーバーポート
+NODE_ENV=production              # 環境
+FRONTEND_URL=                    # CORS許可オリジン
+RESEND_API_KEY=                  # メール送信
+ENABLE_EMAIL=true                # メール送信有効化
+ENABLE_SCHEDULER=true            # スケジューラー有効化
+INVOICE_REGISTRATION_NUMBER=     # 運営側インボイス登録番号
+RATE_LIMIT_WINDOW_MS=900000      # レート制限ウィンドウ
+RATE_LIMIT_MAX_REQUESTS=100      # レート制限最大リクエスト数
 ```
 
-### 11.3 本番URL
-```
-Frontend: https://agenttree-frontend.onrender.com
-Backend:  https://agenttree.onrender.com
-Health:   https://agenttree.onrender.com/health
-```
+### ヘルスチェック
 
-### 11.4 CORS許可オリジン
-```javascript
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:8000',
-  'https://agenttree-frontend.onrender.com'
-];
+```
+GET /health → { status: "OK", timestamp: "...", db: "connected" }
 ```
 
 ---
 
-## 12. データフロー図
+## 主要な設計判断
 
-### 12.1 売上登録フロー
-```
-    Agency User              Frontend               Backend                Database
-        │                       │                      │                      │
-        │ 1. 売上入力           │                      │                      │
-        │──────────────────────>│                      │                      │
-        │                       │                      │                      │
-        │                       │ 2. POST /api/sales   │                      │
-        │                       │─────────────────────>│                      │
-        │                       │                      │                      │
-        │                       │                      │ 3. バリデーション     │
-        │                       │                      │    権限チェック       │
-        │                       │                      │                      │
-        │                       │                      │ 4. INSERT sales      │
-        │                       │                      │─────────────────────>│
-        │                       │                      │                      │
-        │                       │                      │ 5. INSERT audit_logs │
-        │                       │                      │─────────────────────>│
-        │                       │                      │                      │
-        │                       │ 6. 成功レスポンス    │                      │
-        │                       │<─────────────────────│                      │
-        │                       │                      │                      │
-        │ 7. 完了表示           │                      │                      │
-        │<──────────────────────│                      │                      │
-```
-
-### 12.2 代理店招待フロー
-```
-    Admin/Agency        Frontend          Backend           Email            New Agency
-        │                  │                 │                │                  │
-        │ 1. 招待入力      │                 │                │                  │
-        │─────────────────>│                 │                │                  │
-        │                  │                 │                │                  │
-        │                  │ 2. POST /invite │                │                  │
-        │                  │────────────────>│                │                  │
-        │                  │                 │                │                  │
-        │                  │                 │ 3. トークン生成│                  │
-        │                  │                 │    レコード作成│                  │
-        │                  │                 │                │                  │
-        │                  │                 │ 4. メール送信  │                  │
-        │                  │                 │───────────────>│                  │
-        │                  │                 │                │                  │
-        │                  │                 │                │ 5. 招待メール   │
-        │                  │                 │                │─────────────────>│
-        │                  │                 │                │                  │
-        │                  │ 6. 完了通知     │                │                  │
-        │<─────────────────│<────────────────│                │                  │
-        │                  │                 │                │                  │
-        │                  │                 │                │ 6. リンクClick  │
-        │                  │                 │<───────────────────────────────────│
-        │                  │                 │                │                  │
-        │                  │                 │ 7. トークン検証│                  │
-        │                  │                 │    登録フォーム│                  │
-        │                  │                 │────────────────────────────────────>
-        │                  │                 │                │                  │
-        │                  │                 │ 8. 登録完了    │                  │
-        │                  │                 │    代理店作成  │                  │
-```
-
-### 12.3 コミッション計算フロー（自動）
-```
-    Cron Scheduler      calculateCommission.js      Database           Email Service
-        │                        │                     │                    │
-        │ 1. 毎月1日 02:00       │                     │                    │
-        │ 計算トリガー           │                     │                    │
-        │───────────────────────>│                     │                    │
-        │                        │                     │                    │
-        │                        │ 2. 代理店一覧取得   │                    │
-        │                        │────────────────────>│                    │
-        │                        │                     │                    │
-        │                        │ 3. 各代理店ループ   │                    │
-        │                        │    売上データ取得   │                    │
-        │                        │────────────────────>│                    │
-        │                        │                     │                    │
-        │                        │ 4. 計算処理         │                    │
-        │                        │    - 基本コミッション│                   │
-        │                        │    - 階層ボーナス   │                    │
-        │                        │    - キャンペーン   │                    │
-        │                        │    - 控除           │                    │
-        │                        │                     │                    │
-        │                        │ 5. コミッション保存 │                    │
-        │                        │────────────────────>│                    │
-        │                        │                     │                    │
-        │                        │ 6. 完了通知         │                    │
-        │                        │───────────────────────────────────────────>
-        │                        │                     │                    │
-        │ 7. 処理完了            │                     │                    │
-        │<───────────────────────│                     │                    │
-```
-
----
-
-## 付録
-
-### A. 用語集
-| 用語 | 説明 |
+| 判断 | 理由 |
 |------|------|
-| Tier | 代理店の階層レベル（1が最上位、4が最下位） |
-| tier_level | データベース上のTier階層カラム名 |
-| tier_bonus | 下位代理店の売上から上位代理店が受け取るボーナス |
-| インボイス登録 | 適格請求書発行事業者としての登録有無 |
-| 源泉徴収 | 個人事業主への支払い時に差し引く所得税（10.21%） |
-| carried_forward | 最低支払額未満の場合に次月に持ち越す金額 |
-| bank_account | 銀行口座情報（JSONB形式で格納） |
-| tax_info | 税務情報（JSONB形式で格納） |
-
-### B. ファイル命名規則
-```
-データベース:
-  - schema.sql          : 基本スキーマ
-  - add-*.sql           : カラム/テーブル追加マイグレーション
-  - alter-*.sql         : テーブル変更マイグレーション
-  - create-*.sql        : テーブル作成マイグレーション
-
-バックエンド:
-  - routes/*.js         : APIルートハンドラー
-  - middleware/*.js     : ミドルウェア
-  - utils/*.js          : ユーティリティ関数
-  - services/*.js       : ビジネスロジックサービス
-  - scripts/*.js        : バッチ処理スクリプト
-
-フロントエンド:
-  - pages/*.js          : ページコントローラー
-  - api/*.js            : APIクライアント
-  - components/*.js     : UIコンポーネント
-  - utils/*.js          : ユーティリティ
-```
-
-### C. マイグレーション履歴（主要なもの）
-| ファイル | 内容 |
-|----------|------|
-| schema.sql | 基本スキーマ（users, agencies, products, sales, commissions, invitations, campaigns, payment_history） |
-| add-bank-tax-fields.sql | 銀行口座・税務情報フィールド追加 |
-| add-commission-fields.sql | コミッション関連フィールド追加 |
-| alter-products-table.sql | 商品テーブルにTier別報酬率追加 |
-| create-audit-logs.sql | 監査ログテーブル作成 |
-| add-2fa-columns.sql | 2FAカラム追加 |
-| add-document-templates.sql | 書類テンプレートテーブル作成 |
-
-### D. 参考リンク
-- [Express.js Documentation](https://expressjs.com/)
-- [Supabase Documentation](https://supabase.com/docs)
-- [JWT.io](https://jwt.io/)
-- [Three.js Documentation](https://threejs.org/docs/)
-- [Chart.js Documentation](https://www.chartjs.org/docs/)
-
----
-
-*このドキュメントは Agency System v2 のシステムアーキテクチャを包括的に記述したものです。*
-*最終更新: 2026年1月*
+| Vanilla JS (フレームワークなし) | 軽量、依存ゼロ、学習コスト低 |
+| Supabase | PostgreSQL + 認証 + ストレージ統合、無料枠あり |
+| JWT (localStorage保存) | SPAでの認証、サーバーステートレス |
+| PDFKit (サーバーサイド生成) | ブラウザ依存なし、一貫したPDF出力 |
+| JSONB (bank_account等) | スキーマ柔軟性、PostgreSQLネイティブ |
+| 監査ログ (非同期) | パフォーマンス影響を最小化 |
+| 全銀フォーマット対応 | 日本の銀行振込に対応 |
+| 報酬計算の繰越機能 | 最低支払額未満の月次繰越 |
