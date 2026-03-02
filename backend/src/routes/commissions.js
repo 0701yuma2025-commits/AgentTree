@@ -10,6 +10,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { calculateMonthlyCommissions } = require('../utils/calculateCommission');
 const { sanitizeCsvRow } = require('../utils/csvSanitizer');
 const { Parser } = require('json2csv');
+const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 // 月パラメータ(YYYY-MM)のバリデーション
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -29,6 +30,7 @@ const exportRateLimit = rateLimit({
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { month, status, agency_id } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
 
     // monthパラメータのバリデーション
     if (month && !isValidMonth(month)) {
@@ -40,7 +42,7 @@ router.get('/', authenticateToken, async (req, res) => {
       .select(`
         *,
         agencies!inner(company_name, tier_level)
-      `)
+      `, { count: 'exact' })
       .order('month', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -60,7 +62,10 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('agency_id', req.user.agency.id);
     }
 
-    const { data, error } = await query;
+    // ページネーション適用
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
 
@@ -156,10 +161,7 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: data || []
-    });
+    res.json(paginatedResponse(data || [], count || 0, { page, limit }));
   } catch (error) {
     console.error('Get commissions error:', error);
     res.status(500).json({

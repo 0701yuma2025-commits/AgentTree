@@ -101,6 +101,28 @@ app.use(sanitizeInput);
 // SQLインジェクション対策
 app.use(preventSQLInjection);
 
+// CSRF対策: 状態変更リクエストのOrigin検証（本番環境のみ）
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') return next();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+
+  // Bearer JWT認証のAPIはOriginまたはRefererが許可リストに含まれていること
+  if (origin && allowedOrigins.includes(origin)) return next();
+  if (referer) {
+    const refOrigin = new URL(referer).origin;
+    if (allowedOrigins.includes(refOrigin)) return next();
+  }
+
+  // Origin/Referer両方なし、かつ本番環境の状態変更リクエスト → 拒否
+  return res.status(403).json({
+    success: false,
+    message: 'CSRF検証に失敗しました'
+  });
+});
+
 // ルート定義
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/agencies', require('./src/routes/agencies'));

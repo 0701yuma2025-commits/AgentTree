@@ -12,6 +12,7 @@ const emailService = require('../services/emailService');
 const { agencyCreationRateLimit } = require('../middleware/rateLimiter');
 const { validateAge, validateDateFormat } = require('../utils/ageValidator');
 const { getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
+const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 // サブルーターマウント
 router.use('/', require('./agencies/status'));
@@ -59,29 +60,38 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       }
     } else {
-      // 管理者の場合は全代理店を取得
-      const { data: agencies, error } = await supabase
+      // 管理者の場合はページネーション付きで取得
+      const { page, limit, offset } = parsePagination(req.query);
+
+      const { data: agencies, error, count } = await supabase
         .from('agencies')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
       data = agencies || [];
 
-      // 親代理店名を追加
-      for (let agency of data) {
-        if (agency.parent_agency_id) {
-          const { data: parentAgency } = await supabase
-            .from('agencies')
-            .select('company_name')
-            .eq('id', agency.parent_agency_id)
-            .single();
+      // 親代理店名を一括取得（N+1解消）
+      const parentIds = [...new Set(data.filter(a => a.parent_agency_id).map(a => a.parent_agency_id))];
+      if (parentIds.length > 0) {
+        const { data: parents } = await supabase
+          .from('agencies')
+          .select('id, company_name')
+          .in('id', parentIds);
 
-          if (parentAgency) {
-            agency.parent_agency_name = parentAgency.company_name;
-          }
+        if (parents) {
+          const parentMap = {};
+          parents.forEach(p => { parentMap[p.id] = p.company_name; });
+          data.forEach(a => {
+            if (a.parent_agency_id && parentMap[a.parent_agency_id]) {
+              a.parent_agency_name = parentMap[a.parent_agency_id];
+            }
+          });
         }
       }
+
+      return res.json(paginatedResponse(data, count || 0, { page, limit }));
     }
 
     res.json({

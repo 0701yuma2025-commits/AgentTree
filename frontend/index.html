@@ -18,7 +18,7 @@
             </div>
 
             <!-- 通常ログインフォーム -->
-            <div id="loginForm" class="login-form">
+            <div id="loginForm" class="login-form" role="form" aria-label="ログインフォーム">
                 <h2>ログイン</h2>
 
                 <div class="form-group">
@@ -37,7 +37,7 @@
                     <a href="#" id="forgotPasswordLink">パスワードを忘れた方</a>
                 </div>
 
-                <div id="loginMessage" class="message"></div>
+                <div id="loginMessage" class="message" role="alert" aria-live="polite"></div>
             </div>
 
             <!-- 2FA認証フォーム -->
@@ -56,7 +56,7 @@
                     <a href="#" id="back2FALink">戻る</a>
                 </div>
 
-                <div id="twoFactorMessage" class="message"></div>
+                <div id="twoFactorMessage" class="message" role="alert" aria-live="polite"></div>
             </div>
         </div>
     </div>
@@ -66,7 +66,7 @@
         <!-- ヘッダー -->
         <header class="app-header">
             <div class="header-left">
-                <button id="menuToggle" class="menu-toggle">☰</button>
+                <button id="menuToggle" class="menu-toggle" aria-label="メニュー開閉" aria-expanded="false">☰</button>
                 <h1>営業代理店管理システム</h1>
             </div>
             <div class="header-right">
@@ -77,8 +77,8 @@
 
         <div class="app-container">
             <!-- サイドバー -->
-            <aside id="sidebar" class="sidebar">
-                <nav>
+            <aside id="sidebar" class="sidebar" role="complementary">
+                <nav aria-label="メインナビゲーション">
                     <a href="#" class="nav-item active" data-page="dashboard">
                         <span class="label">ダッシュボード</span>
                     </a>
@@ -116,14 +116,14 @@
             </aside>
 
             <!-- メインコンテンツ -->
-            <main class="main-content">
+            <main class="main-content" role="main">
                 <!-- ダッシュボード -->
                 <div id="dashboardPage" class="page">
                     <div class="page-header">
                         <h2>ダッシュボード</h2>
                     </div>
 
-                    <div class="kpi-cards">
+                    <div class="kpi-cards" role="region" aria-label="主要指標">
                         <div class="kpi-card">
                             <div class="kpi-value" id="totalSales">¥0</div>
                             <div class="kpi-label">今月の売上</div>

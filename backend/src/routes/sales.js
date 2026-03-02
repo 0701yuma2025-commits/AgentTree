@@ -8,6 +8,7 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
 const { safeErrorMessage } = require('../utils/errorHelper');
+const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 // サブルーターをマウント
 router.use('/', require('./sales/mutations'));
@@ -22,13 +23,14 @@ router.use('/', require('./sales/history'));
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { start_date, end_date, agency_id, status } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
 
     let query = supabase
       .from('sales')
       .select(`
         *,
         agencies!inner(company_name, tier_level)
-      `)
+      `, { count: 'exact' })
       .order('sale_date', { ascending: false });
 
     // フィルター条件
@@ -51,7 +53,10 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.in('agency_id', agencyIds);
     }
 
-    const { data, error } = await query;
+    // ページネーション適用
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
 
@@ -88,15 +93,9 @@ router.get('/', authenticateToken, async (req, res) => {
         return saleData;
       });
 
-      res.json({
-        success: true,
-        data: enrichedData
-      });
+      res.json(paginatedResponse(enrichedData, count, { page, limit }));
     } else {
-      res.json({
-        success: true,
-        data: []
-      });
+      res.json(paginatedResponse([], count || 0, { page, limit }));
     }
   } catch (error) {
     console.error('Get sales error:', error);
