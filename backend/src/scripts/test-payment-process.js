@@ -2,9 +2,10 @@
  * 支払い処理の動作テスト
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { createClient } = require('@supabase/supabase-js');
-const { processMonthlyPayments } = require('./src/scripts/cron-scheduler');
+const { processMonthlyPayments } = require('./cron-scheduler');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,

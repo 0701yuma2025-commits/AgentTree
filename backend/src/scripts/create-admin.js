@@ -3,7 +3,8 @@
  */
 const bcrypt = require('bcrypt');
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -18,8 +19,8 @@ async function createAdmin() {
 
     if (!email || !password) {
       console.error('使用方法:');
-      console.error('  環境変数: ADMIN_EMAIL=xxx ADMIN_PASSWORD=xxx node create-admin.js');
-      console.error('  引数:     node create-admin.js <email> <password> [name]');
+      console.error('  環境変数: ADMIN_EMAIL=xxx ADMIN_PASSWORD=xxx node src/scripts/create-admin.js');
+      console.error('  引数:     node src/scripts/create-admin.js <email> <password> [name]');
       console.error('');
       console.error('パスワード要件: 8文字以上、大文字・小文字・数字・特殊文字を含む');
       process.exit(1);

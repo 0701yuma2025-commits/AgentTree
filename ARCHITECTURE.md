@@ -109,7 +109,10 @@ agency-system-v2/
 │       │   ├── emailSender.js          # メール送信ラッパー
 │       │   └── __tests__/              # ユーティリティテスト (12ファイル)
 │       └── scripts/
-│           └── cron-scheduler.js       # 定時バッチ処理
+│           ├── cron-scheduler.js       # 定時バッチ処理
+│           ├── create-admin.js         # 管理者アカウント作成CLI
+│           ├── test-payment-process.js # 支払い処理テスト
+│           └── test-payment-detailed.js # 支払い処理詳細テスト
 │
 ├── frontend/                   # Vanilla JS SPA (~15,000行)
 │   ├── index.html              # メインSPA (ログイン/2FA/メイン画面)
@@ -166,6 +169,8 @@ agency-system-v2/
 ├── .env                        # 環境変数 (実値)
 ├── .env.example                # 環境変数テンプレート
 ├── .gitignore
+├── README.md                   # クイックスタート
+├── TODO_REQUIREMENTS.md        # 実装進捗トラッキング
 └── ARCHITECTURE.md             # このファイル
 ```
 
