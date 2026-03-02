@@ -8,6 +8,9 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { generateInvoicePDF, generateReceiptPDF, generatePaymentStatementPDF } = require('../utils/pdf-generator');
 
+/** 運営側のインボイス登録番号（環境変数 or 未設定） */
+const OPERATOR_INVOICE_NUMBER = process.env.INVOICE_REGISTRATION_NUMBER || null;
+
 /**
  * 請求書PDF生成
  * POST /api/invoices/generate
@@ -253,7 +256,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
           amount: payment.commissions.tier_bonus
         }
       ],
-      invoiceRegistrationNumber: '1234567890123',
+      invoiceRegistrationNumber: OPERATOR_INVOICE_NUMBER || payment.commissions.agencies?.invoice_number || '未登録',
       // 宛名（支払者情報）- デフォルトは管理者
       recipient: {
         company_name: '営業代理店管理システム運営事務局'
@@ -661,7 +664,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
           amount: totalTierBonus
         }
       ],
-      invoiceRegistrationNumber: '1234567890123',
+      invoiceRegistrationNumber: OPERATOR_INVOICE_NUMBER || commissions[0].agencies?.invoice_number || '未登録',
       // 宛名（支払者情報）- カスタムまたはデフォルト
       recipient: recipient || {
         company_name: '営業代理店管理システム運営事務局'
