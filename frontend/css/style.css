@@ -107,6 +107,54 @@ body {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+}
+
+/* キーボードフォーカス可視化 */
+*:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.3);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: -2px;
+  background-color: rgba(74, 144, 226, 0.15);
+}
+
+.nav-item.active:focus-visible {
+  outline-color: var(--white);
+}
+
+/* スキップリンク */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-color);
+  color: var(--white);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0 0 4px 4px;
+  z-index: 9999;
+  text-decoration: none;
+  font-weight: 600;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* メインコンテンツのフォーカス時outline除去 */
+.main-content:focus {
+  outline: none;
 }
 
 /* ボタン */

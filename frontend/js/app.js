@@ -95,21 +95,30 @@ class App {
     // ログアウト
     document.getElementById('logoutBtn')?.addEventListener('click', () => this.handleLogout());
 
-    // メニュートグル
-    document.getElementById('menuToggle')?.addEventListener('click', (e) => {
+    // メニュートグル（クリック + キーボード対応）
+    const menuToggle = document.getElementById('menuToggle');
+    menuToggle?.addEventListener('click', (e) => {
       e.stopPropagation();
-      document.getElementById('sidebar')?.classList.toggle('active');
+      this.toggleSidebar();
+    });
+    menuToggle?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleSidebar();
+      }
     });
 
     // サイドバー外クリックで閉じる
     document.addEventListener('click', (e) => {
       const sidebar = document.getElementById('sidebar');
-      const menuToggle = document.getElementById('menuToggle');
+      const menuToggleEl = document.getElementById('menuToggle');
 
       if (sidebar && sidebar.classList.contains('active')) {
         // サイドバーとメニューボタン以外をクリックした場合
-        if (!sidebar.contains(e.target) && !menuToggle?.contains(e.target)) {
+        if (!sidebar.contains(e.target) && !menuToggleEl?.contains(e.target)) {
           sidebar.classList.remove('active');
+          menuToggleEl?.setAttribute('aria-expanded', 'false');
         }
       }
     });
@@ -119,12 +128,32 @@ class App {
       e.stopPropagation();
     });
 
-    // ナビゲーション
-    document.querySelectorAll('.nav-item').forEach(item => {
+    // ナビゲーション（クリック + キーボード矢印キー対応）
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         const page = item.dataset.page;
         if (page) this.navigateToPage(page);
+      });
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const page = item.dataset.page;
+          if (page) this.navigateToPage(page);
+          return;
+        }
+        // 矢印キーでナビ項目間を移動（非表示項目はスキップ）
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const visible = Array.from(navItems).filter(n => !n.classList.contains('hidden'));
+          const idx = visible.indexOf(item);
+          if (idx === -1) return;
+          const next = e.key === 'ArrowDown'
+            ? visible[(idx + 1) % visible.length]
+            : visible[(idx - 1 + visible.length) % visible.length];
+          next?.focus();
+        }
       });
     });
 
@@ -352,11 +381,13 @@ class App {
       page.classList.add('hidden');
     });
     document.getElementById('dashboardPage')?.classList.remove('hidden');
-    // ナビゲーションもダッシュボードに戻す
+    // ナビゲーションもダッシュボードに戻す + aria-current
     document.querySelectorAll('.nav-item').forEach(item => {
       item.classList.remove('active');
+      item.removeAttribute('aria-current');
       if (item.dataset.page === 'dashboard') {
         item.classList.add('active');
+        item.setAttribute('aria-current', 'page');
       }
     });
 
@@ -393,16 +424,22 @@ class App {
     // 新しいページを表示
     document.getElementById(`${pageName}Page`)?.classList.remove('hidden');
 
-    // ナビゲーションのアクティブ状態更新
+    // ナビゲーションのアクティブ状態更新 + aria-current
     document.querySelectorAll('.nav-item').forEach(item => {
       if (item.dataset.page === pageName) {
         item.classList.add('active');
+        item.setAttribute('aria-current', 'page');
       } else {
         item.classList.remove('active');
+        item.removeAttribute('aria-current');
       }
     });
 
     this.currentPage = pageName;
+
+    // フォーカスをメインコンテンツに移動（キーボードユーザー向け）
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) mainContent.focus();
 
     // ページごとのデータ読み込み
     this.loadPageData(pageName);
@@ -597,14 +634,35 @@ class App {
   async loadRegistrationHistory(...args) { return this.agenciesPage.loadRegistrationHistory(...args); }
 
   /**
+   * サイドバー開閉
+   */
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menuToggle');
+    if (sidebar) {
+      const isActive = sidebar.classList.toggle('active');
+      menuToggle?.setAttribute('aria-expanded', String(isActive));
+    }
+  }
+
+  /**
    * モーダルを開く
    */
   openModal() {
     const modal = document.getElementById('modal');
     if (modal) {
       modal.classList.remove('hidden');
-      // エスケープキーで閉じる
-      document.addEventListener('keydown', this.handleModalEscape);
+      // モーダルを開く前のフォーカス位置を記憶
+      this._lastFocusBeforeModal = document.activeElement;
+      // エスケープキーで閉じる + フォーカストラップ
+      document.addEventListener('keydown', this.handleModalKeydown);
+      // モーダル内の最初のフォーカス可能な要素にフォーカス
+      requestAnimationFrame(() => {
+        const focusable = modal.querySelectorAll(
+          'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) focusable[0].focus();
+      });
     }
   }
 
@@ -615,21 +673,49 @@ class App {
     const modal = document.getElementById('modal');
     if (modal) {
       modal.classList.add('hidden');
-      document.removeEventListener('keydown', this.handleModalEscape);
+      document.removeEventListener('keydown', this.handleModalKeydown);
       // モーダルの中身をクリア
       const modalBody = document.getElementById('modalBody');
       if (modalBody) {
         modalBody.innerHTML = '';
       }
+      // フォーカスを元の位置に戻す
+      if (this._lastFocusBeforeModal) {
+        this._lastFocusBeforeModal.focus();
+        this._lastFocusBeforeModal = null;
+      }
     }
   }
 
   /**
-   * ESCキーでモーダルを閉じる
+   * モーダル内キーボード操作（Escape閉じ + フォーカストラップ）
    */
-  handleModalEscape = (event) => {
+  handleModalKeydown = (event) => {
     if (event.key === 'Escape') {
       this.closeModal();
+      return;
+    }
+    // フォーカストラップ: Tab/Shift+Tabでモーダル内を循環
+    if (event.key === 'Tab') {
+      const modal = document.getElementById('modal');
+      if (!modal) return;
+      const focusable = modal.querySelectorAll(
+        'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     }
   }
 

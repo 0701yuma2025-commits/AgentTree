@@ -9,6 +9,9 @@
     <!-- Supabase CDN は未使用のため除去 (API通信は全てバックエンド経由) -->
 </head>
 <body>
+    <!-- スキップリンク（キーボードユーザー向け） -->
+    <a href="#mainContent" class="skip-link">メインコンテンツへスキップ</a>
+
     <!-- ログイン画面 -->
     <div id="loginScreen" class="screen">
         <div class="login-container">
@@ -116,7 +119,7 @@
             </aside>
 
             <!-- メインコンテンツ -->
-            <main class="main-content" role="main">
+            <main id="mainContent" class="main-content" role="main" tabindex="-1">
                 <!-- ダッシュボード -->
                 <div id="dashboardPage" class="page">
                     <div class="page-header">
@@ -854,9 +857,9 @@
 
     <!-- モーダル -->
     <!-- モーダル -->
-    <div id="modal" class="modal hidden">
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="ダイアログ">
         <div class="modal-content">
-            <span class="modal-close" onclick="app.closeModal()">&times;</span>
+            <button class="modal-close" aria-label="閉じる" onclick="app.closeModal()">&times;</button>
             <div id="modalBody"></div>
         </div>
     </div>
