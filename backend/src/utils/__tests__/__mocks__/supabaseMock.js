@@ -24,6 +24,8 @@ function createSupabaseMock() {
     in: jest.fn().mockReturnThis(),
     like: jest.fn().mockReturnThis(),
     ilike: jest.fn().mockReturnThis(),
+    or: jest.fn().mockReturnThis(),
+    contains: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     range: jest.fn().mockReturnThis(),
