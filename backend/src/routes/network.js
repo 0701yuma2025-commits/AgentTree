@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
 
 /**
  * GET /api/network/agencies
@@ -38,48 +39,16 @@ router.get('/agencies', authenticateToken, async (req, res) => {
       agencies = data;
 
     } else if (userAgencyId) {
-      // 代理店ユーザー：自分と下位代理店を再帰的に取得
-      const getSubordinateAgencies = async (parentId) => {
-        const { data, error } = await supabase
-          .from('agencies')
-          .select(`
-            id,
-            company_name,
-            agency_code,
-            tier_level,
-            parent_agency_id,
-            status
-          `)
-          .eq('parent_agency_id', parentId);
-
-        if (error) throw error;
-
-        let result = data || [];
-        for (const agency of data || []) {
-          const children = await getSubordinateAgencies(agency.id);
-          result = result.concat(children);
-        }
-        return result;
-      };
-
-      // 自分の情報を取得
-      const { data: selfData, error: selfError } = await supabase
+      // 代理店ユーザー：共通ヘルパーでID一括取得 → データ取得
+      const subordinateIds = await getSubordinateAgencyIds(userAgencyId);
+      const { data, error: subError } = await supabase
         .from('agencies')
-        .select(`
-          id,
-          company_name,
-          agency_code,
-          tier_level,
-          parent_agency_id,
-          status
-        `)
-        .eq('id', userAgencyId)
-        .single();
+        .select('id, company_name, agency_code, tier_level, parent_agency_id, status')
+        .in('id', subordinateIds)
+        .order('tier_level', { ascending: true });
 
-      if (selfError) throw selfError;
-
-      const subordinates = await getSubordinateAgencies(userAgencyId);
-      agencies = [selfData, ...subordinates];
+      if (subError) throw subError;
+      agencies = data || [];
 
     } else {
       return res.status(403).json({

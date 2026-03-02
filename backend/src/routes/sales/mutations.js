@@ -13,6 +13,103 @@ const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
 const emailService = require('../../services/emailService');
 
+/** デフォルトの報酬設定値 */
+const DEFAULT_COMMISSION_SETTINGS = {
+  tier1_from_tier2_bonus: 2.00,
+  tier2_from_tier3_bonus: 1.50,
+  tier3_from_tier4_bonus: 1.00,
+  minimum_payment_amount: 10000,
+  withholding_tax_rate: 10.21,
+  non_invoice_deduction_rate: 2.00
+};
+
+/**
+ * 親代理店チェーンを取得
+ */
+async function getParentChain(parentAgencyId) {
+  const chain = [];
+  let currentParentId = parentAgencyId;
+  while (currentParentId) {
+    const { data: parentAgency } = await supabase
+      .from('agencies')
+      .select('*')
+      .eq('id', currentParentId)
+      .single();
+    if (parentAgency) {
+      chain.push(parentAgency);
+      currentParentId = parentAgency.parent_agency_id;
+    } else {
+      break;
+    }
+  }
+  return chain;
+}
+
+/**
+ * 報酬レコードを新規作成（基本報酬 + 親代理店ボーナス）
+ */
+async function createCommissionRecords(sale, commissionResult, settings) {
+  const month = new Date(sale.sale_date).toISOString().slice(0, 7);
+  const appliedSettings = {
+    tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
+    tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
+    tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
+    minimum_payment_amount: settings.minimum_payment_amount,
+    withholding_tax_rate: settings.withholding_tax_rate,
+    non_invoice_deduction_rate: settings.non_invoice_deduction_rate
+  };
+
+  const calculationDetails = {
+    ...(commissionResult.calculation_details || {}),
+    applied_settings: appliedSettings
+  };
+
+  // 基本報酬
+  const { error: baseError } = await supabase
+    .from('commissions')
+    .insert({
+      sale_id: sale.id,
+      agency_id: sale.agency_id,
+      month,
+      base_amount: commissionResult.base_amount,
+      tier_bonus: commissionResult.tier_bonus || 0,
+      campaign_bonus: commissionResult.campaign_bonus || 0,
+      withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
+      final_amount: commissionResult.final_amount,
+      status: 'confirmed',
+      tier_level: sale.tier_level || commissionResult.tier_level,
+      calculation_details: calculationDetails
+    });
+  if (baseError) throw baseError;
+
+  // 親代理店ボーナス
+  if (commissionResult.parent_commissions?.length > 0) {
+    for (const pc of commissionResult.parent_commissions) {
+      const { error: pcError } = await supabase
+        .from('commissions')
+        .insert({
+          sale_id: sale.id,
+          agency_id: pc.agency_id,
+          month,
+          base_amount: 0,
+          tier_bonus: pc.amount,
+          campaign_bonus: 0,
+          withholding_tax: 0,
+          final_amount: pc.amount,
+          status: 'confirmed',
+          tier_level: pc.tier_level,
+          calculation_details: {
+            type: 'hierarchy_bonus',
+            from_agency_id: sale.agency_id,
+            bonus_rate: pc.bonus_rate,
+            applied_settings: appliedSettings
+          }
+        });
+      if (pcError) throw pcError;
+    }
+  }
+}
+
 /**
  * POST /api/sales
  * 売上登録
@@ -601,207 +698,54 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // 金額が変更された場合、関連する報酬を再計算
     if (quantity !== undefined || unit_price !== undefined) {
       try {
-        // 売上に紐づく報酬レコードを取得
         const { data: relatedCommissions, error: commError } = await supabase
-          .from('commissions')
-          .select('*')
-          .eq('sale_id', id);
+          .from('commissions').select('*').eq('sale_id', id);
 
         if (!commError) {
-          // 代理店情報取得
-          const { data: agency, error: agencyError } = await supabase
-            .from('agencies')
-            .select('*')
-            .eq('id', data.agency_id)
-            .single();
-
-          // 商品情報取得
-          const { data: product, error: productError } = await supabase
-            .from('products')
-            .select('*')
-            .eq('id', data.product_id)
-            .single();
+          const { data: agency } = await supabase.from('agencies').select('*').eq('id', data.agency_id).single();
+          const { data: product } = await supabase.from('products').select('*').eq('id', data.product_id).single();
 
           if (agency && product) {
-            // 親代理店チェーン取得
-            let parentChain = [];
-            let currentParentId = agency.parent_agency_id;
-            while (currentParentId) {
-              const { data: parentAgency } = await supabase
-                .from('agencies')
-                .select('*')
-                .eq('id', currentParentId)
-                .single();
-              if (parentAgency) {
-                parentChain.push(parentAgency);
-                currentParentId = parentAgency.parent_agency_id;
-              } else {
-                break;
-              }
-            }
+            const parentChain = await getParentChain(agency.parent_agency_id);
 
-            // 報酬が存在する場合：更新処理
             if (relatedCommissions && relatedCommissions.length > 0) {
-              // 登録時の設定値を取得（編集時は設定値を変更しない）
-              let settings = null;
-
-              // 既存の報酬レコードから登録時の設定値を取得
-              if (relatedCommissions[0].calculation_details?.applied_settings) {
-                settings = relatedCommissions[0].calculation_details.applied_settings;
-                // 登録時の設定値を使用
-              } else {
-                // フォールバック: 設定値が保存されていない場合はデフォルト値
-                settings = {
-                  tier1_from_tier2_bonus: 2.00,
-                  tier2_from_tier3_bonus: 1.50,
-                  tier3_from_tier4_bonus: 1.00,
-                  minimum_payment_amount: 10000,
-                  withholding_tax_rate: 10.21,
-                  non_invoice_deduction_rate: 2.00
-                };
-                // デフォルト設定値を使用
-              }
-
-              // 報酬を再計算（登録時の設定値を使用）
+              // 既存報酬を更新：登録時の設定値を維持
+              const settings = relatedCommissions[0].calculation_details?.applied_settings || DEFAULT_COMMISSION_SETTINGS;
               const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
+              const month = new Date(data.sale_date).toISOString().slice(0, 7);
 
-              // 各報酬レコードを更新
               for (const commission of relatedCommissions) {
                 if (commission.base_amount > 0) {
-                  // 基本報酬レコード
-                  const month = new Date(data.sale_date).toISOString().slice(0, 7);
-                  await supabase
-                    .from('commissions')
-                    .update({
-                      month: month,
-                      base_amount: commissionResult.base_amount,
-                      tier_bonus: 0,
-                      campaign_bonus: 0,
-                      withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
-                      final_amount: commissionResult.final_amount,
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('id', commission.id);
+                  await supabase.from('commissions').update({
+                    month, base_amount: commissionResult.base_amount, tier_bonus: 0, campaign_bonus: 0,
+                    withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
+                    final_amount: commissionResult.final_amount, updated_at: new Date().toISOString()
+                  }).eq('id', commission.id);
                 } else if (commission.tier_bonus > 0) {
-                  // 階層ボーナスレコード
-                  const parentComm = commissionResult.parent_commissions?.find(
-                    pc => pc.agency_id === commission.agency_id
-                  );
-                  if (parentComm) {
-                    const month = new Date(data.sale_date).toISOString().slice(0, 7);
-                    await supabase
-                      .from('commissions')
-                      .update({
-                        month: month,
-                        tier_bonus: parentComm.amount,
-                        final_amount: parentComm.amount,
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('id', commission.id);
+                  const pc = commissionResult.parent_commissions?.find(p => p.agency_id === commission.agency_id);
+                  if (pc) {
+                    await supabase.from('commissions').update({
+                      month, tier_bonus: pc.amount, final_amount: pc.amount, updated_at: new Date().toISOString()
+                    }).eq('id', commission.id);
                   }
                 }
               }
             } else {
-              // 報酬が存在しない場合：新規作成処理
-              // 報酬が存在しないため新規作成
-
-              // 現在の設定値を取得
+              // 報酬なし → 新規作成
               const { data: commissionSettings } = await supabase
-                .from('commission_settings')
-                .select('*')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
-
-              const settings = commissionSettings || {
-                tier1_from_tier2_bonus: 2.00,
-                tier2_from_tier3_bonus: 1.50,
-                tier3_from_tier4_bonus: 1.00,
-                minimum_payment_amount: 10000,
-                withholding_tax_rate: 10.21,
-                non_invoice_deduction_rate: 2.00
-              };
-
-              // 報酬を計算
+                .from('commission_settings').select('*').eq('is_active', true)
+                .order('created_at', { ascending: false }).limit(1).single();
+              const settings = commissionSettings || DEFAULT_COMMISSION_SETTINGS;
               const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
-
-              // 報酬レコードを作成
-              const month = new Date(data.sale_date).toISOString().slice(0, 7);
-
-              // 計算詳細に設定値を保存
-              const calculationDetails = {
-                ...(commissionResult.calculation_details || {}),
-                applied_settings: {
-                  tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
-                  tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
-                  tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
-                  minimum_payment_amount: settings.minimum_payment_amount,
-                  withholding_tax_rate: settings.withholding_tax_rate,
-                  non_invoice_deduction_rate: settings.non_invoice_deduction_rate
-                }
-              };
-
-              // 基本報酬を作成
-              await supabase
-                .from('commissions')
-                .insert({
-                  sale_id: data.id,
-                  agency_id: data.agency_id,
-                  month: month,
-                  base_amount: commissionResult.base_amount,
-                  tier_bonus: commissionResult.tier_bonus || 0,
-                  campaign_bonus: commissionResult.campaign_bonus || 0,
-                  withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
-                  final_amount: commissionResult.final_amount,
-                  status: 'confirmed',
-                  tier_level: agency.tier_level,
-                  calculation_details: calculationDetails
-                });
-
-              // 親代理店の階層ボーナスも作成
-              if (commissionResult.parent_commissions && commissionResult.parent_commissions.length > 0) {
-                for (const parentCommission of commissionResult.parent_commissions) {
-                  await supabase
-                    .from('commissions')
-                    .insert({
-                      sale_id: data.id,
-                      agency_id: parentCommission.agency_id,
-                      month: month,
-                      base_amount: 0,
-                      tier_bonus: parentCommission.amount,
-                      campaign_bonus: 0,
-                      withholding_tax: 0,
-                      final_amount: parentCommission.amount,
-                      status: 'confirmed',
-                      tier_level: parentCommission.tier_level,
-                      calculation_details: {
-                        type: 'hierarchy_bonus',
-                        from_agency_id: data.agency_id,
-                        bonus_rate: parentCommission.bonus_rate,
-                        applied_settings: {
-                          tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
-                          tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
-                          tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
-                          minimum_payment_amount: settings.minimum_payment_amount,
-                          withholding_tax_rate: settings.withholding_tax_rate,
-                          non_invoice_deduction_rate: settings.non_invoice_deduction_rate
-                        }
-                      }
-                    });
-                }
-              }
+              await createCommissionRecords({ ...data, tier_level: agency.tier_level }, commissionResult, settings);
             }
           }
         }
       } catch (commissionUpdateError) {
         console.error('報酬再計算エラー:', commissionUpdateError);
-        // 売上更新は成功だが報酬の再計算に失敗 → warningで通知
         return res.json({
-          success: true,
-          message: '売上情報を更新しました',
-          warning: '報酬の再計算に失敗しました。管理者に確認してください。',
-          data
+          success: true, message: '売上情報を更新しました',
+          warning: '報酬の再計算に失敗しました。管理者に確認してください。', data
         });
       }
     }

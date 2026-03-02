@@ -9,6 +9,52 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { safeErrorMessage } = require('../utils/errorHelper');
 
+/**
+ * 報酬データを代理店ごとに集計する共通関数
+ * @param {Array} commissions - 報酬データ配列
+ * @param {Object} options - オプション（trackIds: commission_idsを追跡するか）
+ * @returns {Array} 代理店別集計配列
+ */
+function aggregateByAgency(commissions, { trackIds = false, defaultPaymentDate = null } = {}) {
+  const byAgency = {};
+
+  commissions.forEach(commission => {
+    const agencyId = commission.agency_id;
+
+    if (!byAgency[agencyId]) {
+      byAgency[agencyId] = {
+        agency_id: agencyId,
+        agency_code: commission.agency?.agency_code,
+        agency_name: commission.agency?.company_name,
+        bank_account: commission.agency?.bank_account,
+        base_amount: 0,
+        tier_bonus: 0,
+        campaign_bonus: 0,
+        invoice_deduction: 0,
+        withholding_tax: 0,
+        final_amount: 0,
+      };
+      if (trackIds) byAgency[agencyId].commission_ids = [];
+      if (defaultPaymentDate) {
+        byAgency[agencyId].commission_count = 0;
+        byAgency[agencyId].payment_date = defaultPaymentDate;
+        byAgency[agencyId].status = 'pending';
+      }
+    }
+
+    byAgency[agencyId].base_amount += commission.base_amount || 0;
+    byAgency[agencyId].tier_bonus += commission.tier_bonus || 0;
+    byAgency[agencyId].campaign_bonus += commission.campaign_bonus || 0;
+    byAgency[agencyId].invoice_deduction += commission.invoice_deduction || 0;
+    byAgency[agencyId].withholding_tax += commission.withholding_tax || 0;
+    byAgency[agencyId].final_amount += commission.final_amount || 0;
+    if (trackIds) byAgency[agencyId].commission_ids.push(commission.id);
+    if (defaultPaymentDate) byAgency[agencyId].commission_count++;
+  });
+
+  return Object.values(byAgency);
+}
+
 // エクスポート用レート制限（1分あたり5回まで）
 const exportRateLimit = rateLimit({
   windowMs: 60 * 1000,
@@ -58,39 +104,7 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
     if (commissionsError) throw commissionsError;
 
     // 代理店ごとに集計
-    const paymentsByAgency = {};
-
-    commissions.forEach(commission => {
-      const agencyId = commission.agency_id;
-
-      if (!paymentsByAgency[agencyId]) {
-        paymentsByAgency[agencyId] = {
-          agency_id: agencyId,
-          agency_code: commission.agency?.agency_code,
-          agency_name: commission.agency?.company_name,
-          bank_account: commission.agency?.bank_account,
-          base_amount: 0,
-          tier_bonus: 0,
-          campaign_bonus: 0,
-          invoice_deduction: 0,
-          withholding_tax: 0,
-          final_amount: 0,
-          commission_count: 0,
-          payment_date: `${month}-25`, // デフォルト25日振込
-          status: 'pending'
-        };
-      }
-
-      paymentsByAgency[agencyId].base_amount += commission.base_amount || 0;
-      paymentsByAgency[agencyId].tier_bonus += commission.tier_bonus || 0;
-      paymentsByAgency[agencyId].campaign_bonus += commission.campaign_bonus || 0;
-      paymentsByAgency[agencyId].invoice_deduction += commission.invoice_deduction || 0;
-      paymentsByAgency[agencyId].withholding_tax += commission.withholding_tax || 0;
-      paymentsByAgency[agencyId].final_amount += commission.final_amount || 0;
-      paymentsByAgency[agencyId].commission_count++;
-    });
-
-    const payments = Object.values(paymentsByAgency);
+    const payments = aggregateByAgency(commissions, { defaultPaymentDate: `${month}-25` });
 
     // 銀行口座情報がない代理店を警告（代理店名のみログ。口座情報はログに出さない）
     const missingBankInfo = payments.filter(p => !p.bank_account || !p.bank_account.bank_code);
@@ -194,37 +208,7 @@ router.get('/preview', authenticateToken, requireAdmin, async (req, res) => {
     if (error) throw error;
 
     // 代理店ごとに集計
-    const paymentsByAgency = {};
-
-    commissions.forEach(commission => {
-      const agencyId = commission.agency_id;
-
-      if (!paymentsByAgency[agencyId]) {
-        paymentsByAgency[agencyId] = {
-          agency_id: agencyId,
-          agency_code: commission.agency?.agency_code,
-          agency_name: commission.agency?.company_name,
-          bank_account: commission.agency?.bank_account,
-          base_amount: 0,
-          tier_bonus: 0,
-          campaign_bonus: 0,
-          invoice_deduction: 0,
-          withholding_tax: 0,
-          final_amount: 0,
-          commission_ids: []
-        };
-      }
-
-      paymentsByAgency[agencyId].base_amount += commission.base_amount || 0;
-      paymentsByAgency[agencyId].tier_bonus += commission.tier_bonus || 0;
-      paymentsByAgency[agencyId].campaign_bonus += commission.campaign_bonus || 0;
-      paymentsByAgency[agencyId].invoice_deduction += commission.invoice_deduction || 0;
-      paymentsByAgency[agencyId].withholding_tax += commission.withholding_tax || 0;
-      paymentsByAgency[agencyId].final_amount += commission.final_amount || 0;
-      paymentsByAgency[agencyId].commission_ids.push(commission.id);
-    });
-
-    const payments = Object.values(paymentsByAgency);
+    const payments = aggregateByAgency(commissions, { trackIds: true });
 
     // 統計情報
     const stats = {

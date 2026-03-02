@@ -784,14 +784,12 @@ router.get('/', authenticateToken, async (req, res) => {
       baseAmount: commission.base_amount,
       tierBonus: commission.tier_bonus,
       campaignBonus: commission.campaign_bonus || 0,
+      withholdingTax: commission.withholding_tax || 0,
       amount: commission.final_amount,
       status: commission.status === 'paid' ? '支払済' :
               commission.status === 'approved' ? '承認済' :
               commission.status === 'carried_forward' ? '繰越' : '処理中',
-      issueDate: commission.created_at,
-      baseCommission: commission.base_amount,
-      tierBonus: commission.tier_bonus,
-      withholdingTax: commission.withholding_tax
+      issueDate: commission.created_at
     }));
 
     res.json({ success: true, data: invoices });

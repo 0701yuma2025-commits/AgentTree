@@ -8,6 +8,7 @@ const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const { Parser } = require('json2csv');
 const { sanitizeCsvRow } = require('../../utils/csvSanitizer');
+const { getSubordinateAgencyIds } = require('../../utils/agencyHelpers');
 
 /**
  * GET /api/agencies/export
@@ -39,24 +40,7 @@ router.get('/export', authenticateToken, async (req, res) => {
 
     // 代理店ユーザーの場合は自分と傘下のみ
     if (req.user.role === 'agency' && req.user.agency_id) {
-      // 傘下の代理店IDを再帰的に取得
-      const getSubordinateIds = async (parentId) => {
-        const { data: children } = await supabase
-          .from('agencies')
-          .select('id')
-          .eq('parent_agency_id', parentId);
-
-        let ids = [parentId];
-        if (children) {
-          for (const child of children) {
-            const childIds = await getSubordinateIds(child.id);
-            ids = ids.concat(childIds);
-          }
-        }
-        return ids;
-      };
-
-      const subordinateIds = await getSubordinateIds(req.user.agency_id);
+      const subordinateIds = await getSubordinateAgencyIds(req.user.agency_id);
       query = query.in('id', subordinateIds);
     }
 
