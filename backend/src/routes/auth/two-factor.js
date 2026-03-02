@@ -166,6 +166,9 @@ router.post('/2fa/email/verify', authenticateToken, async (req, res) => {
     }
 
     // コード検証（bcryptで比較）
+    if (!user.two_factor_secret) {
+      return res.status(401).json({ success: false, message: '認証コードが無効または既に使用されています' });
+    }
     const isValid = await bcrypt.compare(code, user.two_factor_secret);
     if (!isValid) {
       return res.status(401).json({
@@ -311,6 +314,9 @@ router.post('/2fa/email/disable/verify', authenticateToken, async (req, res) => 
     }
 
     // コード検証（bcryptで比較）
+    if (!user.two_factor_secret) {
+      return res.status(401).json({ success: false, message: '認証コードが無効または既に使用されています' });
+    }
     const isValidCode = await bcrypt.compare(code, user.two_factor_secret);
     if (!isValidCode) {
       return res.status(401).json({
@@ -406,6 +412,9 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
     }
 
     // コード検証（bcryptで比較）
+    if (!user.two_factor_secret) {
+      return res.status(401).json({ success: false, message: '認証コードが無効または既に使用されています' });
+    }
     const isValidCode = await bcrypt.compare(code, user.two_factor_secret);
     if (!isValidCode) {
       return res.status(401).json({

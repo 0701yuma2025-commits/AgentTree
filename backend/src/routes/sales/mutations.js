@@ -796,7 +796,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
         }
       } catch (commissionUpdateError) {
         console.error('報酬再計算エラー:', commissionUpdateError);
-        // 報酬更新エラーがあっても売上更新は成功とする
+        // 売上更新は成功だが報酬の再計算に失敗 → warningで通知
+        return res.json({
+          success: true,
+          message: '売上情報を更新しました',
+          warning: '報酬の再計算に失敗しました。管理者に確認してください。',
+          data
+        });
       }
     }
 

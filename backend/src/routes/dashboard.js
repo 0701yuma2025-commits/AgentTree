@@ -38,11 +38,18 @@ router.get('/stats', authenticateToken, async (req, res) => {
       };
     }
 
-    // 2. 売上統計の取得
+    // 2. 売上統計の取得（直近2ヶ月に限定してパフォーマンス確保）
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+    const salesStartDate = `${lastMonthStr}-01`;
+
     let salesQuery = supabase
       .from('sales')
       .select('total_amount, sale_date, status, agency_id')
-      .eq('status', 'confirmed');
+      .eq('status', 'confirmed')
+      .gte('sale_date', salesStartDate);
 
     let agencyIds = null;
     if (!isAdmin && agencyId) {
@@ -53,14 +60,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     const { data: salesData } = await salesQuery;
 
-    // 今月の売上
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
-
     const currentMonthSales = salesData?.filter(s => s.sale_date && s.sale_date.substring(0, 7) === currentMonth) || [];
-    const lastMonthSales = salesData?.filter(s => s.sale_date.startsWith(lastMonthStr)) || [];
+    const lastMonthSales = salesData?.filter(s => s.sale_date && s.sale_date.substring(0, 7) === lastMonthStr) || [];
 
     const totalSalesAmount = salesData?.reduce((sum, s) => sum + parseFloat(s.total_amount), 0) || 0;
     const currentMonthAmount = currentMonthSales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0);
@@ -80,10 +81,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
       currentMonthCount: currentMonthSales.length
     };
 
-    // 3. 報酬統計の取得
+    // 3. 報酬統計の取得（直近2ヶ月に限定）
     let commissionQuery = supabase
       .from('commissions')
-      .select('final_amount, status, month');
+      .select('final_amount, status, month')
+      .gte('month', lastMonthStr);
 
     if (!isAdmin && agencyId) {
       commissionQuery = commissionQuery.eq('agency_id', agencyId);

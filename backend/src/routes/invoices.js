@@ -46,6 +46,10 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     if (commission_id) {
       query = query.eq('id', commission_id);
+      // 代理店ユーザーは自分の代理店のデータのみ
+      if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+        query = query.eq('agency_id', req.user.agency?.id);
+      }
     } else {
       query = query.eq('month', month)
         .eq('agency_id', req.user.agency?.id);
@@ -53,8 +57,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     const { data: commission, error } = await query.single();
 
-    if (error) {
-      console.error('報酬データ取得エラー:', error);
+    if (error || !commission) {
       return res.status(404).json({ success: false, message: '報酬データが見つかりません' });
     }
 
@@ -202,7 +205,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
     }
 
     // 支払いデータ取得
-    const { data: payment, error } = await supabase
+    let paymentQuery = supabase
       .from('payments')
       .select(`
         *,
@@ -220,11 +223,16 @@ router.post('/receipt', authenticateToken, async (req, res) => {
           )
         )
       `)
-      .eq('id', payment_id)
-      .single();
+      .eq('id', payment_id);
 
-    if (error) {
-      console.error('支払いデータ取得エラー:', error);
+    // 代理店ユーザーは自分の代理店のデータのみ
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      paymentQuery = paymentQuery.eq('agency_id', req.user.agency?.id);
+    }
+
+    const { data: payment, error } = await paymentQuery.single();
+
+    if (error || !payment) {
       return res.status(404).json({ success: false, message: '支払いデータが見つかりません' });
     }
 
@@ -289,7 +297,7 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
     }
 
     // 売上データと関連する報酬データを取得
-    const { data: sale, error: saleError } = await supabase
+    let saleQuery = supabase
       .from('sales')
       .select(`
         *,
@@ -307,11 +315,16 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
           bank_account
         )
       `)
-      .eq('id', sale_id)
-      .single();
+      .eq('id', sale_id);
+
+    // 代理店ユーザーは自分の代理店のデータのみ
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      saleQuery = saleQuery.eq('agency_id', req.user.agency?.id);
+    }
+
+    const { data: sale, error: saleError } = await saleQuery.single();
 
     if (saleError || !sale) {
-      console.error('売上データ取得エラー:', saleError);
       return res.status(404).json({ success: false, message: '売上データが見つかりません' });
     }
 
@@ -384,7 +397,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
     }
 
     // 売上データ取得
-    const { data: sale, error: saleError } = await supabase
+    let saleQuery2 = supabase
       .from('sales')
       .select(`
         *,
@@ -405,11 +418,16 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
           invoice_number
         )
       `)
-      .eq('id', sale_id)
-      .single();
+      .eq('id', sale_id);
+
+    // 代理店ユーザーは自分の代理店のデータのみ
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      saleQuery2 = saleQuery2.eq('agency_id', req.user.agency?.id);
+    }
+
+    const { data: sale, error: saleError } = await saleQuery2.single();
 
     if (saleError || !sale) {
-      console.error('売上データ取得エラー:', saleError);
       return res.status(404).json({ success: false, message: '売上データが見つかりません' });
     }
 

@@ -65,7 +65,19 @@ router.put('/settings', authenticateToken, async (req, res) => {
     if (!agencyId) {
       return res.status(403).json({ success: false, message: '代理店情報がありません' });
     }
-    const settings = req.body;
+    // 許可フィールドのみ受け付ける（意図しないカラム上書き防止）
+    const allowedFields = [
+      'email_enabled', 'email_address',
+      'slack_enabled', 'slack_webhook_url',
+      'line_enabled', 'line_token',
+      'notification_types', 'frequency'
+    ];
+    const settings = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        settings[key] = req.body[key];
+      }
+    }
 
     // 既存の設定をチェック
     const { data: existing } = await supabase
@@ -292,7 +304,7 @@ router.post('/test', authenticateToken, (req, res, next) => {
 router.post('/broadcast', authenticateToken, async (req, res) => {
   try {
     // 管理者権限チェック
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'

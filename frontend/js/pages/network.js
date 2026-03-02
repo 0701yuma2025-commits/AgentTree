@@ -220,15 +220,16 @@ class NetworkPage {
 
     if (!detailsPanel || !detailsContent) return;
 
-    // 詳細情報のHTML生成
+    // 詳細情報のHTML生成（XSS対策: escapeHtml使用）
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : (t) => String(t).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c]);
     detailsContent.innerHTML = `
-      <p><strong>代理店名:</strong> ${node.name}</p>
-      <p><strong>代理店コード:</strong> ${node.code}</p>
-      <p><strong>Tier:</strong> ${node.tier}</p>
+      <p><strong>代理店名:</strong> ${esc(node.name)}</p>
+      <p><strong>代理店コード:</strong> ${esc(node.code)}</p>
+      <p><strong>Tier:</strong> ${esc(node.tier)}</p>
       <p><strong>ステータス:</strong> ${node.status === 'active' ? '有効' : '無効'}</p>
-      <p><strong>売上:</strong> ¥${node.sales.toLocaleString()}</p>
-      <p><strong>報酬:</strong> ¥${node.commission.toLocaleString()}</p>
-      <p><strong>下位代理店数:</strong> ${node.childCount}社</p>
+      <p><strong>売上:</strong> ¥${Number(node.sales).toLocaleString()}</p>
+      <p><strong>報酬:</strong> ¥${Number(node.commission).toLocaleString()}</p>
+      <p><strong>下位代理店数:</strong> ${Number(node.childCount)}社</p>
     `;
 
     // パネルを表示
