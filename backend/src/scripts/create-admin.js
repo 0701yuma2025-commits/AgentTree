@@ -84,6 +84,15 @@ async function createAdmin() {
     } else {
       console.log('✅ Supabase Authでユーザーを作成しました');
 
+      // createUserでパスワードが正しくセットされない場合があるため、updateUserByIdで再設定
+      const { error: pwError } = await supabase.auth.admin.updateUserById(
+        authData.user.id,
+        { password: password }
+      );
+      if (pwError) {
+        console.error('⚠️  パスワード再設定エラー:', pwError.message);
+      }
+
       // usersテーブルにもレコードを作成
       const { error: dbError } = await supabase
         .from('users')

@@ -7,12 +7,22 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { loginRateLimit } = require('../middleware/rateLimiter');
 const { logLogin, logLogout } = require('../middleware/auditLog');
 const { generateAgencyCode } = require('../utils/generateCode');
 const { generate6DigitCode } = require('./auth/two-factor');
+
+// signInWithPassword専用の認証クライアント（共有クライアントのセッション汚染を防止）
+function createAuthClient() {
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 // サブルーターマウント
 router.use('/', require('./auth/account'));
@@ -34,8 +44,9 @@ router.post('/login', loginRateLimit, async (req, res) => {
       });
     }
 
-    // Supabase認証
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    // Supabase認証（専用クライアントで実行し、共有クライアントのセッションを汚染しない）
+    const authClient = createAuthClient();
+    const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
       email,
       password
     });

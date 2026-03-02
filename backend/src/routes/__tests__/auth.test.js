@@ -21,6 +21,11 @@ jest.mock('../../config/supabase', () => ({
   supabase: mockSupabase,
 }));
 
+// createAuthClient が同じモックauthを使うようにcreateClientをモック
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({ auth: mockSupabase.auth })),
+}));
+
 jest.mock('../../middleware/rateLimiter', () => ({
   loginRateLimit: (req, res, next) => next(),
   passwordResetRateLimit: (req, res, next) => next(),
