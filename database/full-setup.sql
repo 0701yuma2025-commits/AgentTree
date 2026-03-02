@@ -365,6 +365,7 @@ CREATE TABLE IF NOT EXISTS commission_settings (
   closing_day INTEGER DEFAULT 31 CHECK (closing_day >= 1 AND closing_day <= 31),
   withholding_tax_rate DECIMAL(5,2) DEFAULT 10.21,
   non_invoice_deduction_rate DECIMAL(5,2) DEFAULT 2.00,
+  operator_invoice_number VARCHAR(14) DEFAULT NULL,
   valid_from DATE DEFAULT CURRENT_DATE,
   valid_to DATE,
   is_active BOOLEAN DEFAULT true,
