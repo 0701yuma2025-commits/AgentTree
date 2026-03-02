@@ -14,16 +14,25 @@ class SettingsPage {
 
     if (isAdmin) {
       await this.loadCommissionRates();
-      // 報酬率設定セクションを表示
+      // 管理者セクションを表示
       const commissionSection = document.getElementById('commissionRatesSection');
       if (commissionSection) {
         commissionSection.style.display = 'block';
       }
+      const companySection = document.getElementById('companyInfoSection');
+      if (companySection) {
+        companySection.style.display = 'block';
+      }
+      this.displayCompanyInfo();
     } else {
-      // 代理店ユーザーの場合は報酬率設定セクションを非表示
+      // 代理店ユーザーの場合は管理者セクションを非表示
       const commissionSection = document.getElementById('commissionRatesSection');
       if (commissionSection) {
         commissionSection.style.display = 'none';
+      }
+      const companySection = document.getElementById('companyInfoSection');
+      if (companySection) {
+        companySection.style.display = 'none';
       }
     }
 
@@ -43,6 +52,88 @@ class SettingsPage {
       }
     } catch (error) {
       console.error('Load commission rates error:', error);
+    }
+  }
+
+  /**
+   * 会社情報（インボイス登録番号）の表示
+   */
+  displayCompanyInfo() {
+    const container = document.getElementById('companyInfo');
+    if (!container) return;
+
+    const currentNumber = this.commissionSettings?.operator_invoice_number || '';
+
+    container.innerHTML = `
+      <div class="company-info-form">
+        <form id="companyInfoForm">
+          <div class="form-section">
+            <h4>インボイス登録番号</h4>
+            <p class="setting-description">領収書に記載される運営側の適格請求書発行事業者登録番号です。</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="operator_invoice_number">登録番号</label>
+                <input type="text" id="operator_invoice_number"
+                       value="${currentNumber}"
+                       placeholder="T1234567890123"
+                       pattern="^T?[0-9]{13}$"
+                       maxlength="14">
+                <small>T + 13桁の数字（例: T1234567890123）</small>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.getElementById('companyInfoForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveCompanyInfo();
+    });
+  }
+
+  /**
+   * 会社情報の保存
+   */
+  async saveCompanyInfo() {
+    const invoiceNumber = document.getElementById('operator_invoice_number').value.trim();
+
+    // バリデーション: 空 or T+13桁
+    if (invoiceNumber && !/^T?[0-9]{13}$/.test(invoiceNumber)) {
+      alert('インボイス登録番号はT + 13桁の数字で入力してください（例: T1234567890123）');
+      return;
+    }
+
+    // 現在の設定を取得して、インボイス番号だけ更新して全体を保存
+    const currentSettings = this.commissionSettings || {};
+    const data = {
+      tier1_from_tier2_bonus: currentSettings.tier1_from_tier2_bonus || 2.00,
+      tier2_from_tier3_bonus: currentSettings.tier2_from_tier3_bonus || 1.50,
+      tier3_from_tier4_bonus: currentSettings.tier3_from_tier4_bonus || 1.00,
+      minimum_payment_amount: currentSettings.minimum_payment_amount || 10000,
+      payment_cycle: currentSettings.payment_cycle || 'monthly',
+      payment_day: currentSettings.payment_day || 25,
+      closing_day: currentSettings.closing_day || 31,
+      withholding_tax_rate: currentSettings.withholding_tax_rate || 10.21,
+      non_invoice_deduction_rate: currentSettings.non_invoice_deduction_rate || 2.00,
+      operator_invoice_number: invoiceNumber || null
+    };
+
+    try {
+      const response = await window.commissionSettingsAPI.update(data);
+      if (response.success) {
+        alert('会社情報を保存しました');
+        await this.loadCommissionRates();
+        this.displayCompanyInfo();
+      } else {
+        alert(response.message || '保存に失敗しました');
+      }
+    } catch (error) {
+      console.error('Save company info error:', error);
+      alert('エラーが発生しました');
     }
   }
 
@@ -381,7 +472,8 @@ class SettingsPage {
       payment_day: parseInt(document.getElementById('payment_day').value),
       closing_day: parseInt(document.getElementById('closing_day').value),
       withholding_tax_rate: parseFloat(document.getElementById('withholding_tax').value),
-      non_invoice_deduction_rate: parseFloat(document.getElementById('non_invoice_deduction').value)
+      non_invoice_deduction_rate: parseFloat(document.getElementById('non_invoice_deduction').value),
+      operator_invoice_number: this.commissionSettings?.operator_invoice_number || null
     };
 
     try {

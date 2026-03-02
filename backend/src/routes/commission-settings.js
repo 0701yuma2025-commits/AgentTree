@@ -107,6 +107,7 @@ router.post('/', authMiddleware, async (req, res) => {
       tier3_from_tier4_bonus,
       withholding_tax_rate,
       non_invoice_deduction_rate,
+      operator_invoice_number,
       valid_from
     } = req.body;
 
@@ -134,6 +135,7 @@ router.post('/', authMiddleware, async (req, res) => {
         tier3_from_tier4_bonus: tier3_from_tier4_bonus || 1.00,
         withholding_tax_rate: withholding_tax_rate || 10.21,
         non_invoice_deduction_rate: non_invoice_deduction_rate || 2.00,
+        operator_invoice_number: operator_invoice_number || null,
         valid_from: valid_from || new Date().toISOString(),
         is_active: true,
         created_by: req.user.id

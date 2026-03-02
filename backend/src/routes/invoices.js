@@ -8,8 +8,23 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { generateInvoicePDF, generateReceiptPDF, generatePaymentStatementPDF } = require('../utils/pdf-generator');
 
-/** 運営側のインボイス登録番号（環境変数 or 未設定） */
-const OPERATOR_INVOICE_NUMBER = process.env.INVOICE_REGISTRATION_NUMBER || null;
+/**
+ * 運営側のインボイス登録番号を取得（DB優先、env変数フォールバック）
+ */
+async function getOperatorInvoiceNumber() {
+  const envNumber = process.env.INVOICE_REGISTRATION_NUMBER;
+  if (envNumber) return envNumber;
+
+  const { data } = await supabase
+    .from('commission_settings')
+    .select('operator_invoice_number')
+    .eq('is_active', true)
+    .order('valid_from', { ascending: false })
+    .limit(1)
+    .single();
+
+  return data?.operator_invoice_number || null;
+}
 
 /**
  * 請求書PDF生成
@@ -256,7 +271,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
           amount: payment.commissions.tier_bonus
         }
       ],
-      invoiceRegistrationNumber: OPERATOR_INVOICE_NUMBER || payment.commissions.agencies?.invoice_number || '未登録',
+      invoiceRegistrationNumber: await getOperatorInvoiceNumber() || '未登録',
       // 宛名（支払者情報）- デフォルトは管理者
       recipient: {
         company_name: '営業代理店管理システム運営事務局'
@@ -450,7 +465,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
       ],
       saleNumber: sale.sale_number,
       saleDate: new Date(sale.sale_date).toLocaleDateString('ja-JP'),
-      invoiceRegistrationNumber: sale.agencies.invoice_registration_number || '登録なし',
+      invoiceRegistrationNumber: sale.agencies?.invoice_number || '登録なし',
       // 宛名（支払者情報）- デフォルトは管理者
       recipient: {
         company_name: '営業代理店管理システム運営事務局'
@@ -664,7 +679,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
           amount: totalTierBonus
         }
       ],
-      invoiceRegistrationNumber: OPERATOR_INVOICE_NUMBER || commissions[0].agencies?.invoice_number || '未登録',
+      invoiceRegistrationNumber: await getOperatorInvoiceNumber() || '未登録',
       // 宛名（支払者情報）- カスタムまたはデフォルト
       recipient: recipient || {
         company_name: '営業代理店管理システム運営事務局'
