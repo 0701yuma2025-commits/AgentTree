@@ -105,6 +105,13 @@ class AuditLogsPage {
       return;
     }
 
+    // イベントデリゲーション
+    tbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      if (btn.dataset.action === 'showLogDetail') auditLogsPage.showLogDetail(btn.dataset.id);
+    });
+
     tbody.innerHTML = this.logs.map(log => `
       <tr>
         <td>${this.formatTimestamp(log.timestamp)}</td>
@@ -128,7 +135,7 @@ class AuditLogsPage {
           </span>
         </td>
         <td>
-          <button class="btn btn-sm btn-secondary" onclick="auditLogsPage.showLogDetail('${log.id}')">
+          <button class="btn btn-sm btn-secondary" data-action="showLogDetail" data-id="${this.escapeHtml(log.id)}">
             詳細
           </button>
         </td>

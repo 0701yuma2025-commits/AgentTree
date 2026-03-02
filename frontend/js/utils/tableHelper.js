@@ -273,7 +273,7 @@ class TableHelper {
     const arrow = isSorted ? (direction === 'asc' ? ' ▲' : ' ▼') : '';
 
     return `
-      <th class="sortable ${isSorted ? 'sorted' : ''}" onclick="tableHelper.setSort('${columnName}')">
+      <th class="sortable ${isSorted ? 'sorted' : ''}" data-sort-column="${escapeHtml(columnName)}">
         ${displayName}${arrow}
       </th>
     `;

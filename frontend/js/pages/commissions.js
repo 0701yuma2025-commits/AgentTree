@@ -309,6 +309,17 @@ class CommissionsPage {
       return;
     }
 
+    // イベントデリゲーション（再描画のたびにtbodyに設定）
+    tbody.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      e.preventDefault();
+      const action = el.dataset.action;
+      if (action === 'viewSaleDetail') window.commissionsPageInstance.viewSaleDetail(el.dataset.id);
+      else if (action === 'markAsPaid') window.commissionsPageInstance.markAsPaid(el.dataset.id);
+      else if (action === 'downloadReceipt') window.commissionsPageInstance.downloadReceipt(el.dataset.month, el.dataset.agencyId);
+    });
+
     commissions.forEach(commission => {
       const row = document.createElement('tr');
 
@@ -345,7 +356,7 @@ class CommissionsPage {
       if (commission.sales?.sale_number) {
         // 基本報酬がある場合のみリンク表示（自社売上）
         if (commission.base_amount > 0) {
-          saleNumberCell = `<a href="#" onclick="window.commissionsPageInstance.viewSaleDetail('${commission.sale_id || commission.sales?.id}'); return false;" style="color: #0066cc; text-decoration: none; cursor: pointer;">${escapeHtml(commission.sales.sale_number)}</a>`;
+          saleNumberCell = `<a href="#" data-action="viewSaleDetail" data-id="${escapeHtml(commission.sale_id || commission.sales?.id)}" style="color: #0066cc; text-decoration: none; cursor: pointer;">${escapeHtml(commission.sales.sale_number)}</a>`;
         } else {
           // 階層ボーナスの場合はリンクなしで表示
           saleNumberCell = `<span style="color: #666;">${escapeHtml(commission.sales.sale_number)} (階層)</span>`;
@@ -388,7 +399,7 @@ class CommissionsPage {
 
         if (user && user.role === 'admin') {
           // 管理者のみ: 支払い実行ボタン
-          buttons.push(`<button class="btn btn-small btn-warning" onclick="window.commissionsPageInstance.markAsPaid('${commission.id}')">支払い実行</button>`);
+          buttons.push(`<button class="btn btn-small btn-warning" data-action="markAsPaid" data-id="${escapeHtml(commission.id)}">支払い実行</button>`);
         } else {
           // 代理店または取得失敗時: 承認済みと表示
           buttons.push(`<span class="text-muted">承認済み</span>`);
@@ -401,7 +412,7 @@ class CommissionsPage {
       case 'paid':
         // 支払済み
         buttons.push(`
-          <button class="btn btn-small btn-success" onclick="window.commissionsPageInstance.downloadReceipt('${commission.month}', '${commission.agency_id}')">領収書</button>
+          <button class="btn btn-small btn-success" data-action="downloadReceipt" data-month="${escapeHtml(commission.month)}" data-agency-id="${escapeHtml(commission.agency_id)}">領収書</button>
         `);
         break;
       default:

@@ -41,6 +41,16 @@ const campaignsPage = {
       return;
     }
 
+    // イベントデリゲーション
+    tbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'editCampaign') window.campaignsPage.editCampaign(id);
+      else if (action === 'deleteCampaign') window.campaignsPage.deleteCampaign(id);
+    });
+
     tbody.innerHTML = this.campaigns.map(campaign => {
       const statusBadge = this.getStatusBadge(campaign.status);
       const bonusDisplay = campaign.bonus_type === 'percentage'
@@ -56,8 +66,8 @@ const campaignsPage = {
           <td>${this.getTargetDisplay(campaign)}</td>
           <td>${statusBadge}</td>
           <td>
-            <button class="btn btn-sm btn-primary" onclick="window.campaignsPage.editCampaign('${campaign.id}')">編集</button>
-            <button class="btn btn-sm btn-danger" onclick="window.campaignsPage.deleteCampaign('${campaign.id}')">削除</button>
+            <button class="btn btn-sm btn-primary" data-action="editCampaign" data-id="${escapeHtml(campaign.id)}">編集</button>
+            <button class="btn btn-sm btn-danger" data-action="deleteCampaign" data-id="${escapeHtml(campaign.id)}">削除</button>
           </td>
         </tr>
       `;
@@ -453,7 +463,7 @@ const campaignsPage = {
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="app.hideModal()">キャンセル</button>
-          <button type="button" class="btn btn-primary" onclick="window.campaignsPage.updateCampaign('${id}')">更新</button>
+          <button type="button" class="btn btn-primary" id="updateCampaignBtn" data-id="${escapeHtml(id)}">更新</button>
         </div>
       `;
 
@@ -475,6 +485,12 @@ const campaignsPage = {
         } else {
           help.textContent = '固定額を円で入力（例: 1000 = 1,000円）';
         }
+      });
+
+      // 更新ボタンのイベントリスナー
+      document.getElementById('updateCampaignBtn')?.addEventListener('click', () => {
+        const campaignId = document.getElementById('updateCampaignBtn').dataset.id;
+        window.campaignsPage.updateCampaign(campaignId);
       });
       } catch (modalError) {
         app.showMessage('message', 'モーダルの表示に失敗しました', 'error');

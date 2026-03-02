@@ -273,6 +273,15 @@ class InvoicesPage {
             const row = this.createInvoiceRow(invoice);
             tbody.appendChild(row);
         });
+
+        // イベントデリゲーション
+        tbody.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            if (btn.dataset.action === 'downloadPDF') {
+                invoicesPage.downloadPDF(btn.dataset.id, 'invoice');
+            }
+        });
     }
 
     createInvoiceRow(invoice) {
@@ -287,7 +296,7 @@ class InvoicesPage {
         const actionColumn = isAdmin ? '' : `
             <td>
                 <div class="action-buttons">
-                    <button class="btn btn-sm btn-primary" onclick="invoicesPage.downloadPDF('${invoice.id}', 'invoice')">
+                    <button class="btn btn-sm btn-primary" data-action="downloadPDF" data-id="${escapeHtml(invoice.id)}">
                         請求書
                     </button>
                 </div>

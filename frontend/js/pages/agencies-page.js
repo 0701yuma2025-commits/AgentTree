@@ -111,17 +111,17 @@ class AgenciesPage {
                           agency.status === 'rejected' ? '<span class="status-badge rejected">却下</span>' :
                           `<span class="status-badge">${agency.status}</span>`;
 
-      // ステータスに応じたアクションボタン
-      let actionButtons = `<button class="btn btn-sm btn-info" onclick="app.viewAgency('${agency.id}')">詳細</button>`;
+      // ステータスに応じたアクションボタン（data属性で安全にIDを渡す）
+      let actionButtons = `<button class="btn btn-sm btn-info" data-action="viewAgency" data-id="${escapeHtml(agency.id)}">詳細</button>`;
 
       if (authAPI.isAdmin()) {
         if (agency.status === 'pending') {
-          actionButtons += ` <button class="btn btn-sm btn-success" onclick="app.approveAgency('${agency.id}')">承認</button>`;
-          actionButtons += ` <button class="btn btn-sm btn-danger" onclick="app.rejectAgency('${agency.id}')">拒否</button>`;
+          actionButtons += ` <button class="btn btn-sm btn-success" data-action="approveAgency" data-id="${escapeHtml(agency.id)}">承認</button>`;
+          actionButtons += ` <button class="btn btn-sm btn-danger" data-action="rejectAgency" data-id="${escapeHtml(agency.id)}">拒否</button>`;
         } else if (agency.status === 'active') {
-          actionButtons += ` <button class="btn btn-sm btn-warning" onclick="app.suspendAgency('${agency.id}')">停止</button>`;
+          actionButtons += ` <button class="btn btn-sm btn-warning" data-action="suspendAgency" data-id="${escapeHtml(agency.id)}">停止</button>`;
         } else if (agency.status === 'suspended' || agency.status === 'rejected') {
-          actionButtons += ` <button class="btn btn-sm btn-success" onclick="app.reactivateAgency('${agency.id}')">再有効化</button>`;
+          actionButtons += ` <button class="btn btn-sm btn-success" data-action="reactivateAgency" data-id="${escapeHtml(agency.id)}">再有効化</button>`;
         }
       }
 
@@ -136,6 +136,17 @@ class AgenciesPage {
       `;
 
       tbody.appendChild(row);
+    });
+
+    // イベントデリゲーション（onclick排除）
+    tbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action && id) {
+        app[action](id);
+      }
     });
   }
 

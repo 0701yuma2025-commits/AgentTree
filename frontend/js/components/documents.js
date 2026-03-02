@@ -109,6 +109,17 @@ class DocumentsManager {
         </tbody>
       </table>
     `;
+
+    // イベントデリゲーション
+    listContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'verifyDocument') documentsManager.verifyDocument(id, 'verified');
+      else if (action === 'rejectDocument') documentsManager.rejectDocument(id);
+      else if (action === 'deleteDocument') documentsManager.deleteDocument(id);
+    });
   }
 
   /**
@@ -139,14 +150,14 @@ class DocumentsManager {
         <td>${new Date(doc.created_at).toLocaleDateString()}</td>
         <td>
           ${isAdmin && doc.status === 'pending' ? `
-            <button onclick="documentsManager.verifyDocument('${doc.id}', 'verified')"
+            <button data-action="verifyDocument" data-id="${escapeHtml(doc.id)}"
                     class="btn btn-small btn-success">承認</button>
-            <button onclick="documentsManager.rejectDocument('${doc.id}')"
+            <button data-action="rejectDocument" data-id="${escapeHtml(doc.id)}"
                     class="btn btn-small btn-warning">却下</button>
           ` : ''}
           ${doc.status === 'rejected' && doc.rejection_reason ?
-            `<span class="text-error" title="${doc.rejection_reason}">却下理由あり</span>` : ''}
-          <button onclick="documentsManager.deleteDocument('${doc.id}')"
+            `<span class="text-error" title="${escapeHtml(doc.rejection_reason)}">却下理由あり</span>` : ''}
+          <button data-action="deleteDocument" data-id="${escapeHtml(doc.id)}"
                   class="btn btn-small btn-danger">削除</button>
         </td>
       </tr>

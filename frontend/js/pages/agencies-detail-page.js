@@ -180,17 +180,28 @@ class AgenciesDetailPage {
             </div>
           </div>
 
-          <div class="modal-buttons">
+          <div class="modal-buttons" id="agencyDetailButtons">
             ${authAPI.isAdmin() ? `
-              <button class="btn btn-warning" onclick="app.editAgency('${agencyData.id}')">編集</button>
-              <button class="btn btn-danger" onclick="app.deleteAgency('${agencyData.id}')">削除</button>
+              <button class="btn btn-warning" data-action="editAgency" data-id="${escapeHtml(agencyData.id)}">編集</button>
+              <button class="btn btn-danger" data-action="deleteAgency" data-id="${escapeHtml(agencyData.id)}">削除</button>
             ` : (this.app.user && this.app.user.role === 'agency' && this.app.user.agency && this.app.user.agency.id === agencyData.id) ? `
-              <button class="btn btn-warning" onclick="app.editAgency('${agencyData.id}')">自社情報を編集</button>
+              <button class="btn btn-warning" data-action="editAgency" data-id="${escapeHtml(agencyData.id)}">自社情報を編集</button>
             ` : ''}
-            <button class="btn btn-secondary" onclick="app.closeModal()">閉じる</button>
+            <button class="btn btn-secondary" data-action="closeModal">閉じる</button>
           </div>
         </div>
       `;
+
+      // モーダルボタンのイベントデリゲーション
+      document.getElementById('agencyDetailButtons')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'editAgency') app.editAgency(id);
+        else if (action === 'deleteAgency') app.deleteAgency(id);
+        else if (action === 'closeModal') app.closeModal();
+      });
 
       // モーダルを表示
       this.app.openModal();

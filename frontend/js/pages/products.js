@@ -163,6 +163,16 @@ class ProductsPage {
       return;
     }
 
+    // イベントデリゲーション
+    tbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'showProductModal') window.productsPage.showProductModal(id);
+      else if (action === 'deleteProduct') window.productsPage.deleteProduct(id);
+    });
+
     products.forEach(product => {
       const row = document.createElement('tr');
       const statusText = product.is_active ? 'アクティブ' : '無効';
@@ -178,8 +188,8 @@ class ProductsPage {
         <td>${(product.tier4_commission_rate || 0)}%</td>
         <td><span class="status ${statusClass}">${statusText}</span></td>
         <td>
-          <button class="btn btn-small btn-secondary" onclick="window.productsPage.showProductModal('${product.id}')">編集</button>
-          <button class="btn btn-small btn-danger" onclick="window.productsPage.deleteProduct('${product.id}')">削除</button>
+          <button class="btn btn-small btn-secondary" data-action="showProductModal" data-id="${escapeHtml(product.id)}">編集</button>
+          <button class="btn btn-small btn-danger" data-action="deleteProduct" data-id="${escapeHtml(product.id)}">削除</button>
         </td>
       `;
 

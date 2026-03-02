@@ -41,10 +41,19 @@ class SalesPage {
                 <td>${Number(sale.quantity)}</td>
                 <td>\u00A5${Number(sale.total_amount).toLocaleString()}</td>
                 <td>
-                  <button class="btn btn-secondary" onclick="app.showSaleDetail('${sale.id}')">\u8A73\u7D30</button>
+                  <button class="btn btn-secondary" data-action="showSaleDetail" data-id="${escapeHtml(sale.id)}">\u8A73\u7D30</button>
                 </td>
               `;
               tbody.appendChild(row);
+            });
+
+            // イベントデリゲーション
+            tbody.addEventListener('click', (e) => {
+              const btn = e.target.closest('[data-action]');
+              if (!btn) return;
+              const action = btn.dataset.action;
+              const id = btn.dataset.id;
+              if (action === 'showSaleDetail') app.showSaleDetail(id);
             });
           }
         });
@@ -302,16 +311,28 @@ class SalesPage {
           </div>
           ` : ''}
 
-          <div class="modal-buttons">
+          <div class="modal-buttons" id="saleDetailButtons">
             ${authAPI.isAdmin() ? `
-              <button class="btn btn-primary" onclick="app.editSale('${sale.id}')">\u7DE8\u96C6</button>
-              <button class="btn btn-danger" onclick="app.deleteSale('${sale.id}')">\u524A\u9664</button>
+              <button class="btn btn-primary" data-action="editSale" data-id="${escapeHtml(sale.id)}">\u7DE8\u96C6</button>
+              <button class="btn btn-danger" data-action="deleteSale" data-id="${escapeHtml(sale.id)}">\u524A\u9664</button>
             ` : ''}
-            <button class="btn btn-secondary" onclick="app.showSaleHistory('${sale.id}')">\u5909\u66F4\u5C65\u6B74</button>
-            <button class="btn btn-secondary" onclick="app.hideModal()">\u9589\u3058\u308B</button>
+            <button class="btn btn-secondary" data-action="showSaleHistory" data-id="${escapeHtml(sale.id)}">\u5909\u66F4\u5C65\u6B74</button>
+            <button class="btn btn-secondary" data-action="hideModal">\u9589\u3058\u308B</button>
           </div>
         </div>
       `;
+
+      // モーダルボタンのイベントデリゲーション
+      document.getElementById('saleDetailButtons')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'editSale') app.editSale(id);
+        else if (action === 'deleteSale') app.deleteSale(id);
+        else if (action === 'showSaleHistory') app.showSaleHistory(id);
+        else if (action === 'hideModal') app.hideModal();
+      });
 
       // モーダル表示
       const modal = document.getElementById('modal');
@@ -590,12 +611,22 @@ class SalesPage {
             </div>
           `}
 
-          <div class="modal-buttons" style="margin-top: 20px;">
-            <button class="btn btn-secondary" onclick="app.showSaleDetail('${saleId}')">\u58F2\u4E0A\u8A73\u7D30\u306B\u623B\u308B</button>
-            <button class="btn btn-secondary" onclick="app.hideModal()">\u9589\u3058\u308B</button>
+          <div class="modal-buttons" id="saleHistoryButtons" style="margin-top: 20px;">
+            <button class="btn btn-secondary" data-action="showSaleDetail" data-id="${escapeHtml(saleId)}">\u58F2\u4E0A\u8A73\u7D30\u306B\u623B\u308B</button>
+            <button class="btn btn-secondary" data-action="hideModal">\u9589\u3058\u308B</button>
           </div>
         </div>
       `;
+
+      // 履歴ボタンのイベントデリゲーション
+      document.getElementById('saleHistoryButtons')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'showSaleDetail') app.showSaleDetail(id);
+        else if (action === 'hideModal') app.hideModal();
+      });
 
       // モーダル表示（既に表示されている場合は内容のみ更新）
       const modal = document.getElementById('modal');
