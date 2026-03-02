@@ -26,6 +26,25 @@ if (missingVars.length > 0) {
 // Expressアプリケーション初期化
 const app = express();
 
+// ヘルスチェック（CORS・セキュリティミドルウェアの前に配置）
+app.get('/health', async (req, res) => {
+  try {
+    const { supabase } = require('./src/config/supabase');
+    const { error } = await supabase.from('users').select('id').limit(1);
+    res.json({
+      status: error ? 'DEGRADED' : 'OK',
+      timestamp: new Date().toISOString(),
+      db: error ? 'disconnected' : 'connected'
+    });
+  } catch (e) {
+    res.status(503).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      db: 'disconnected'
+    });
+  }
+});
+
 // HTTPS強制（本番環境）
 app.use(enforceHTTPS);
 
@@ -99,25 +118,6 @@ app.use('/api/campaigns', require('./src/routes/campaigns'));
 app.use('/api/network', require('./src/routes/network'));
 app.use('/api/audit-logs', require('./src/routes/audit-logs'));
 app.use('/api/document-recipients', require('./src/routes/document-recipients'));
-
-// ヘルスチェック（DB接続確認付き）
-app.get('/health', async (req, res) => {
-  try {
-    const { supabase } = require('./src/config/supabase');
-    const { error } = await supabase.from('users').select('id').limit(1);
-    res.json({
-      status: error ? 'DEGRADED' : 'OK',
-      timestamp: new Date().toISOString(),
-      db: error ? 'disconnected' : 'connected'
-    });
-  } catch (e) {
-    res.status(503).json({
-      status: 'ERROR',
-      timestamp: new Date().toISOString(),
-      db: 'disconnected'
-    });
-  }
-});
 
 // 404ハンドラー
 app.use((req, res) => {
