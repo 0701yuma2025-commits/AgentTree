@@ -83,17 +83,17 @@ app.use(cors({
   credentials: true
 }));
 
-// グローバルAPIレート制限
+// グローバルAPIレート制限（ボディ不要のためパーサー前でOK）
 app.use('/api/', globalApiRateLimiter);
 
-// 特定エンドポイント用のレート制限
+// ボディパーサー（エンドポイント固有レートリミッターがreq.bodyを参照するため先に配置）
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 特定エンドポイント用のレート制限（req.body.emailをキーに使うためボディパーサーの後）
 app.use('/api/auth/login', loginRateLimiter);
 app.use('/api/auth/reset-password-request', passwordResetRateLimiter);
 app.use('/api/invitations', invitationRateLimiter);
-
-// ボディパーサー
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 入力値のサニタイゼーション
 app.use(sanitizeInput);
