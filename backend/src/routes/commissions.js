@@ -19,7 +19,7 @@ const isValidMonth = (month) => MONTH_REGEX.test(month);
 const exportRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
-  message: { error: true, message: 'エクスポートのリクエスト回数が上限を超えました。1分後に再試行してください。' }
+  message: { success: false, message: 'エクスポートのリクエスト回数が上限を超えました。1分後に再試行してください。' }
 });
 
 /**
@@ -32,7 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     // monthパラメータのバリデーション
     if (month && !isValidMonth(month)) {
-      return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+      return res.status(400).json({ success: false, message: 'month形式が無効です（YYYY-MM）' });
     }
 
     let query = supabase
@@ -163,7 +163,7 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get commissions error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }
@@ -177,7 +177,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
   try {
     // クエリパラメータから月を取得、なければ現在月を使用
     if (req.query.month && !isValidMonth(req.query.month)) {
-      return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+      return res.status(400).json({ success: false, message: 'month形式が無効です（YYYY-MM）' });
     }
     const targetMonth = req.query.month || new Date().toISOString().slice(0, 7);
     let query = supabase
@@ -212,7 +212,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get commission summary error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }
@@ -230,7 +230,7 @@ router.post('/calculate',
       const { month = new Date().toISOString().slice(0, 7) } = req.body;
 
       if (!isValidMonth(month)) {
-        return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+        return res.status(400).json({ success: false, message: 'month形式が無効です（YYYY-MM）' });
       }
 
       // 月末日を正しく計算
@@ -367,7 +367,7 @@ router.post('/calculate',
     } catch (error) {
       console.error('Calculate commissions error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '報酬計算に失敗しました'
       });
     }
@@ -405,7 +405,7 @@ router.put('/:id/confirm',
     } catch (error) {
       console.error('Confirm commission error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '報酬確定に失敗しました'
       });
     }
@@ -444,7 +444,7 @@ router.put('/:id/approve',
     } catch (error) {
       console.error('Approve commission error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '報酬承認に失敗しました'
       });
     }
@@ -486,7 +486,7 @@ router.put('/:id/pay',
     } catch (error) {
       console.error('Pay commission error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '支払い状態の更新に失敗しました'
       });
     }
@@ -508,7 +508,7 @@ router.put('/:id/status',
       const validStatuses = ['pending', 'confirmed', 'approved', 'paid', 'cancelled'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '無効なステータスです'
         });
       }
@@ -551,7 +551,7 @@ router.put('/:id/status',
     } catch (error) {
       console.error('Update commission status error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: 'ステータスの更新に失敗しました'
       });
     }
@@ -567,7 +567,7 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
     const { month, status, agency_id } = req.query;
 
     if (month && !isValidMonth(month)) {
-      return res.status(400).json({ error: true, message: 'month形式が無効です（YYYY-MM）' });
+      return res.status(400).json({ success: false, message: 'month形式が無効です（YYYY-MM）' });
     }
 
     let query = supabase
@@ -636,7 +636,7 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
   } catch (error) {
     console.error('Export commissions error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '報酬データのエクスポートに失敗しました'
     });
   }

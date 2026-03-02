@@ -116,7 +116,7 @@ router.get('/export', authenticateToken, async (req, res) => {
       details: error.details
     });
     res.status(500).json({
-      error: true,
+      success: false,
       message: '売上データのエクスポートに失敗しました'
     });
   }
@@ -174,7 +174,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get sales summary error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }
@@ -215,7 +215,7 @@ router.get('/organization-summary', authenticateToken, async (req, res) => {
     // 代理店ユーザーの場合
     if (!req.user.agency || !req.user.agency.id) {
       return res.status(400).json({
-        error: true,
+        success: false,
         message: '代理店情報が見つかりません'
       });
     }
@@ -306,7 +306,7 @@ router.get('/organization-summary', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get organization summary error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '組織売上サマリーの取得に失敗しました'
     });
   }

@@ -41,14 +41,14 @@ router.get('/', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('宛先テンプレート取得エラー:', error);
-      return res.status(500).json({ error: '宛先テンプレートの取得に失敗しました' });
+      return res.status(500).json({ success: false, message: '宛先テンプレートの取得に失敗しました' });
     }
 
-    res.json(data || []);
+    res.json({ success: true, data: data || [] });
 
   } catch (error) {
     console.error('宛先テンプレート取得エラー:', error);
-    res.status(500).json({ error: '宛先テンプレートの取得に失敗しました' });
+    res.status(500).json({ success: false, message: '宛先テンプレートの取得に失敗しました' });
   }
 });
 
@@ -74,14 +74,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { data, error } = await query.single();
 
     if (error || !data) {
-      return res.status(404).json({ error: '宛先テンプレートが見つかりません' });
+      return res.status(404).json({ success: false, message: '宛先テンプレートが見つかりません' });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
 
   } catch (error) {
     console.error('宛先テンプレート取得エラー:', error);
-    res.status(500).json({ error: '宛先テンプレートの取得に失敗しました' });
+    res.status(500).json({ success: false, message: '宛先テンプレートの取得に失敗しました' });
   }
 });
 
@@ -107,11 +107,11 @@ router.post('/', authenticateToken, async (req, res) => {
 
     // バリデーション
     if (!template_name || !recipient_type) {
-      return res.status(400).json({ error: 'テンプレート名と宛先タイプは必須です' });
+      return res.status(400).json({ success: false, message: 'テンプレート名と宛先タイプは必須です' });
     }
 
     if (!['admin', 'agency', 'custom'].includes(recipient_type)) {
-      return res.status(400).json({ error: '無効な宛先タイプです' });
+      return res.status(400).json({ success: false, message: '無効な宛先タイプです' });
     }
 
     // 新規テンプレートデータ
@@ -139,14 +139,14 @@ router.post('/', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('宛先テンプレート作成エラー:', error);
-      return res.status(500).json({ error: '宛先テンプレートの作成に失敗しました' });
+      return res.status(500).json({ success: false, message: '宛先テンプレートの作成に失敗しました' });
     }
 
-    res.status(201).json(data);
+    res.status(201).json({ success: true, data });
 
   } catch (error) {
     console.error('宛先テンプレート作成エラー:', error);
-    res.status(500).json({ error: '宛先テンプレートの作成に失敗しました' });
+    res.status(500).json({ success: false, message: '宛先テンプレートの作成に失敗しました' });
   }
 });
 
@@ -179,12 +179,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
       .single();
 
     if (fetchError || !existing) {
-      return res.status(404).json({ error: '宛先テンプレートが見つかりません' });
+      return res.status(404).json({ success: false, message: '宛先テンプレートが見つかりません' });
     }
 
     // 権限チェック
     if (existing.user_id && existing.user_id !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: '編集権限がありません' });
+      return res.status(403).json({ success: false, message: '編集権限がありません' });
     }
 
     // 更新データ
@@ -211,14 +211,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('宛先テンプレート更新エラー:', error);
-      return res.status(500).json({ error: '宛先テンプレートの更新に失敗しました' });
+      return res.status(500).json({ success: false, message: '宛先テンプレートの更新に失敗しました' });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
 
   } catch (error) {
     console.error('宛先テンプレート更新エラー:', error);
-    res.status(500).json({ error: '宛先テンプレートの更新に失敗しました' });
+    res.status(500).json({ success: false, message: '宛先テンプレートの更新に失敗しました' });
   }
 });
 
@@ -238,12 +238,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       .single();
 
     if (fetchError || !existing) {
-      return res.status(404).json({ error: '宛先テンプレートが見つかりません' });
+      return res.status(404).json({ success: false, message: '宛先テンプレートが見つかりません' });
     }
 
     // 権限チェック
     if (existing.user_id && existing.user_id !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: '削除権限がありません' });
+      return res.status(403).json({ success: false, message: '削除権限がありません' });
     }
 
     const { error } = await supabase
@@ -253,14 +253,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('宛先テンプレート削除エラー:', error);
-      return res.status(500).json({ error: '宛先テンプレートの削除に失敗しました' });
+      return res.status(500).json({ success: false, message: '宛先テンプレートの削除に失敗しました' });
     }
 
-    res.json({ message: '宛先テンプレートを削除しました' });
+    res.json({ success: true, message: '宛先テンプレートを削除しました' });
 
   } catch (error) {
     console.error('宛先テンプレート削除エラー:', error);
-    res.status(500).json({ error: '宛先テンプレートの削除に失敗しました' });
+    res.status(500).json({ success: false, message: '宛先テンプレートの削除に失敗しました' });
   }
 });
 
@@ -281,7 +281,7 @@ router.post('/:id/use', authenticateToken, async (req, res) => {
 
     if (fetchError) {
       console.error('使用回数取得エラー:', fetchError);
-      return res.status(500).json({ error: '使用回数の更新に失敗しました' });
+      return res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
     }
 
     // 使用回数をインクリメント、最終使用日時を更新
@@ -297,14 +297,14 @@ router.post('/:id/use', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('使用回数更新エラー:', error);
-      return res.status(500).json({ error: '使用回数の更新に失敗しました' });
+      return res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
     }
 
-    res.json(data);
+    res.json({ success: true, data });
 
   } catch (error) {
     console.error('使用回数更新エラー:', error);
-    res.status(500).json({ error: '使用回数の更新に失敗しました' });
+    res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
   }
 });
 

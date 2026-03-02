@@ -30,7 +30,7 @@ router.post('/',
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: errors.array()[0].msg
         });
       }
@@ -52,7 +52,7 @@ router.post('/',
 
       if (!agency_id) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '代理店IDが指定されていません'
         });
       }
@@ -66,7 +66,7 @@ router.post('/',
 
       if (!product) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '商品が見つかりません'
         });
       }
@@ -315,7 +315,7 @@ router.post('/',
     } catch (error) {
       console.error('Create sale error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: 'データの作成に失敗しました'
       });
     }
@@ -344,19 +344,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     // 入力バリデーション
     if (quantity !== undefined && (typeof quantity !== 'number' || quantity < 1)) {
-      return res.status(400).json({ error: true, message: '数量は1以上の数値で指定してください' });
+      return res.status(400).json({ success: false, message: '数量は1以上の数値で指定してください' });
     }
     if (unit_price !== undefined && (typeof unit_price !== 'number' || unit_price < 0)) {
-      return res.status(400).json({ error: true, message: '単価は0以上の数値で指定してください' });
+      return res.status(400).json({ success: false, message: '単価は0以上の数値で指定してください' });
     }
     if (status !== undefined) {
       const validStatuses = ['pending', 'confirmed', 'cancelled'];
       if (!validStatuses.includes(status)) {
-        return res.status(400).json({ error: true, message: `ステータスが無効です。有効な値: ${validStatuses.join(', ')}` });
+        return res.status(400).json({ success: false, message: `ステータスが無効です。有効な値: ${validStatuses.join(', ')}` });
       }
     }
     if (sale_date !== undefined && isNaN(Date.parse(sale_date))) {
-      return res.status(400).json({ error: true, message: '売上日の形式が無効です' });
+      return res.status(400).json({ success: false, message: '売上日の形式が無効です' });
     }
 
     // 売上情報を取得
@@ -368,7 +368,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     if (fetchError || !currentSale) {
       return res.status(404).json({
-        error: true,
+        success: false,
         message: '売上情報が見つかりません'
       });
     }
@@ -380,7 +380,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // 代理店は自社の売上のみ編集可能
     if (isAgency && currentSale.agency_id !== req.user.agency?.id) {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '他の代理店の売上を編集する権限がありません'
       });
     }
@@ -398,7 +398,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
       if (currentSale.status === 'paid') {
         return res.status(403).json({
-          error: true,
+          success: false,
           message: '支払済みの売上は編集できません'
         });
       }
@@ -411,7 +411,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
       if (unauthorizedFields.length > 0) {
         return res.status(403).json({
-          error: true,
+          success: false,
           message: `現在のステータス (${currentSale.status}) では以下のフィールドは編集できません: ${unauthorizedFields.join(', ')}`
         });
       }
@@ -557,7 +557,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     if (!data) {
       return res.status(404).json({
-        error: true,
+        success: false,
         message: '売上情報が見つかりません'
       });
     }
@@ -797,7 +797,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Update sale error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの更新に失敗しました'
     });
   }
@@ -815,7 +815,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     // 権限チェック（管理者のみ削除可能）
     if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '売上情報を削除する権限がありません'
       });
     }
@@ -846,7 +846,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete sale error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの削除に失敗しました'
     });
   }

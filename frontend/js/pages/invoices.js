@@ -122,8 +122,8 @@ class InvoicesPage {
 
 
         try {
-            const agencies = await apiClient.get('/invoices/agencies');
-            this.agencies = agencies || [];
+            const result = await apiClient.get('/invoices/agencies');
+            this.agencies = result?.data || result || [];
 
             const agencySelect = document.getElementById('summaryAgencySelect');
             if (agencySelect) {
@@ -210,7 +210,7 @@ class InvoicesPage {
                 throw new Error(data.message || '請求書の取得に失敗しました');
             }
 
-            this.invoices = data || [];
+            this.invoices = data?.data || data || [];
             this.renderInvoices();
 
         } catch (error) {

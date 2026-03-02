@@ -29,7 +29,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
     // 入力検証
     if (!email || !password) {
       return res.status(400).json({
-        error: true,
+        success: false,
         message: 'メールアドレスとパスワードは必須です'
       });
     }
@@ -45,7 +45,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
       await logLogin({ email }, req, false);
 
       return res.status(401).json({
-        error: true,
+        success: false,
         message: 'メールアドレスまたはパスワードが間違っています'
       });
     }
@@ -173,7 +173,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
             if (parentAgency.tier_level >= 4) {
               await logLogin({ email }, req, false);
               return res.status(400).json({
-                error: true,
+                success: false,
                 message: 'これ以上階層を作成できません。最大Tier4までです。'
               });
             }
@@ -288,7 +288,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'ログイン処理中にエラーが発生しました'
     });
   }
@@ -308,7 +308,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'ログアウトに失敗しました'
     });
   }
@@ -324,7 +324,7 @@ router.post('/refresh', async (req, res) => {
 
     if (!refreshToken) {
       return res.status(401).json({
-        error: true,
+        success: false,
         message: 'リフレッシュトークンが必要です'
       });
     }
@@ -340,7 +340,7 @@ router.post('/refresh', async (req, res) => {
     } catch (verifyError) {
       console.error('Refresh token verification error:', verifyError.message);
       return res.status(401).json({
-        error: true,
+        success: false,
         message: 'リフレッシュトークンが無効です'
       });
     }
@@ -368,7 +368,7 @@ router.post('/refresh', async (req, res) => {
   } catch (error) {
     console.error('Token refresh error:', error);
     res.status(401).json({
-      error: true,
+      success: false,
       message: 'トークンの更新に失敗しました'
     });
   }

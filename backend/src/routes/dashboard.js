@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
 
 /**
  * GET /api/dashboard/stats
@@ -46,22 +47,6 @@ router.get('/stats', authenticateToken, async (req, res) => {
     let agencyIds = null;
     if (!isAdmin && agencyId) {
       // 代理店の場合、自社と下位代理店の売上を含める
-      const getSubordinateAgencyIds = async (parentId) => {
-        const { data: children } = await supabase
-          .from('agencies')
-          .select('id')
-          .eq('parent_agency_id', parentId);
-
-        let ids = [parentId];
-        if (children && children.length > 0) {
-          for (const child of children) {
-            const childIds = await getSubordinateAgencyIds(child.id);
-            ids = ids.concat(childIds);
-          }
-        }
-        return ids;
-      };
-
       agencyIds = await getSubordinateAgencyIds(agencyId);
       salesQuery = salesQuery.in('agency_id', agencyIds);
     }
@@ -186,25 +171,6 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // 6. 組織全体の売上サマリー（代理店のみ）
     if (!isAdmin && req.user.agency) {
       try {
-        // 傘下の代理店IDを全て取得する再帰関数
-        const getSubordinateAgencyIds = async (parentId) => {
-          const { data: children } = await supabase
-            .from('agencies')
-            .select('id')
-            .eq('parent_agency_id', parentId);
-
-          if (!children || children.length === 0) {
-            return [];
-          }
-
-          let allIds = children.map(c => c.id);
-          for (const child of children) {
-            const grandChildren = await getSubordinateAgencyIds(child.id);
-            allIds = allIds.concat(grandChildren);
-          }
-          return allIds;
-        };
-
         // 月別データ計算用の関数
         const calculateMonthlyOrgSales = (salesData, agencyId) => {
           const ownSales = salesData.filter(s => s.agency_id === agencyId);
@@ -241,8 +207,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         };
 
         const agencyId = req.user.agency.id;
-        const subordinateIds = await getSubordinateAgencyIds(agencyId);
-        const allAgencyIds = [agencyId, ...subordinateIds];
+        const allAgencyIds = await getSubordinateAgencyIds(agencyId);
 
         // 今月のデータ取得
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -316,7 +281,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get dashboard stats error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'ダッシュボードデータの取得に失敗しました'
     });
   }
@@ -352,22 +317,6 @@ router.get('/charts', authenticateToken, async (req, res) => {
 
     if (!isAdmin && agencyId) {
       // 代理店の場合、自社と下位代理店の売上を含める
-      const getSubordinateAgencyIds = async (parentId) => {
-        const { data: children } = await supabase
-          .from('agencies')
-          .select('id')
-          .eq('parent_agency_id', parentId);
-
-        let ids = [parentId];
-        if (children && children.length > 0) {
-          for (const child of children) {
-            const childIds = await getSubordinateAgencyIds(child.id);
-            ids = ids.concat(childIds);
-          }
-        }
-        return ids;
-      };
-
       const agencyIds = await getSubordinateAgencyIds(agencyId);
       salesQuery = salesQuery.in('agency_id', agencyIds);
     }
@@ -412,7 +361,7 @@ router.get('/charts', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get chart data error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'グラフデータの取得に失敗しました'
     });
   }

@@ -14,28 +14,32 @@ const documentRecipientsAPI = {
     const queryString = params.toString();
     const endpoint = queryString ? `/document-recipients?${queryString}` : '/document-recipients';
 
-    return await apiClient.get(endpoint);
+    const result = await apiClient.get(endpoint);
+    return result?.data || result || [];
   },
 
   /**
    * テンプレート詳細取得
    */
   async getById(id) {
-    return await apiClient.get(`/document-recipients/${id}`);
+    const result = await apiClient.get(`/document-recipients/${id}`);
+    return result?.data || result;
   },
 
   /**
    * テンプレート作成
    */
   async create(data) {
-    return await apiClient.post('/document-recipients', data);
+    const result = await apiClient.post('/document-recipients', data);
+    return result?.data || result;
   },
 
   /**
    * テンプレート更新
    */
   async update(id, data) {
-    return await apiClient.put(`/document-recipients/${id}`, data);
+    const result = await apiClient.put(`/document-recipients/${id}`, data);
+    return result?.data || result;
   },
 
   /**

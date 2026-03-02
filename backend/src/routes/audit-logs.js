@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
     // 管理者のみアクセス可能
     if (user.role !== 'admin' && user.role !== 'super_admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '権限がありません'
       });
     }
@@ -104,7 +104,7 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get audit logs error:', error.message);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '監査ログの取得に失敗しました',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -122,7 +122,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     // 管理者のみアクセス可能
     if (user.role !== 'admin' && user.role !== 'super_admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '権限がありません'
       });
     }
@@ -139,7 +139,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     if (!log) {
       return res.status(404).json({
-        error: true,
+        success: false,
         message: '監査ログが見つかりません'
       });
     }
@@ -152,7 +152,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get audit log detail error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '監査ログの取得に失敗しました'
     });
   }
@@ -169,7 +169,7 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     // 管理者のみアクセス可能
     if (user.role !== 'admin' && user.role !== 'super_admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '権限がありません'
       });
     }
@@ -241,7 +241,7 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get audit log stats error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '統計情報の取得に失敗しました'
     });
   }
@@ -258,7 +258,7 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
     // 管理者のみアクセス可能
     if (user.role !== 'admin' && user.role !== 'super_admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '権限がありません'
       });
     }
@@ -305,7 +305,7 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Export audit logs error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'エクスポートに失敗しました'
     });
   }

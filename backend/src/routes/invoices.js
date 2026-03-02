@@ -17,7 +17,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const { commission_id, month, recipient } = req.body;
 
     if (!commission_id && !month) {
-      return res.status(400).json({ error: '報酬IDまたは対象月を指定してください' });
+      return res.status(400).json({ success: false, message: '報酬IDまたは対象月を指定してください' });
     }
 
     // 報酬データ取得
@@ -55,7 +55,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('報酬データ取得エラー:', error);
-      return res.status(404).json({ error: '報酬データが見つかりません' });
+      return res.status(404).json({ success: false, message: '報酬データが見つかりません' });
     }
 
     // 控除項目を計算詳細から取得、またはfinal_amountから逆算
@@ -185,7 +185,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('請求書生成エラー:', error);
-    res.status(500).json({ error: '請求書の生成に失敗しました' });
+    res.status(500).json({ success: false, message: '請求書の生成に失敗しました' });
   }
 });
 
@@ -198,7 +198,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
     const { payment_id } = req.body;
 
     if (!payment_id) {
-      return res.status(400).json({ error: '支払いIDを指定してください' });
+      return res.status(400).json({ success: false, message: '支払いIDを指定してください' });
     }
 
     // 支払いデータ取得
@@ -225,7 +225,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('支払いデータ取得エラー:', error);
-      return res.status(404).json({ error: '支払いデータが見つかりません' });
+      return res.status(404).json({ success: false, message: '支払いデータが見つかりません' });
     }
 
     // 領収書データ構築
@@ -271,7 +271,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('領収書生成エラー:', error);
-    res.status(500).json({ error: '領収書の生成に失敗しました' });
+    res.status(500).json({ success: false, message: '領収書の生成に失敗しました' });
   }
 });
 
@@ -285,7 +285,7 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
     const { sale_id } = req.body;
 
     if (!sale_id) {
-      return res.status(400).json({ error: '売上IDを指定してください' });
+      return res.status(400).json({ success: false, message: '売上IDを指定してください' });
     }
 
     // 売上データと関連する報酬データを取得
@@ -312,7 +312,7 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
 
     if (saleError || !sale) {
       console.error('売上データ取得エラー:', saleError);
-      return res.status(404).json({ error: '売上データが見つかりません' });
+      return res.status(404).json({ success: false, message: '売上データが見つかりません' });
     }
 
     // この売上に紐づく報酬データを取得
@@ -367,7 +367,7 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('売上ベース請求書生成エラー:', error);
-    res.status(500).json({ error: '請求書の生成に失敗しました' });
+    res.status(500).json({ success: false, message: '請求書の生成に失敗しました' });
   }
 });
 
@@ -380,7 +380,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
     const { sale_id } = req.body;
 
     if (!sale_id) {
-      return res.status(400).json({ error: '売上IDを指定してください' });
+      return res.status(400).json({ success: false, message: '売上IDを指定してください' });
     }
 
     // 売上データ取得
@@ -410,7 +410,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
 
     if (saleError || !sale) {
       console.error('売上データ取得エラー:', saleError);
-      return res.status(404).json({ error: '売上データが見つかりません' });
+      return res.status(404).json({ success: false, message: '売上データが見つかりません' });
     }
 
     // 領収書データ構築
@@ -448,7 +448,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('売上ベース領収書生成エラー:', error);
-    res.status(500).json({ error: '領収書の生成に失敗しました' });
+    res.status(500).json({ success: false, message: '領収書の生成に失敗しました' });
   }
 });
 
@@ -460,13 +460,13 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
   try {
     // 管理者権限チェック
     if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: '管理者権限が必要です' });
+      return res.status(403).json({ success: false, message: '管理者権限が必要です' });
     }
 
     const { agency_id, month } = req.body;
 
     if (!agency_id || !month) {
-      return res.status(400).json({ error: '代理店IDと対象月を指定してください' });
+      return res.status(400).json({ success: false, message: '代理店IDと対象月を指定してください' });
     }
 
     // 代理店情報取得
@@ -477,7 +477,7 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
       .single();
 
     if (agencyError) {
-      return res.status(404).json({ error: '代理店が見つかりません' });
+      return res.status(404).json({ success: false, message: '代理店が見つかりません' });
     }
 
     // 対象月の全報酬データ取得（統合版）
@@ -498,7 +498,7 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
 
     if (commissionsError) {
       console.error('報酬データ取得エラー:', commissionsError);
-      return res.status(500).json({ error: '報酬データの取得に失敗しました' });
+      return res.status(500).json({ success: false, message: '報酬データの取得に失敗しました' });
     }
 
     // データがない場合は空配列で処理続行
@@ -562,7 +562,7 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('管理者向け月次集計明細書生成エラー:', error);
-    res.status(500).json({ error: '管理者向け月次集計明細書の生成に失敗しました' });
+    res.status(500).json({ success: false, message: '管理者向け月次集計明細書の生成に失敗しました' });
   }
 });
 
@@ -575,7 +575,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
     const { month, agency_id, recipient } = req.body;
 
     if (!month) {
-      return res.status(400).json({ error: '対象月を指定してください' });
+      return res.status(400).json({ success: false, message: '対象月を指定してください' });
     }
 
     // 代理店IDを決定（管理者の場合はリクエストから、代理店ユーザーは自分の代理店）
@@ -589,7 +589,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
     }
 
     if (!agencyId) {
-      return res.status(400).json({ error: '代理店情報が見つかりません' });
+      return res.status(400).json({ success: false, message: '代理店情報が見つかりません' });
     }
 
     // 代理店の報酬データ取得（支払済みのみ）
@@ -614,11 +614,11 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('報酬データ取得エラー:', error);
-      return res.status(500).json({ error: '報酬データの取得に失敗しました' });
+      return res.status(500).json({ success: false, message: '報酬データの取得に失敗しました' });
     }
 
     if (!commissions || commissions.length === 0) {
-      return res.status(404).json({ error: '該当月の支払済み報酬が見つかりません' });
+      return res.status(404).json({ success: false, message: '該当月の支払済み報酬が見つかりません' });
     }
 
     // 月単位で合計した領収書データ構築
@@ -669,7 +669,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('月単位領収書生成エラー:', error);
-    res.status(500).json({ error: '月単位領収書の生成に失敗しました' });
+    res.status(500).json({ success: false, message: '月単位領収書の生成に失敗しました' });
   }
 });
 
@@ -681,7 +681,7 @@ router.get('/agencies', authenticateToken, async (req, res) => {
   try {
     // 管理者権限チェック
     if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: '管理者権限が必要です' });
+      return res.status(403).json({ success: false, message: '管理者権限が必要です' });
     }
 
     const { data: agencies, error } = await supabase
@@ -692,14 +692,14 @@ router.get('/agencies', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('代理店一覧取得エラー:', error);
-      return res.status(500).json({ error: '代理店一覧の取得に失敗しました' });
+      return res.status(500).json({ success: false, message: '代理店一覧の取得に失敗しました' });
     }
 
-    res.json(agencies || []);
+    res.json({ success: true, data: agencies || [] });
 
   } catch (error) {
     console.error('代理店一覧取得エラー:', error);
-    res.status(500).json({ error: '代理店一覧の取得に失敗しました' });
+    res.status(500).json({ success: false, message: '代理店一覧の取得に失敗しました' });
   }
 });
 
@@ -752,7 +752,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     if (error) {
       console.error('請求書一覧取得エラー:', error);
-      return res.status(500).json({ error: '請求書一覧の取得に失敗しました' });
+      return res.status(500).json({ success: false, message: '請求書一覧の取得に失敗しました' });
     }
 
     // 請求書形式にデータを整形
@@ -776,11 +776,11 @@ router.get('/', authenticateToken, async (req, res) => {
       withholdingTax: commission.withholding_tax
     }));
 
-    res.json(invoices);
+    res.json({ success: true, data: invoices });
 
   } catch (error) {
     console.error('請求書一覧取得エラー:', error);
-    res.status(500).json({ error: '請求書一覧の取得に失敗しました' });
+    res.status(500).json({ success: false, message: '請求書一覧の取得に失敗しました' });
   }
 });
 

@@ -11,6 +11,7 @@ const { generateAgencyCode } = require('../utils/generateCode');
 const emailService = require('../services/emailService');
 const { agencyCreationRateLimit } = require('../middleware/rateLimiter');
 const { validateAge, validateDateFormat } = require('../utils/ageValidator');
+const { getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
 
 // サブルーターマウント
 router.use('/', require('./agencies/status'));
@@ -26,31 +27,6 @@ router.get('/', authenticateToken, async (req, res) => {
 
     // 代理店ユーザーの場合は自分と全傘下代理店を表示
     if (req.user.role === 'agency' && req.user.agency) {
-      // 傘下の代理店IDを全て取得する再帰関数
-      const getSubordinateAgencyIds = async (parentId, level = 0) => {
-        const { data: children } = await supabase
-          .from('agencies')
-          .select('id, company_name, tier_level, status, agency_code, contact_email, created_at')
-          .eq('parent_agency_id', parentId);
-
-        if (!children || children.length === 0) {
-          return [];
-        }
-
-        // 階層レベルを追加
-        const childrenWithLevel = children.map(child => ({
-          ...child,
-          hierarchy_level: level + 1
-        }));
-
-        let allAgencies = [...childrenWithLevel];
-        for (const child of children) {
-          const grandChildren = await getSubordinateAgencyIds(child.id, level + 1);
-          allAgencies = allAgencies.concat(grandChildren);
-        }
-        return allAgencies;
-      };
-
       // 自分の情報を取得
       const { data: ownAgency } = await supabase
         .from('agencies')
@@ -63,7 +39,7 @@ router.get('/', authenticateToken, async (req, res) => {
       }
 
       // 全傘下代理店を取得
-      const subordinateAgencies = await getSubordinateAgencyIds(req.user.agency.id);
+      const subordinateAgencies = await getSubordinateAgenciesWithDetails(req.user.agency.id);
 
       // 自分と傘下代理店を結合
       data = ownAgency ? [ownAgency, ...subordinateAgencies] : subordinateAgencies;
@@ -115,7 +91,7 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get agencies error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }
@@ -140,7 +116,7 @@ router.post('/',
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: errors.array()[0].msg
         });
       }
@@ -162,7 +138,7 @@ router.post('/',
       if (birth_date) {
         if (!validateDateFormat(birth_date)) {
           return res.status(400).json({
-            error: true,
+            success: false,
             message: '生年月日の形式が正しくありません（YYYY-MM-DD形式で入力してください）'
           });
         }
@@ -170,7 +146,7 @@ router.post('/',
         const ageValidation = validateAge(birth_date);
         if (!ageValidation.isValid) {
           return res.status(400).json({
-            error: true,
+            success: false,
             message: ageValidation.message
           });
         }
@@ -180,7 +156,7 @@ router.post('/',
       if (req.user.role === 'agency') {
         if (!req.user.agency) {
           return res.status(403).json({
-            error: true,
+            success: false,
             message: '代理店情報が見つかりません'
           });
         }
@@ -189,7 +165,7 @@ router.post('/',
         const allowedTier = req.user.agency.tier_level + 1;
         if (tier_level !== allowedTier) {
           return res.status(403).json({
-            error: true,
+            success: false,
             message: `Tier${allowedTier}の代理店のみ作成可能です`
           });
         }
@@ -208,7 +184,7 @@ router.post('/',
 
         if (parentAgency && tier_level !== parentAgency.tier_level + 1) {
           return res.status(400).json({
-            error: true,
+            success: false,
             message: '階層レベルが不正です'
           });
         }
@@ -236,7 +212,7 @@ router.post('/',
 
           if (childCount >= maxChildren) {
             return res.status(400).json({
-              error: true,
+              success: false,
               message: `Tier${parentTier}の代理店は最大${maxChildren}社までしか子代理店を作成できません（現在: ${childCount}社）`
             });
           }
@@ -245,7 +221,7 @@ router.post('/',
         // Tier4は子代理店を作成できない
         if (parentTier === 4) {
           return res.status(400).json({
-            error: true,
+            success: false,
             message: 'Tier4の代理店は子代理店を作成できません'
           });
         }
@@ -335,7 +311,7 @@ router.post('/',
     } catch (error) {
       console.error('Create agency error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: 'データの作成に失敗しました'
       });
     }
@@ -359,7 +335,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     if (error) {
       if (error.code === 'PGRST116') {
         return res.status(404).json({
-          error: true,
+          success: false,
           message: '代理店が見つかりません'
         });
       }
@@ -386,7 +362,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get agency error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }
@@ -407,7 +383,7 @@ router.put('/:id',
       if (req.user.role === 'agency') {
         if (!req.user.agency || req.user.agency.id !== id) {
           return res.status(403).json({
-            error: true,
+            success: false,
             message: '自分の代理店情報のみ編集可能です'
           });
         }
@@ -417,7 +393,7 @@ router.put('/:id',
       if (updates.birth_date) {
         if (!validateDateFormat(updates.birth_date)) {
           return res.status(400).json({
-            error: true,
+            success: false,
             message: '生年月日の形式が正しくありません（YYYY-MM-DD形式で入力してください）'
           });
         }
@@ -425,7 +401,7 @@ router.put('/:id',
         const ageValidation = validateAge(updates.birth_date);
         if (!ageValidation.isValid) {
           return res.status(400).json({
-            error: true,
+            success: false,
             message: ageValidation.message
           });
         }
@@ -472,7 +448,7 @@ router.put('/:id',
     } catch (error) {
       console.error('Update agency error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: 'データの更新に失敗しました'
       });
     }
@@ -499,7 +475,7 @@ router.delete('/:id',
 
       if (!agency) {
         return res.status(404).json({
-          error: true,
+          success: false,
           message: '代理店が見つかりません'
         });
       }
@@ -512,7 +488,7 @@ router.delete('/:id',
 
       if (childAgencies && childAgencies.length > 0) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: 'この代理店には配下の代理店が存在するため削除できません'
         });
       }
@@ -526,7 +502,7 @@ router.delete('/:id',
 
       if (sales && sales.length > 0) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: 'この代理店には売上データが存在するため削除できません'
         });
       }
@@ -540,7 +516,7 @@ router.delete('/:id',
 
       if (commissions && commissions.length > 0) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: 'この代理店には報酬データが存在するため削除できません'
         });
       }
@@ -560,7 +536,7 @@ router.delete('/:id',
     } catch (error) {
       console.error('Delete agency error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '削除処理に失敗しました'
       });
     }

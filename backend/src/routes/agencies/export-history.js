@@ -104,7 +104,7 @@ router.get('/export', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Export agencies error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '代理店データのエクスポートに失敗しました'
     });
   }

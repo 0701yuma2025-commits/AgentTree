@@ -34,4 +34,37 @@ async function getSubordinateAgencyIds(parentId, depth = 0) {
   return ids;
 }
 
-module.exports = { getSubordinateAgencyIds };
+/**
+ * 指定された親代理店IDから、全ての下位代理店を詳細情報付きで再帰的に取得
+ * @param {string} parentId - 親代理店ID
+ * @param {number} level - 現在の階層レベル（内部使用）
+ * @returns {Promise<Object[]>} 下位代理店オブジェクトの配列（hierarchy_level付き）
+ */
+async function getSubordinateAgenciesWithDetails(parentId, level = 0) {
+  if (level >= MAX_RECURSION_DEPTH) {
+    return [];
+  }
+
+  const { data: children } = await supabase
+    .from('agencies')
+    .select('id, company_name, tier_level, status, agency_code, contact_email, created_at')
+    .eq('parent_agency_id', parentId);
+
+  if (!children || children.length === 0) {
+    return [];
+  }
+
+  const childrenWithLevel = children.map(child => ({
+    ...child,
+    hierarchy_level: level + 1,
+  }));
+
+  let allAgencies = [...childrenWithLevel];
+  for (const child of children) {
+    const grandChildren = await getSubordinateAgenciesWithDetails(child.id, level + 1);
+    allAgencies = allAgencies.concat(grandChildren);
+  }
+  return allAgencies;
+}
+
+module.exports = { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails };

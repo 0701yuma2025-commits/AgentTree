@@ -73,7 +73,7 @@ router.get('/:agencyId', authenticateToken, async (req, res) => {
 
     if (!hasAccess) {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: 'アクセス権限がありません'
       });
     }
@@ -93,7 +93,7 @@ router.get('/:agencyId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get documents error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'ドキュメント一覧の取得に失敗しました'
     });
   }
@@ -107,7 +107,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
   try {
     if (!req.file) {
       return res.status(400).json({
-        error: true,
+        success: false,
         message: 'ファイルがアップロードされていません'
       });
     }
@@ -117,7 +117,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
     // 自分の代理店の書類のみアップロード可能
     if (req.user.agency?.id !== agency_id && req.user.role !== 'admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: 'アクセス権限がありません'
       });
     }
@@ -171,7 +171,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
   } catch (error) {
     console.error('Upload document error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'ファイルアップロードに失敗しました'
     });
   }
@@ -188,7 +188,7 @@ router.put('/:id/verify', authenticateToken, requireAdmin, async (req, res) => {
 
     if (!['verified', 'rejected'].includes(status)) {
       return res.status(400).json({
-        error: true,
+        success: false,
         message: '無効なステータスです'
       });
     }
@@ -221,7 +221,7 @@ router.put('/:id/verify', authenticateToken, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Verify document error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '書類確認に失敗しました'
     });
   }
@@ -245,7 +245,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     if (fetchError) throw fetchError;
     if (!document) {
       return res.status(404).json({
-        error: true,
+        success: false,
         message: '書類が見つかりません'
       });
     }
@@ -253,7 +253,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     // 権限チェック
     if (req.user.agency?.id !== document.agency_id && req.user.role !== 'admin') {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: 'アクセス権限がありません'
       });
     }
@@ -281,7 +281,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete document error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: '書類削除に失敗しました'
     });
   }

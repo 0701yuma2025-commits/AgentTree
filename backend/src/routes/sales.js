@@ -101,7 +101,7 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get sales error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }

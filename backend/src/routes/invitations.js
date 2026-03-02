@@ -14,7 +14,7 @@ const emailService = require('../services/emailService');
 const validateRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
-  message: { error: true, message: 'リクエスト回数が上限を超えました。1分後に再試行してください。' }
+  message: { success: false, message: 'リクエスト回数が上限を超えました。1分後に再試行してください。' }
 });
 
 /**
@@ -47,7 +47,7 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get invitations error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'データの取得に失敗しました'
     });
   }
@@ -68,7 +68,7 @@ router.post('/',
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: errors.array()[0].msg
         });
       }
@@ -93,7 +93,7 @@ router.post('/',
       if (error) {
         if (error.message.includes('already exists')) {
           return res.status(409).json({
-            error: true,
+            success: false,
             message: 'この招待は既に存在します'
           });
         }
@@ -112,7 +112,7 @@ router.post('/',
     } catch (error) {
       console.error('Create invitation error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '招待の作成に失敗しました'
       });
     }
@@ -132,7 +132,7 @@ router.get('/validate/:token', validateRateLimit, async (req, res) => {
 
     if (error || !data) {
       return res.status(400).json({
-        error: true,
+        success: false,
         message: '無効または期限切れの招待です'
       });
     }
@@ -144,7 +144,7 @@ router.get('/validate/:token', validateRateLimit, async (req, res) => {
   } catch (error) {
     console.error('Validate invitation error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'トークンの検証に失敗しました'
     });
   }
@@ -165,7 +165,7 @@ router.post('/accept',
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: errors.array()[0].msg
         });
       }
@@ -178,7 +178,7 @@ router.post('/accept',
 
       if (!inviteData) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '無効または期限切れの招待です'
         });
       }
@@ -198,7 +198,7 @@ router.post('/accept',
       if (authError) {
         if (authError.message.includes('already registered')) {
           return res.status(409).json({
-            error: true,
+            success: false,
             message: 'このメールアドレスは既に登録されています'
           });
         }
@@ -223,7 +223,7 @@ router.post('/accept',
     } catch (error) {
       console.error('Accept invitation error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '招待の受諾に失敗しました'
       });
     }

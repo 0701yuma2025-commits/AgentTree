@@ -29,14 +29,14 @@ router.put('/:id/approve',
 
       if (!currentAgency) {
         return res.status(404).json({
-          error: true,
+          success: false,
           message: '代理店が見つかりません'
         });
       }
 
       if (currentAgency.status !== 'pending') {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '承認待ちの代理店ではありません'
         });
       }
@@ -73,7 +73,7 @@ router.put('/:id/approve',
     } catch (error) {
       console.error('Approve agency error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '承認処理に失敗しました'
       });
     }
@@ -95,7 +95,7 @@ router.put('/:id/reject',
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: errors.array()[0].msg
         });
       }
@@ -112,14 +112,14 @@ router.put('/:id/reject',
 
       if (!currentAgency) {
         return res.status(404).json({
-          error: true,
+          success: false,
           message: '代理店が見つかりません'
         });
       }
 
       if (currentAgency.status !== 'pending') {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '承認待ちの代理店ではありません'
         });
       }
@@ -156,7 +156,7 @@ router.put('/:id/reject',
     } catch (error) {
       console.error('Reject agency error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '拒否処理に失敗しました'
       });
     }
@@ -183,14 +183,14 @@ router.put('/:id/reactivate',
 
       if (!currentAgency) {
         return res.status(404).json({
-          error: true,
+          success: false,
           message: '代理店が見つかりません'
         });
       }
 
       if (currentAgency.status !== 'suspended') {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: '停止中の代理店ではありません'
         });
       }
@@ -219,7 +219,7 @@ router.put('/:id/reactivate',
     } catch (error) {
       console.error('Reactivate agency error:', error);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '再有効化に失敗しました'
       });
     }
@@ -241,7 +241,7 @@ router.put('/:id/suspend',
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
-          error: true,
+          success: false,
           message: errors.array()[0].msg
         });
       }
@@ -285,7 +285,7 @@ router.put('/:id/suspend',
     } catch (error) {
       console.error('Suspend agency error:', error.message);
       res.status(500).json({
-        error: true,
+        success: false,
         message: '停止処理に失敗しました'
       });
     }

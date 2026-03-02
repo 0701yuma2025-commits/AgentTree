@@ -83,7 +83,7 @@ router.get('/agencies', authenticateToken, async (req, res) => {
 
     } else {
       return res.status(403).json({
-        error: true,
+        success: false,
         message: '権限がありません'
       });
     }
@@ -149,7 +149,7 @@ router.get('/agencies', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get network data error:', error);
     res.status(500).json({
-      error: true,
+      success: false,
       message: 'ネットワークデータの取得に失敗しました'
     });
   }
