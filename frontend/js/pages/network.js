@@ -54,7 +54,7 @@ class NetworkPage {
         container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 16px; padding: 20px; text-align: center;">
           <div>
             <p>ネットワークデータの取得に失敗しました</p>
-            <p style="font-size: 14px; margin-top: 10px; color: #ff6b6b;">${error.message}</p>
+            <p style="font-size: 14px; margin-top: 10px; color: #ff6b6b;">${typeof escapeHtml === 'function' ? escapeHtml(error.message) : error.message.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c])}</p>
             <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">再読み込み</button>
           </div>
         </div>`;

@@ -127,7 +127,8 @@ router.post('/',
         }
       }
 
-      // 報酬を自動計算して登録
+      // 報酬を自動計算して登録（失敗時は売上もロールバック）
+      let commissionCreated = false;
       try {
         // 代理店情報を取得
         const { data: agencyData } = await supabase
@@ -212,15 +213,16 @@ router.post('/',
               campaign_bonus: commissionResult.campaign_bonus || 0,
               withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
               final_amount: commissionResult.final_amount,
-              status: 'confirmed',  // 自動計算時は確定済みとする
-              tier_level: agencyData.tier_level,  // tier_levelを追加
+              status: 'confirmed',
+              tier_level: agencyData.tier_level,
               calculation_details: calculationDetails
             });
 
           if (commissionError) {
-            console.error('Commission creation error:', commissionError);
-            // エラーをログに記録するが、売上登録自体は成功させる
+            throw new Error(`報酬レコード作成失敗: ${commissionError.message}`);
           }
+
+          commissionCreated = true;
 
           // 親代理店の階層ボーナスも登録
           if (commissionResult.parent_commissions && commissionResult.parent_commissions.length > 0) {
@@ -234,10 +236,10 @@ router.post('/',
                   base_amount: 0,
                   tier_bonus: parentCommission.amount,
                   campaign_bonus: 0,
-                  withholding_tax: 0,  // 階層ボーナスに源泉徴収はなし
+                  withholding_tax: 0,
                   final_amount: parentCommission.amount,
-                  status: 'confirmed',  // 自動計算時は確定済みとする
-                  tier_level: parentCommission.tier_level,  // 親代理店のtier_levelを追加
+                  status: 'confirmed',
+                  tier_level: parentCommission.tier_level,
                   calculation_details: {
                     type: 'hierarchy_bonus',
                     from_agency_id: agency_id,
@@ -254,14 +256,23 @@ router.post('/',
                 });
 
               if (parentCommError) {
-                console.error('Parent commission creation error:', parentCommError);
+                // 親ボーナス失敗 → 既に作成した報酬をクリーンアップ
+                console.error('Parent commission creation error, rolling back:', parentCommError);
+                await supabase.from('commissions').delete().eq('sale_id', data.id);
+                throw new Error(`親代理店報酬作成失敗: ${parentCommError.message}`);
               }
             }
           }
         }
       } catch (commissionCalcError) {
-        console.error('Commission calculation error:', commissionCalcError);
-        // 報酬計算エラーがあっても売上登録は成功させる
+        console.error('Commission calculation/creation error, rolling back sale:', commissionCalcError);
+        // 補償トランザクション: 売上と（もしあれば）報酬を削除
+        await supabase.from('commissions').delete().eq('sale_id', data.id);
+        await supabase.from('sales').delete().eq('id', data.id);
+        return res.status(500).json({
+          success: false,
+          message: '売上登録に失敗しました（報酬計算エラー）'
+        });
       }
 
       // 売上通知メール送信
