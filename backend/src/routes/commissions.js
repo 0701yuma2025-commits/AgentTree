@@ -313,35 +313,40 @@ router.post('/calculate',
       // DBに挿入するデータを準備（不要なフィールドを削除）
       const commissionsForDB = commissions.map(commission => ({
         agency_id: commission.agency_id,
-        sale_id: commission.sale_id,  // 売上との紐付けを保持
+        sale_id: commission.sale_id,
         month: commission.month,
         base_amount: commission.base_amount,
         tier_bonus: commission.tier_bonus,
         campaign_bonus: commission.campaign_bonus,
-        // invoice_deductionカラムは存在しないため削除
         final_amount: commission.final_amount,
-        status: commission.status || 'confirmed',  // 計算時のステータスを保持（デフォルトは確定）
+        status: commission.status || 'confirmed',
         tier_level: commission.tier_level,
         withholding_tax: commission.withholding_tax || 0,
-        carry_forward_reason: commission.carry_forward_reason || null
+        carry_forward_reason: commission.carry_forward_reason || null,
+        calculation_details: commission.calculation_details || {}
       }));
 
-      // RPC関数でDELETE+INSERTをトランザクション内で実行（データ消失防止）
-      const { data: rpcResult, error: rpcError } = await supabase
-        .rpc('upsert_monthly_commissions', {
-          p_month: month,
-          p_commissions: JSON.stringify(commissionsForDB)
-        });
+      // RPC関数を使わず、直接DELETE+INSERTで実行
+      console.log(`Deleting existing commissions for month: ${month}`);
+      const { error: deleteError } = await supabase
+        .from('commissions')
+        .delete()
+        .eq('month', month);
 
-      if (rpcError) {
-        // RPC関数が未作成の場合はフォールバック（直接DELETE+INSERT）
-        if (rpcError.message?.includes('function') || rpcError.code === '42883') {
-          console.warn('RPC function not found, using fallback DELETE+INSERT');
-          await supabase.from('commissions').delete().eq('month', month);
-          const { error: insertError } = await supabase.from('commissions').insert(commissionsForDB);
-          if (insertError) throw insertError;
-        } else {
-          throw rpcError;
+      if (deleteError) {
+        console.error('Delete error:', JSON.stringify(deleteError));
+        throw deleteError;
+      }
+
+      console.log(`Inserting ${commissionsForDB.length} commission records`);
+      if (commissionsForDB.length > 0) {
+        const { error: insertError } = await supabase
+          .from('commissions')
+          .insert(commissionsForDB);
+
+        if (insertError) {
+          console.error('Insert error:', JSON.stringify(insertError));
+          throw insertError;
         }
       }
 
@@ -362,10 +367,13 @@ router.post('/calculate',
         }
       });
     } catch (error) {
-      console.error('Calculate commissions error:', error.message);
+      console.error('Calculate commissions error:', error.message, error.details || '', error.code || '');
       res.status(500).json({
         success: false,
-        message: '報酬計算に失敗しました'
+        message: '報酬計算に失敗しました',
+        error: error.message || String(error),
+        details: error.details || null,
+        code: error.code || null
       });
     }
   }
