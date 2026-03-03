@@ -333,7 +333,17 @@ router.post('/calculate',
           p_commissions: JSON.stringify(commissionsForDB)
         });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        // RPC関数が未作成の場合はフォールバック（直接DELETE+INSERT）
+        if (rpcError.message?.includes('function') || rpcError.code === '42883') {
+          console.warn('RPC function not found, using fallback DELETE+INSERT');
+          await supabase.from('commissions').delete().eq('month', month);
+          const { error: insertError } = await supabase.from('commissions').insert(commissionsForDB);
+          if (insertError) throw insertError;
+        } else {
+          throw rpcError;
+        }
+      }
 
       // 挿入されたデータを取得（レスポンス用）
       const { data: insertedData } = await supabase
