@@ -45,17 +45,18 @@ router.get('/', authenticateToken, async (req, res) => {
       // 自分と傘下代理店を結合
       data = ownAgency ? [ownAgency, ...subordinateAgencies] : subordinateAgencies;
 
-      // 親代理店名を追加
-      for (let agency of data) {
-        if (agency.parent_agency_id) {
-          const { data: parentAgency } = await supabase
-            .from('agencies')
-            .select('company_name')
-            .eq('id', agency.parent_agency_id)
-            .single();
+      // 親代理店名を一括取得（N+1クエリ防止）
+      const parentIds = [...new Set(data.filter(a => a.parent_agency_id).map(a => a.parent_agency_id))];
+      if (parentIds.length > 0) {
+        const { data: parentAgencies } = await supabase
+          .from('agencies')
+          .select('id, company_name')
+          .in('id', parentIds);
 
-          if (parentAgency) {
-            agency.parent_agency_name = parentAgency.company_name;
+        const parentMap = new Map((parentAgencies || []).map(p => [p.id, p.company_name]));
+        for (const agency of data) {
+          if (agency.parent_agency_id && parentMap.has(agency.parent_agency_id)) {
+            agency.parent_agency_name = parentMap.get(agency.parent_agency_id);
           }
         }
       }

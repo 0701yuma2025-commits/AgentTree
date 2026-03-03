@@ -5,12 +5,22 @@
 const { supabase } = require('../config/supabase');
 
 const MAX_RECURSION_DEPTH = 10;
+const CACHE_TTL_MS = 30 * 1000; // 30秒キャッシュ
+
+// 親子関係マップのインメモリキャッシュ
+let _parentChildMapCache = null;
+let _parentChildMapCachedAt = 0;
 
 /**
- * 全代理店の親子関係を1クエリで取得し、メモリ内でツリーを構築
+ * 全代理店の親子関係を1クエリで取得し、メモリ内でツリーを構築（TTLキャッシュ付き）
  * @returns {Promise<Map<string|null, string[]>>} parentId → childIds のマップ
  */
 async function buildParentChildMap() {
+  const now = Date.now();
+  if (_parentChildMapCache && (now - _parentChildMapCachedAt) < CACHE_TTL_MS) {
+    return _parentChildMapCache;
+  }
+
   const { data: allAgencies } = await supabase
     .from('agencies')
     .select('id, parent_agency_id');
@@ -21,6 +31,9 @@ async function buildParentChildMap() {
     if (!map.has(parentId)) map.set(parentId, []);
     map.get(parentId).push(agency.id);
   }
+
+  _parentChildMapCache = map;
+  _parentChildMapCachedAt = now;
   return map;
 }
 

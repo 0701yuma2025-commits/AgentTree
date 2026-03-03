@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
 const { v4: uuidv4 } = require('uuid');
 
 // Multerの設定（メモリストレージ使用）
@@ -42,33 +43,10 @@ router.get('/:agencyId', authenticateToken, async (req, res) => {
     else if (req.user.agency?.id === agencyId) {
       hasAccess = true;
     }
-    // 傘下の代理店かチェック（子、孫、ひ孫...全て）
+    // 傘下の代理店かチェック（キャッシュ付き1クエリ、N+1なし）
     else if (req.user.agency?.id) {
-      // 対象代理店の親チェーンを取得して、自分が親に含まれるか確認
-      const { data: targetAgency } = await supabase
-        .from('agencies')
-        .select('*')
-        .eq('id', agencyId)
-        .single();
-
-      if (targetAgency) {
-        // 親を辿って自分が見つかるかチェック
-        let currentParentId = targetAgency.parent_agency_id;
-        while (currentParentId) {
-          if (currentParentId === req.user.agency?.id) {
-            hasAccess = true;
-            break;
-          }
-          // さらに上の親を取得
-          const { data: parentAgency } = await supabase
-            .from('agencies')
-            .select('parent_agency_id')
-            .eq('id', currentParentId)
-            .single();
-
-          currentParentId = parentAgency?.parent_agency_id;
-        }
-      }
+      const subordinateIds = await getSubordinateAgencyIds(req.user.agency.id);
+      hasAccess = subordinateIds.includes(agencyId);
     }
 
     if (!hasAccess) {
