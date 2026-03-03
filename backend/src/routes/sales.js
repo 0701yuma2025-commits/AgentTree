@@ -98,7 +98,7 @@ router.get('/', authenticateToken, async (req, res) => {
       res.json(paginatedResponse([], count || 0, { page, limit }));
     }
   } catch (error) {
-    console.error('Get sales error:', error);
+    console.error('Get sales error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -168,7 +168,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data: data
     });
   } catch (error) {
-    console.error('Get sale detail error:', error);
+    console.error('Get sale detail error:', error.message);
     res.status(500).json({
       success: false,
       message: 'サーバーエラーが発生しました',

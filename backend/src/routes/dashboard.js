@@ -242,7 +242,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         };
 
       } catch (error) {
-        console.error('Failed to fetch organization sales:', error);
+        console.error('Failed to fetch organization sales:', error.message);
         stats.organizationSales = null;
       }
     }
@@ -281,7 +281,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get dashboard stats error:', error);
+    console.error('Get dashboard stats error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ダッシュボードデータの取得に失敗しました'
@@ -361,7 +361,7 @@ router.get('/charts', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get chart data error:', error);
+    console.error('Get chart data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'グラフデータの取得に失敗しました'

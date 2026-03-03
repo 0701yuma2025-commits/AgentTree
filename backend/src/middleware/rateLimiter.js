@@ -80,7 +80,7 @@ const agencyCreationRateLimit = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Rate limit check error:', error);
+    console.error('Rate limit check error:', error.message);
     // エラーの場合は通過させる（セキュリティより可用性を優先）
     next();
   }

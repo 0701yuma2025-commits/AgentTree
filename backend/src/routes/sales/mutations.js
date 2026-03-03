@@ -206,14 +206,14 @@ router.post('/',
           .eq('id', data.id);
 
         if (updateError) {
-          console.error('異常フラグ更新エラー:', updateError);
+          console.error('異常フラグ更新エラー:', updateError.message);
         }
 
         // 管理者に通知を送信
         try {
           await sendAnomalyNotification(data, anomalyResult);
         } catch (notifyError) {
-          console.error('異常通知送信エラー:', notifyError);
+          console.error('異常通知送信エラー:', notifyError.message);
         }
       }
 
@@ -365,7 +365,7 @@ router.post('/',
           commissionCreated = true;
         }
       } catch (commissionCalcError) {
-        console.error('Commission calculation/creation error, rolling back sale:', commissionCalcError);
+        console.error('Commission calculation/creation error, rolling back sale:', commissionCalcError.message);
         // 補償トランザクション: 売上と（もしあれば）報酬を削除
         await supabase.from('commissions').delete().eq('sale_id', data.id);
         await supabase.from('sales').delete().eq('id', data.id);
@@ -416,7 +416,7 @@ router.post('/',
           }, agencyInfo.contact_email);
         }
       } catch (emailError) {
-        console.error('Sales notification email error:', emailError);
+        console.error('Sales notification email error:', emailError.message);
       }
 
       res.status(201).json({
@@ -424,7 +424,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create sale error:', error);
+      console.error('Create sale error:', error.message);
       res.status(500).json({
         success: false,
         message: 'データの作成に失敗しました'
@@ -690,11 +690,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
           .insert(historyRecords);
 
         if (historyError) {
-          console.error('変更履歴の保存エラー:', historyError);
+          console.error('変更履歴の保存エラー:', historyError.message);
           // 履歴保存エラーは売上更新の成功には影響しない
         }
       } catch (historyError) {
-        console.error('変更履歴の保存エラー:', historyError);
+        console.error('変更履歴の保存エラー:', historyError.message);
       }
     }
 
@@ -745,7 +745,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
           }
         }
       } catch (commissionUpdateError) {
-        console.error('報酬再計算エラー:', commissionUpdateError);
+        console.error('報酬再計算エラー:', commissionUpdateError.message);
         return res.json({
           success: true, message: '売上情報を更新しました',
           warning: '報酬の再計算に失敗しました。管理者に確認してください。', data
@@ -759,7 +759,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Update sale error:', error);
+    console.error('Update sale error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの更新に失敗しました'
@@ -808,7 +808,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       message: '売上情報を削除しました'
     });
   } catch (error) {
-    console.error('Delete sale error:', error);
+    console.error('Delete sale error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの削除に失敗しました'

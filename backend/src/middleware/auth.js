@@ -117,7 +117,7 @@ const authenticateToken = async (req, res, next) => {
         }
       }
     } catch (dbError) {
-      console.error('Database lookup error:', dbError);
+      console.error('Database lookup error:', dbError.message);
       // データベースエラーがあってもJWT認証は成功しているので続行
       req.user = {
         id: id,
@@ -130,7 +130,6 @@ const authenticateToken = async (req, res, next) => {
   } catch (error) {
     // どんなエラーでもサーバークラッシュを防ぐ
     console.error('認証処理の致命的エラー:', error.message);
-    console.error('エラースタック:', error.stack);
 
     // 認証エラーとして統一的に処理
     return res.status(403).json({

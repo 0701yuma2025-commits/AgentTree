@@ -36,7 +36,6 @@ async function createAdmin() {
     }
 
     console.log('管理者アカウントを作成しています...');
-    console.log(`Email: ${email}`);
     console.log('');
 
     // Supabase Authでユーザーを作成
@@ -114,8 +113,7 @@ async function createAdmin() {
 
     console.log('');
     console.log('管理者アカウントの作成が完了しました。');
-    console.log(`Email: ${email}`);
-    console.log('(パスワードはセキュリティのため表示しません)');
+    console.log('(アカウント情報はセキュリティのためログに表示しません)');
 
   } catch (error) {
     console.error('❌ エラーが発生しました:', error.message);

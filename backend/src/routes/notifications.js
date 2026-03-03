@@ -47,7 +47,7 @@ router.get('/settings', authenticateToken, async (req, res) => {
       data: settings || defaultSettings
     });
   } catch (error) {
-    console.error('Get notification settings error:', error);
+    console.error('Get notification settings error:', error.message);
     res.status(500).json({
       success: false,
       message: '通知設定の取得に失敗しました'
@@ -118,7 +118,7 @@ router.put('/settings', authenticateToken, async (req, res) => {
       message: '通知設定を更新しました'
     });
   } catch (error) {
-    console.error('Update notification settings error:', error);
+    console.error('Update notification settings error:', error.message);
     res.status(500).json({
       success: false,
       message: '通知設定の更新に失敗しました'
@@ -167,7 +167,7 @@ router.get('/history', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get notification history error:', error);
+    console.error('Get notification history error:', error.message);
     res.status(500).json({
       success: false,
       message: '通知履歴の取得に失敗しました'
@@ -205,7 +205,7 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Mark notification as read error:', error);
+    console.error('Mark notification as read error:', error.message);
     res.status(500).json({
       success: false,
       message: '通知の既読処理に失敗しました'
@@ -237,7 +237,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
       count: count || 0
     });
   } catch (error) {
-    console.error('Get unread count error:', error);
+    console.error('Get unread count error:', error.message);
     res.status(500).json({
       success: false,
       message: '未読数の取得に失敗しました'
@@ -289,7 +289,7 @@ router.post('/test', authenticateToken, (req, res, next) => {
       error: result.error
     });
   } catch (error) {
-    console.error('Send test notification error:', error);
+    console.error('Send test notification error:', error.message);
     res.status(500).json({
       success: false,
       message: 'テスト通知の送信に失敗しました'
@@ -362,7 +362,7 @@ router.post('/broadcast', authenticateToken, async (req, res) => {
       results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false })
     });
   } catch (error) {
-    console.error('Broadcast notification error:', error);
+    console.error('Broadcast notification error:', error.message);
     res.status(500).json({
       success: false,
       message: '一括通知の送信に失敗しました'

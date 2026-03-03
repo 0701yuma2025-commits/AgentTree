@@ -116,7 +116,7 @@ router.get('/agencies', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get network data error:', error);
+    console.error('Get network data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ネットワークデータの取得に失敗しました'

@@ -73,7 +73,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
       data: formattedHistory
     });
   } catch (error) {
-    console.error('Get sale history error:', error);
+    console.error('Get sale history error:', error.message);
     res.status(500).json({
       success: false,
       message: '変更履歴の取得に失敗しました'

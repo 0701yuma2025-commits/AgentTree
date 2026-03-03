@@ -99,7 +99,7 @@ router.get('/', authenticateToken, async (req, res) => {
       data: data || []
     });
   } catch (error) {
-    console.error('Get agencies error:', error);
+    console.error('Get agencies error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -319,7 +319,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create agency error:', error);
+      console.error('Create agency error:', error.message);
       res.status(500).json({
         success: false,
         message: 'データの作成に失敗しました'
@@ -391,7 +391,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Get agency error:', error);
+    console.error('Get agency error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -477,7 +477,7 @@ router.put('/:id',
         data
       });
     } catch (error) {
-      console.error('Update agency error:', error);
+      console.error('Update agency error:', error.message);
       res.status(500).json({
         success: false,
         message: 'データの更新に失敗しました'
@@ -565,7 +565,7 @@ router.delete('/:id',
         message: '代理店を削除しました'
       });
     } catch (error) {
-      console.error('Delete agency error:', error);
+      console.error('Delete agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '削除処理に失敗しました'

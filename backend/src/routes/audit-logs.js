@@ -150,7 +150,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get audit log detail error:', error);
+    console.error('Get audit log detail error:', error.message);
     res.status(500).json({
       success: false,
       message: '監査ログの取得に失敗しました'
@@ -239,7 +239,7 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get audit log stats error:', error);
+    console.error('Get audit log stats error:', error.message);
     res.status(500).json({
       success: false,
       message: '統計情報の取得に失敗しました'
@@ -303,7 +303,7 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
     res.send('\uFEFF' + csv);  // BOM for Excel
 
   } catch (error) {
-    console.error('Export audit logs error:', error);
+    console.error('Export audit logs error:', error.message);
     res.status(500).json({
       success: false,
       message: 'エクスポートに失敗しました'

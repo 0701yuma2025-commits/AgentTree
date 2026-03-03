@@ -19,9 +19,8 @@ async function sendEmail({ to, subject, html, text }) {
     // メール送信が無効な場合はスキップ
     if (process.env.ENABLE_EMAIL !== 'true') {
       console.log('[Email] メール送信は無効化されています');
-      console.log(`[Email] To: ${to}`);
+      console.log(`[Email] To: ${maskEmail(to)}`);
       console.log(`[Email] Subject: ${subject}`);
-      console.log(`[Email] HTML:`, html);
       return { success: true, message: 'メール送信は無効化されています（開発環境）' };
     }
 
@@ -35,19 +34,30 @@ async function sendEmail({ to, subject, html, text }) {
     });
 
     if (error) {
-      console.error('[Email] 送信エラー:', error);
+      console.error('[Email] 送信エラー:', error.message);
       throw new Error(`メール送信に失敗しました: ${error.message}`);
     }
 
-    console.log(`[Email] 送信成功: ${to} - ${subject}`);
+    console.log(`[Email] 送信成功: ${maskEmail(to)} - ${subject}`);
     return { success: true, data };
 
   } catch (error) {
-    console.error('[Email] メール送信エラー:', error);
+    console.error('[Email] メール送信エラー:', error.message);
     throw error;
   }
 }
 
+/**
+ * メールアドレスをマスクして表示（例: t***@example.com）
+ */
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return '***';
+  const [local, domain] = email.split('@');
+  const masked = local.length <= 1 ? '*' : local[0] + '***';
+  return `${masked}@${domain}`;
+}
+
 module.exports = {
-  sendEmail
+  sendEmail,
+  maskEmail
 };

@@ -43,7 +43,7 @@ router.get('/current', authMiddleware, async (req, res) => {
       data: settings || defaultSettings
     });
   } catch (error) {
-    console.error('Get commission settings error:', error);
+    console.error('Get commission settings error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -76,7 +76,7 @@ router.get('/history', authMiddleware, async (req, res) => {
       data: settings || []
     });
   } catch (error) {
-    console.error('Get commission settings history error:', error);
+    console.error('Get commission settings history error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -151,7 +151,7 @@ router.post('/', authMiddleware, async (req, res) => {
       data: newSettings
     });
   } catch (error) {
-    console.error('Update commission settings error:', error);
+    console.error('Update commission settings error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -214,7 +214,7 @@ router.get('/next-payment-date', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Calculate next payment date error:', error);
+    console.error('Calculate next payment date error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)

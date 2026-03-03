@@ -164,7 +164,7 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
     res.send(exportData);
 
   } catch (error) {
-    console.error('Export payment data error:', error);
+    console.error('Export payment data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'エクスポートに失敗しました',
@@ -228,7 +228,7 @@ router.get('/preview', authenticateToken, requireAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Preview payment data error:', error);
+    console.error('Preview payment data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'プレビューの取得に失敗しました',
@@ -287,7 +287,7 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
       .insert(paymentRecords);
 
     if (recordError) {
-      console.error('Payment record creation error:', recordError);
+      console.error('Payment record creation error:', recordError.message);
     }
 
     const response = {
@@ -306,7 +306,7 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
     res.json(response);
 
   } catch (error) {
-    console.error('Confirm payment error:', error);
+    console.error('Confirm payment error:', error.message);
     res.status(500).json({
       success: false,
       message: '支払い確定に失敗しました',

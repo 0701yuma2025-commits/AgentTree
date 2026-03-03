@@ -163,7 +163,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json(paginatedResponse(data || [], count || 0, { page, limit }));
   } catch (error) {
-    console.error('Get commissions error:', error);
+    console.error('Get commissions error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -212,7 +212,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
       data: summary
     });
   } catch (error) {
-    console.error('Get commission summary error:', error);
+    console.error('Get commission summary error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -367,7 +367,7 @@ router.post('/calculate',
         }
       });
     } catch (error) {
-      console.error('Calculate commissions error:', error);
+      console.error('Calculate commissions error:', error.message);
       res.status(500).json({
         success: false,
         message: '報酬計算に失敗しました'
@@ -405,7 +405,7 @@ router.put('/:id/confirm',
         data
       });
     } catch (error) {
-      console.error('Confirm commission error:', error);
+      console.error('Confirm commission error:', error.message);
       res.status(500).json({
         success: false,
         message: '報酬確定に失敗しました'
@@ -444,7 +444,7 @@ router.put('/:id/approve',
         message: '報酬を承認しました'
       });
     } catch (error) {
-      console.error('Approve commission error:', error);
+      console.error('Approve commission error:', error.message);
       res.status(500).json({
         success: false,
         message: '報酬承認に失敗しました'
@@ -486,7 +486,7 @@ router.put('/:id/pay',
         message: '報酬を支払済みに更新しました'
       });
     } catch (error) {
-      console.error('Pay commission error:', error);
+      console.error('Pay commission error:', error.message);
       res.status(500).json({
         success: false,
         message: '支払い状態の更新に失敗しました'
@@ -551,7 +551,7 @@ router.put('/:id/status',
         message: 'ステータスを更新しました'
       });
     } catch (error) {
-      console.error('Update commission status error:', error);
+      console.error('Update commission status error:', error.message);
       res.status(500).json({
         success: false,
         message: 'ステータスの更新に失敗しました'
@@ -636,7 +636,7 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
     res.send(csv);
 
   } catch (error) {
-    console.error('Export commissions error:', error);
+    console.error('Export commissions error:', error.message);
     res.status(500).json({
       success: false,
       message: '報酬データのエクスポートに失敗しました'

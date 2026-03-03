@@ -99,7 +99,7 @@ router.get('/2fa/status', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('2FA status error:', error);
+    console.error('2FA status error:', error.message);
     res.status(500).json({
       success: false,
       message: '2FAステータスの取得に失敗しました'
@@ -171,7 +171,7 @@ router.post('/2fa/email/enable', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Enable 2FA email error:', error);
+    console.error('Enable 2FA email error:', error.message);
     res.status(500).json({
       success: false,
       message: '2FAの有効化に失敗しました'
@@ -251,7 +251,7 @@ router.post('/2fa/email/verify', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Verify 2FA email error:', error);
+    console.error('Verify 2FA email error:', error.message);
     res.status(500).json({
       success: false,
       message: '2FAの検証に失敗しました'
@@ -319,7 +319,7 @@ router.post('/2fa/email/disable/request', authenticateToken, async (req, res) =>
     });
 
   } catch (error) {
-    console.error('Request disable 2FA code error:', error);
+    console.error('Request disable 2FA code error:', error.message);
     res.status(500).json({
       success: false,
       message: '認証コードの送信に失敗しました'
@@ -438,7 +438,7 @@ router.post('/2fa/email/disable/verify', authenticateToken, async (req, res) => 
     });
 
   } catch (error) {
-    console.error('Verify disable 2FA code error:', error);
+    console.error('Verify disable 2FA code error:', error.message);
     res.status(500).json({
       success: false,
       message: '2FAの無効化に失敗しました'
@@ -601,7 +601,7 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('2FA email login error:', error);
+    console.error('2FA email login error:', error.message);
     res.status(500).json({
       success: false,
       message: 'メール2FA認証に失敗しました'

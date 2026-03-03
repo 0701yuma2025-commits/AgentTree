@@ -57,7 +57,7 @@ router.get('/', authenticateToken, async (req, res) => {
       data: campaignsWithStatus
     });
   } catch (error) {
-    console.error('Get campaigns error:', error);
+    console.error('Get campaigns error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -88,7 +88,7 @@ router.get('/active', authenticateToken, async (req, res) => {
       data: data || []
     });
   } catch (error) {
-    console.error('Get active campaigns error:', error);
+    console.error('Get active campaigns error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -140,7 +140,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data: campaignData
     });
   } catch (error) {
-    console.error('Get campaign detail error:', error);
+    console.error('Get campaign detail error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -228,7 +228,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create campaign error:', error);
+      console.error('Create campaign error:', error.message);
       res.status(500).json({
         success: false,
         message: safeErrorMessage(error)
@@ -346,7 +346,7 @@ router.put('/:id',
         data
       });
     } catch (error) {
-      console.error('Update campaign error:', error);
+      console.error('Update campaign error:', error.message);
       res.status(500).json({
         success: false,
         message: safeErrorMessage(error)
@@ -392,7 +392,7 @@ router.delete('/:id',
         message: 'キャンペーンを削除しました'
       });
     } catch (error) {
-      console.error('Delete campaign error:', error);
+      console.error('Delete campaign error:', error.message);
       res.status(500).json({
         success: false,
         message: safeErrorMessage(error)
@@ -448,7 +448,7 @@ async function getCampaignStats(campaignId) {
       bonus_count: data?.length || 0
     };
   } catch (error) {
-    console.error('Get campaign stats error:', error);
+    console.error('Get campaign stats error:', error.message);
     return {
       total_bonus: 0,
       agency_count: 0,

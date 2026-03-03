@@ -71,7 +71,7 @@ router.put('/:id/approve',
         message: '代理店を承認しました'
       });
     } catch (error) {
-      console.error('Approve agency error:', error);
+      console.error('Approve agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '承認処理に失敗しました'
@@ -154,7 +154,7 @@ router.put('/:id/reject',
         message: '代理店を拒否しました'
       });
     } catch (error) {
-      console.error('Reject agency error:', error);
+      console.error('Reject agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '拒否処理に失敗しました'
@@ -217,7 +217,7 @@ router.put('/:id/reactivate',
         message: '代理店を再有効化しました'
       });
     } catch (error) {
-      console.error('Reactivate agency error:', error);
+      console.error('Reactivate agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '再有効化に失敗しました'

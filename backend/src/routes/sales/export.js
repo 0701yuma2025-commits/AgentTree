@@ -172,7 +172,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
       data: summary
     });
   } catch (error) {
-    console.error('Get sales summary error:', error);
+    console.error('Get sales summary error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -304,7 +304,7 @@ router.get('/organization-summary', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get organization summary error:', error);
+    console.error('Get organization summary error:', error.message);
     res.status(500).json({
       success: false,
       message: '組織売上サマリーの取得に失敗しました'

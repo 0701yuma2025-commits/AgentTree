@@ -98,7 +98,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
         .single();
 
       if (createError) {
-        console.error('Create user error:', createError);
+        console.error('Create user error:', createError.message);
         // エラーでもログインは許可（Supabase認証は成功しているため）
         userProfile = {
           id: authData.user.id,
@@ -242,7 +242,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
         .eq('id', userProfile.id);
 
       if (updateError) {
-        console.error('[2FA] DB更新エラー:', updateError);
+        console.error('[2FA] DB更新エラー:', updateError.message);
       }
 
       // メール送信（認証コードのみ）
@@ -259,7 +259,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
           `
         });
       } catch (emailError) {
-        console.error('[2FA] メール送信エラー:', emailError);
+        console.error('[2FA] メール送信エラー:', emailError.message);
         // エラーが発生してもログインは続行
       }
 
@@ -303,7 +303,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ログイン処理中にエラーが発生しました'
@@ -326,7 +326,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
     await supabase.auth.signOut();
     res.json({ success: true });
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Logout error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ログアウトに失敗しました'
@@ -390,7 +390,7 @@ router.post('/refresh', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Token refresh error:', error);
+    console.error('Token refresh error:', error.message);
     res.status(401).json({
       success: false,
       message: 'トークンの更新に失敗しました'

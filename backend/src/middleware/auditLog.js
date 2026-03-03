@@ -42,10 +42,10 @@ async function createAuditLog({
       });
 
     if (error) {
-      console.error('Failed to create audit log:', error);
+      console.error('Failed to create audit log:', error.message);
     }
   } catch (error) {
-    console.error('Audit log error:', error);
+    console.error('Audit log error:', error.message);
     // 監査ログ記録失敗はシステム全体を止めない
   }
 }
@@ -102,7 +102,7 @@ function auditLogMiddleware(action, resourceType) {
             errorMessage: status === 'failure' ? errorMessage : null
           });
         } catch (error) {
-          console.error('Audit log middleware error:', error);
+          console.error('Audit log middleware error:', error.message);
         }
       });
 

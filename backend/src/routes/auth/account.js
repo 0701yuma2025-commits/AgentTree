@@ -94,7 +94,7 @@ router.put('/change-email', passwordResetRateLimit, authenticateToken, async (re
     });
 
   } catch (error) {
-    console.error('Change email error:', error);
+    console.error('Change email error:', error.message);
     res.status(500).json({
       success: false,
       message: 'メールアドレスの変更に失敗しました'
@@ -171,7 +171,7 @@ router.put('/change-password', passwordResetRateLimit, authenticateToken, async 
     });
 
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('Change password error:', error.message);
     res.status(500).json({
       success: false,
       message: 'パスワードの変更に失敗しました'
@@ -199,7 +199,7 @@ router.post('/reset-password-request', passwordResetRateLimit, async (req, res) 
     });
 
     if (error) {
-      console.error('Password reset request error:', error);
+      console.error('Password reset request error:', error.message);
     }
 
     // セキュリティのため、メールアドレスが存在するかどうかに関わらず同じメッセージを返す
@@ -209,7 +209,7 @@ router.post('/reset-password-request', passwordResetRateLimit, async (req, res) 
     });
 
   } catch (error) {
-    console.error('Password reset request error:', error);
+    console.error('Password reset request error:', error.message);
     res.status(500).json({
       success: false,
       message: 'パスワードリセットリクエストの処理に失敗しました'
@@ -248,7 +248,7 @@ router.post('/reset-password', async (req, res) => {
     });
 
     if (error) {
-      console.error('Password reset error:', error);
+      console.error('Password reset error:', error.message);
       return res.status(400).json({
         success: false,
         message: 'パスワードのリセットに失敗しました'
@@ -261,7 +261,7 @@ router.post('/reset-password', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Password reset error:', error);
+    console.error('Password reset error:', error.message);
     res.status(500).json({
       success: false,
       message: 'パスワードリセットの処理に失敗しました'
@@ -301,7 +301,7 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
       .eq('password_reset_token', token);
 
     if (agencyError) {
-      console.error('Database error:', agencyError);
+      console.error('Database error:', agencyError.message);
       return res.status(500).json({
         success: false,
         message: 'データベースエラーが発生しました'
@@ -349,7 +349,7 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
       );
 
       if (updateError) {
-        console.error('Password update error:', updateError);
+        console.error('Password update error:', updateError.message);
         return res.status(500).json({
           success: false,
           message: 'パスワード設定に失敗しました'
@@ -375,7 +375,7 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
       });
 
     if (userError) {
-      console.error('User creation error:', userError);
+      console.error('User creation error:', userError.message);
     }
 
     // 代理店のuser_idとトークンをクリア
@@ -389,7 +389,7 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
       .eq('id', agency.id);
 
     if (updateAgencyError) {
-      console.error('Agency update error:', updateAgencyError);
+      console.error('Agency update error:', updateAgencyError.message);
     }
 
     res.json({
@@ -398,7 +398,7 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Set password error:', error);
+    console.error('Set password error:', error.message);
     res.status(500).json({
       success: false,
       message: 'パスワード設定に失敗しました'

@@ -86,7 +86,7 @@ router.get('/export', authenticateToken, async (req, res) => {
     res.send(csv);
 
   } catch (error) {
-    console.error('Export agencies error:', error);
+    console.error('Export agencies error:', error.message);
     res.status(500).json({
       success: false,
       message: '代理店データのエクスポートに失敗しました'
@@ -174,7 +174,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
     const invitationError = null;
 
     if (invitationError) {
-      console.error('Invitation history fetch error:', invitationError);
+      console.error('Invitation history fetch error:', invitationError.message);
       return res.status(500).json({
         success: false,
         message: '招待履歴の取得に失敗しました'
@@ -242,7 +242,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Agency history fetch error:', error);
+    console.error('Agency history fetch error:', error.message);
     res.status(500).json({
       success: false,
       message: '履歴の取得に失敗しました'

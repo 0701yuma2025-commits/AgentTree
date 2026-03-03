@@ -27,7 +27,7 @@ router.get('/', authMiddleware, async (req, res) => {
       data: products || []
     });
   } catch (error) {
-    console.error('Get products error:', error);
+    console.error('Get products error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -62,7 +62,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('Get product error:', error);
+    console.error('Get product error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -141,7 +141,7 @@ router.post('/', authMiddleware, async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('Create product error:', error);
+    console.error('Create product error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -245,7 +245,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('Update product error:', error);
+    console.error('Update product error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -285,7 +285,7 @@ router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
       message: '商品を削除しました'
     });
   } catch (error) {
-    console.error('Delete product error:', error);
+    console.error('Delete product error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)

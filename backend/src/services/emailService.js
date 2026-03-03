@@ -25,10 +25,10 @@ class EmailService {
    */
   async sendMail({ to, subject, html, text }) {
     if (this.isDevelopment) {
+      const recipient = Array.isArray(to) ? to.map(this.maskEmail).join(', ') : this.maskEmail(to);
       console.log('📧 [開発環境] メール送信をシミュレート:');
-      console.log('  To:', to);
+      console.log('  To:', recipient);
       console.log('  Subject:', subject);
-      console.log('  Content:', text || html.substring(0, 200) + '...');
       return { success: true, messageId: 'dev-' + Date.now() };
     }
 
@@ -42,14 +42,14 @@ class EmailService {
       });
 
       if (error) {
-        console.error('❌ Resend エラー:', error);
+        console.error('❌ Resend エラー:', error.message);
         return { success: false, error: error.message };
       }
 
       console.log('✅ メール送信成功:', data.id);
       return { success: true, messageId: data.id };
     } catch (error) {
-      console.error('❌ メール送信エラー:', error);
+      console.error('❌ メール送信エラー:', error.message);
       return { success: false, error: error.message };
     }
   }
@@ -503,6 +503,16 @@ class EmailService {
     `;
 
     return this.sendMail({ to: contact_email, subject, html });
+  }
+
+  /**
+   * メールアドレスをマスク（例: t***@example.com）
+   */
+  maskEmail(email) {
+    if (!email || !email.includes('@')) return '***';
+    const [local, domain] = email.split('@');
+    const masked = local.length <= 1 ? '*' : local[0] + '***';
+    return `${masked}@${domain}`;
   }
 
   /**

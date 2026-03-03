@@ -158,7 +158,7 @@ router.get('/anomalies', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get anomaly sales error:', error);
+    console.error('Get anomaly sales error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -213,7 +213,7 @@ router.put('/:id/review', authenticateToken, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Review sale error:', error);
+    console.error('Review sale error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
