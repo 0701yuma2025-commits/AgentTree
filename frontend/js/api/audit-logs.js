@@ -58,23 +58,15 @@ const AuditLogsAPI = {
 
     const url = `${CONFIG.API_BASE_URL}/audit-logs/export/csv?${queryParams.toString()}`;
 
-    // 認証トークン取得
-    const token = localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN);
-    if (!token) {
-      throw new Error('認証されていません');
-    }
-
     // ダウンロード用のリンクを生成
     const link = document.createElement('a');
     link.href = url;
     link.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
 
-    // Authorization ヘッダーを含むリクエストを fetch で実行
+    // Cookie認証でリクエスト実行
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      credentials: 'include'
     });
 
     if (!response.ok) {

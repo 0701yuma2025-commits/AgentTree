@@ -23,11 +23,7 @@ class ApiClient {
       ...fetchOptions.headers
     };
 
-    // 認証トークンがあれば追加
-    const token = this.getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    // 認証はhttpOnly Cookieで自動送信（Bearer headerは不要）
 
     try {
       const response = await fetch(url, {
@@ -47,7 +43,7 @@ class ApiClient {
             data.code === 'TOKEN_NOT_ACTIVE' || data.code === 'TOKEN_VERIFICATION_FAILED') {
           console.log('JWT認証エラーを検知しました。ログイン画面へ移動します。');
           console.log('エラー詳細:', data.message);
-          this.removeToken();
+          this.clearSession();
 
           // ユーザーに通知
           if (data.code === 'TOKEN_EXPIRED') {
@@ -169,24 +165,12 @@ class ApiClient {
   }
 
   /**
-   * トークン取得
+   * セッション情報をクリア（トークンはhttpOnly Cookieなのでサーバー側で管理）
    */
-  getToken() {
-    return localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN);
-  }
-
-  /**
-   * トークン保存
-   */
-  setToken(token) {
-    localStorage.setItem(CONFIG.STORAGE_KEYS.TOKEN, token);
-  }
-
-  /**
-   * トークン削除
-   */
-  removeToken() {
-    localStorage.removeItem(CONFIG.STORAGE_KEYS.TOKEN);
+  clearSession() {
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.USER);
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.TOKEN); // レガシー cleanup
   }
 }
 

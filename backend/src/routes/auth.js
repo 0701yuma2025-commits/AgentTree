@@ -287,18 +287,15 @@ router.post('/login', loginRateLimit, async (req, res) => {
     setTokenCookie(res, token);
     setRefreshTokenCookie(res, refreshToken);
 
-    // 2FAが無効な場合は通常通りトークンを返す
-    // 注: tokenとrefreshTokenはレスポンスボディにも含める（フロントエンド移行期間中の後方互換性のため）
+    // トークンはhttpOnly Cookieのみで管理（レスポンスbodyには含めない）
     res.json({
       success: true,
-      token,
-      refreshToken,
       user: {
         id: userProfile.id || authData.user.id,
         email: email,
-        role: finalRole, // 明示的にロールを設定
+        role: finalRole,
         full_name: userProfile.full_name || email.split('@')[0],
-        agency: userAgency // 代理店情報を追加
+        agency: userAgency
       }
     });
 
@@ -384,9 +381,9 @@ router.post('/refresh', async (req, res) => {
     // 新しいアクセストークンをhttpOnly Cookieに設定
     setTokenCookie(res, newToken);
 
+    // トークンはhttpOnly Cookieのみ（bodyには含めない）
     res.json({
-      success: true,
-      token: newToken
+      success: true
     });
 
   } catch (error) {

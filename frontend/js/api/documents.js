@@ -28,9 +28,6 @@ const documentsAPI = {
 
       const response = await fetch(`${CONFIG.API_BASE_URL}/documents/upload`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN) || localStorage.getItem('token')}`
-        },
         credentials: 'include',
         body: formData
       });

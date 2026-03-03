@@ -443,10 +443,8 @@ class CommissionsPage {
     try {
       const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commissionId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('agency_system_token') || localStorage.getItem('token')}`
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: newStatus })
       });
 
@@ -477,10 +475,8 @@ class CommissionsPage {
     try {
       const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commissionId}/pay`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('agency_system_token') || localStorage.getItem('token')}`
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           payment_date: paymentDate,
           payment_method: paymentMethod,
@@ -570,10 +566,8 @@ class CommissionsPage {
         try {
           const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commission.id}/status`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('agency_system_token') || localStorage.getItem('token')}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ status: 'approved' })
           });
 
@@ -713,10 +707,8 @@ class CommissionsPage {
         try {
           const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/${commission.id}/pay`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('agency_system_token') || localStorage.getItem('token')}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               payment_date: paymentDate,
               payment_method: 'bank_transfer'

@@ -80,9 +80,7 @@ const commissionsAPI = {
 
       const response = await fetch(`${CONFIG.API_BASE_URL}/commissions/export?${queryParams}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN)}`
-        }
+        credentials: 'include'
       });
 
       if (!response.ok) {

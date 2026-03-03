@@ -586,10 +586,9 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
     setTokenCookie(res, jwtToken);
     setRefreshTokenCookie(res, refreshToken);
 
+    // トークンはhttpOnly Cookieのみ（bodyには含めない）
     res.json({
       success: true,
-      token: jwtToken,
-      refreshToken,
       user: {
         id: user.id,
         email: user.email,

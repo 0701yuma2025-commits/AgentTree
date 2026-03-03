@@ -15,7 +15,7 @@ class AuthAPI {
       });
 
       if (response.success) {
-        apiClient.setToken(response.token);
+        // ユーザー情報のみlocalStorageに保存（トークンはhttpOnly Cookieで管理）
         localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
         return response;
       }
@@ -62,7 +62,8 @@ class AuthAPI {
    * ログイン状態チェック
    */
   isLoggedIn() {
-    return !!apiClient.getToken() && !!this.getCurrentUser();
+    // トークンはhttpOnly Cookieで管理されるため、ユーザー情報の有無で判定
+    return !!this.getCurrentUser();
   }
 
   /**
@@ -78,20 +79,10 @@ class AuthAPI {
    */
   async refreshToken() {
     try {
-      const refreshToken = localStorage.getItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN);
-      if (!refreshToken) {
-        throw new Error('リフレッシュトークンがありません');
-      }
-
-      const response = await apiClient.post('/auth/refresh', {
-        refreshToken
-      });
+      // refresh_tokenはhttpOnly Cookieで自動送信される
+      const response = await apiClient.post('/auth/refresh', {});
 
       if (response.success) {
-        apiClient.setToken(response.token);
-        if (response.refreshToken) {
-          localStorage.setItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
-        }
         return response;
       }
 
@@ -191,11 +182,8 @@ class AuthAPI {
       });
 
       if (response.success) {
-        apiClient.setToken(response.token);
+        // ユーザー情報のみlocalStorageに保存（トークンはhttpOnly Cookieで管理）
         localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
-        if (response.refreshToken) {
-          localStorage.setItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
-        }
         return response;
       }
 
