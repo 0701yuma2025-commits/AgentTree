@@ -492,6 +492,8 @@ module.exports = {
   calculateCommissionForSale,
   calculateMonthlyCommissions,
   calculateCampaignBonus,
+  calculateCampaignBonusNew,
+  checkCampaignEligibility,
   generateCommissionSummary,
   DEFAULT_TIER_RATES,
   DEFAULT_HIERARCHY_BONUS_RATES,

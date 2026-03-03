@@ -7,7 +7,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
-const { calculateCommissionForSale } = require('../../utils/calculateCommission');
+const { calculateCommissionForSale, calculateCampaignBonusNew } = require('../../utils/calculateCommission');
 const { detectAnomalies } = require('../../utils/anomalyDetection');
 const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
@@ -280,8 +280,26 @@ router.post('/',
             non_invoice_deduction_rate: 2.00
           };
 
-          // 報酬を計算（キャンペーンも考慮、売上登録時の設定値を適用）
+          // 報酬を計算（売上登録時の設定値を適用）
           const commissionResult = calculateCommissionForSale(data, agencyData, product, parentChain, settings);
+
+          // キャンペーンボーナスの計算（有効なキャンペーンがある場合）
+          let campaignBonusResult = { total: 0, details: [] };
+          if (activeCampaigns && activeCampaigns.length > 0) {
+            // DB形式→計算関数の期待する形式に変換
+            const normalizedCampaigns = activeCampaigns.map(c => ({
+              ...c,
+              bonus_type: c.conditions?.bonus_type || (c.bonus_rate !== null ? 'percentage' : 'fixed'),
+              bonus_value: c.bonus_rate !== null ? c.bonus_rate : c.bonus_amount,
+              target_products: c.conditions?.target_products || null,
+              target_agencies: c.conditions?.target_agencies || null,
+              target_tiers: c.target_tier_levels || [1, 2, 3, 4],
+              max_bonus_per_agency: c.conditions?.max_bonus_per_agency || null
+            }));
+            campaignBonusResult = calculateCampaignBonusNew(data, agencyData, product, normalizedCampaigns);
+          }
+          commissionResult.campaign_bonus = campaignBonusResult.total;
+          commissionResult.final_amount += campaignBonusResult.total;
 
           // 報酬レコードを作成
           const month = new Date(sale_date).toISOString().slice(0, 7); // YYYY-MM形式
@@ -289,6 +307,7 @@ router.post('/',
           // 計算詳細に設定値を保存（編集時に使用）
           const calculationDetails = {
             ...(commissionResult.calculation_details || {}),
+            campaign_bonus_details: campaignBonusResult.details.length > 0 ? campaignBonusResult.details : undefined,
             applied_settings: {
               tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
               tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
