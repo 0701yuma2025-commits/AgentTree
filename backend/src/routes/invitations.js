@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { sensitiveActionRateLimit } = require('../middleware/rateLimiter');
 const emailService = require('../services/emailService');
 
 // 招待トークン検証用レート制限（1分あたり10回まで）
@@ -59,6 +60,7 @@ router.get('/', authenticateToken, async (req, res) => {
  */
 router.post('/',
   authenticateToken,
+  sensitiveActionRateLimit('invitation_create'),
   [
     body('agency_id').isUUID().withMessage('代理店IDが不正です'),
     body('email').isEmail().withMessage('有効なメールアドレスを入力してください')
@@ -155,6 +157,7 @@ router.get('/validate/:token', validateRateLimit, async (req, res) => {
  * 招待受諾
  */
 router.post('/accept',
+  sensitiveActionRateLimit('invitation_accept'),
   [
     body('token').notEmpty().withMessage('トークンは必須です'),
     body('password').isLength({ min: 8 }).withMessage('パスワードは8文字以上必要です'),

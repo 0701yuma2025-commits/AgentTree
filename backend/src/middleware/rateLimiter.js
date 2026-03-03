@@ -149,6 +149,26 @@ const generalRateLimit = (req, res, next) => {
 };
 
 /**
+ * センシティブ操作のレート制限
+ * 認証済みユーザー向け: 1時間で5回まで（2FA操作、招待送信など）
+ */
+const sensitiveActionRateLimit = (actionName) => (req, res, next) => {
+  const userId = req.user?.id || req.ip;
+  const key = `${actionName}_${userId}`;
+
+  const allowed = checkRateLimit(key, 5, 60 * 60 * 1000);
+
+  if (!allowed) {
+    return res.status(429).json({
+      success: false,
+      message: 'この操作の試行回数が上限に達しました。1時間後に再度お試しください。'
+    });
+  }
+
+  next();
+};
+
+/**
  * レート制限情報をクリアする（定期的に実行）
  */
 const clearOldRateLimits = () => {
@@ -173,5 +193,6 @@ module.exports = {
   agencyCreationRateLimit,
   loginRateLimit,
   passwordResetRateLimit,
-  generalRateLimit
+  generalRateLimit,
+  sensitiveActionRateLimit
 };

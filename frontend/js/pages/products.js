@@ -179,8 +179,8 @@ class ProductsPage {
       const statusClass = product.is_active ? 'status-active' : 'status-inactive';
 
       row.innerHTML = `
-        <td>${product.product_code || '-'}</td>
-        <td>${product.name}</td>
+        <td>${escapeHtml(product.product_code) || '-'}</td>
+        <td>${escapeHtml(product.name)}</td>
         <td>¥${(product.price || 0).toLocaleString()}</td>
         <td>${(product.tier1_commission_rate || 0)}%</td>
         <td>${(product.tier2_commission_rate || 0)}%</td>
@@ -240,7 +240,7 @@ class ProductsPage {
           </div>
           <div class="form-group">
             <label for="productName">商品名*</label>
-            <input type="text" id="productName" value="${product?.name || ''}" required>
+            <input type="text" id="productName" value="${escapeHtml(product?.name || '')}" required>
           </div>
         </div>
 
@@ -251,7 +251,7 @@ class ProductsPage {
           </div>
           <div class="form-group">
             <label for="productDescription">説明</label>
-            <textarea id="productDescription" rows="3">${product?.description || ''}</textarea>
+            <textarea id="productDescription" rows="3">${escapeHtml(product?.description || '')}</textarea>
           </div>
         </div>
 

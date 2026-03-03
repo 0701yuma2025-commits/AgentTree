@@ -142,9 +142,9 @@ class DocumentsManager {
 
     return `
       <tr>
-        <td>${typeMap[doc.document_type] || doc.document_type}</td>
+        <td>${typeMap[doc.document_type] || escapeHtml(doc.document_type)}</td>
         <td>
-          <a href="${doc.file_url}" target="_blank" class="link">${doc.document_name}</a>
+          <a href="${escapeHtml(doc.file_url)}" target="_blank" class="link">${escapeHtml(doc.document_name)}</a>
         </td>
         <td>${statusMap[doc.status] || doc.status}</td>
         <td>${new Date(doc.created_at).toLocaleDateString()}</td>

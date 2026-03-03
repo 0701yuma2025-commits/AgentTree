@@ -306,10 +306,10 @@ class InvoicesPage {
         row.innerHTML = `
             <td>
                 <div class="sale-number">
-                    ${invoice.saleNumber || '-'}
+                    ${escapeHtml(invoice.saleNumber) || '-'}
                 </div>
             </td>
-            <td>${invoice.month}</td>
+            <td>${escapeHtml(invoice.month)}</td>
             <td>¥${(invoice.baseCommission || 0).toLocaleString()}</td>
             <td>¥${(invoice.tierBonus || 0).toLocaleString()}</td>
             <td class="text-danger">-¥${(invoice.withholdingTax || 0).toLocaleString()}</td>

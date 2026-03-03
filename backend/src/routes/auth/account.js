@@ -220,7 +220,7 @@ router.post('/reset-password-request', passwordResetRateLimit, async (req, res) 
 /**
  * パスワードリセット実行（新しいパスワードの設定）
  */
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', passwordResetRateLimit, async (req, res) => {
   try {
     const { token, new_password } = req.body;
 

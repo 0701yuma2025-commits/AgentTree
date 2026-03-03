@@ -9,7 +9,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
-const { loginRateLimit } = require('../../middleware/rateLimiter');
+const { loginRateLimit, sensitiveActionRateLimit } = require('../../middleware/rateLimiter');
 const { sendEmail } = require('../../utils/emailSender');
 const { setTokenCookie, setRefreshTokenCookie } = require('../../utils/cookieHelper');
 
@@ -111,7 +111,7 @@ router.get('/2fa/status', authenticateToken, async (req, res) => {
  * POST /api/auth/2fa/email/enable
  * メール2FA有効化（パスワード確認のみ）
  */
-router.post('/2fa/email/enable', authenticateToken, async (req, res) => {
+router.post('/2fa/email/enable', authenticateToken, sensitiveActionRateLimit('2fa_enable'), async (req, res) => {
   try {
     const userId = req.user.id;
     const email = req.user.email;
@@ -183,7 +183,7 @@ router.post('/2fa/email/enable', authenticateToken, async (req, res) => {
  * POST /api/auth/2fa/email/verify
  * メール認証コード検証（2FA有効化）
  */
-router.post('/2fa/email/verify', authenticateToken, async (req, res) => {
+router.post('/2fa/email/verify', authenticateToken, sensitiveActionRateLimit('2fa_verify'), async (req, res) => {
   try {
     const userId = req.user.id;
     const { code } = req.body;
@@ -263,7 +263,7 @@ router.post('/2fa/email/verify', authenticateToken, async (req, res) => {
  * POST /api/auth/2fa/email/disable/request
  * メール2FA無効化リクエスト（認証コードをメール送信）
  */
-router.post('/2fa/email/disable/request', authenticateToken, async (req, res) => {
+router.post('/2fa/email/disable/request', authenticateToken, sensitiveActionRateLimit('2fa_disable_request'), async (req, res) => {
   try {
     const userId = req.user.id;
     const email = req.user.email;
