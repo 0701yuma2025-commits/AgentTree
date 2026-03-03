@@ -16,6 +16,8 @@ class AgenciesPage {
    * 代理店一覧読み込み
    */
   async loadAgencies(forceReload = false) {
+    const container = document.getElementById('agenciesPage');
+    if (container) container.classList.add('loading-overlay');
     try {
       const agencies = await agenciesAPI.getAgencies();
 
@@ -55,6 +57,8 @@ class AgenciesPage {
       if (tbody) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center">データの読み込みに失敗しました</td></tr>';
       }
+    } finally {
+      if (container) container.classList.remove('loading-overlay');
     }
   }
 

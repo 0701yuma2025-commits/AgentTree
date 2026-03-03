@@ -16,6 +16,8 @@ class DashboardPage {
    * ダッシュボード読み込み
    */
   async loadDashboard() {
+    const container = document.getElementById('dashboardPage');
+    if (container) container.classList.add('loading-overlay');
     try {
       // ダッシュボードデータ取得
       // ダッシュボード統計データ取得
@@ -92,6 +94,8 @@ class DashboardPage {
 
     } catch (error) {
       errorLog('Load dashboard error:', error);
+    } finally {
+      if (container) container.classList.remove('loading-overlay');
     }
   }
 

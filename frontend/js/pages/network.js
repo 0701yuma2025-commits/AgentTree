@@ -38,6 +38,8 @@ class NetworkPage {
    * ネットワークデータ取得
    */
   async loadNetworkData() {
+    const pageContainer = document.getElementById('networkPage');
+    if (pageContainer) pageContainer.classList.add('loading-overlay');
     try {
       const response = await apiClient.get('/network/agencies');
 
@@ -59,6 +61,8 @@ class NetworkPage {
           </div>
         </div>`;
       }
+    } finally {
+      if (pageContainer) pageContainer.classList.remove('loading-overlay');
     }
   }
 

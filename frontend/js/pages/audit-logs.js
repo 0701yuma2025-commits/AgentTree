@@ -68,6 +68,8 @@ class AuditLogsPage {
    * 監査ログ読み込み
    */
   async loadAuditLogs() {
+    const container = document.getElementById('auditLogsPage');
+    if (container) container.classList.add('loading-overlay');
     try {
       const params = {
         page: this.currentPage,
@@ -90,6 +92,8 @@ class AuditLogsPage {
     } catch (error) {
       console.error('Failed to load audit logs:', error);
       showToast('監査ログの読み込みに失敗しました', 'error');
+    } finally {
+      if (container) container.classList.remove('loading-overlay');
     }
   }
 

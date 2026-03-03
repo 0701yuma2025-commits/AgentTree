@@ -15,6 +15,8 @@ class SalesPage {
    * 売上一覧読み込み
    */
   async loadSales(forceReload = false, filters = {}) {
+    const container = document.getElementById('salesPage');
+    if (container) container.classList.add('loading-overlay');
     try {
       const sales = await apiClient.get('/sales', filters);
 
@@ -152,6 +154,8 @@ class SalesPage {
 
     } catch (error) {
       errorLog('Load sales error:', error);
+    } finally {
+      if (container) container.classList.remove('loading-overlay');
     }
   }
 

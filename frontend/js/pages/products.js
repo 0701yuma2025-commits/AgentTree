@@ -27,6 +27,8 @@ class ProductsPage {
    * 商品一覧の読み込み
    */
   async loadProducts() {
+    const container = document.getElementById('productsPage');
+    if (container) container.classList.add('loading-overlay');
     try {
       const response = await window.productsAPI.getProducts();
       if (response.success && response.data) {
@@ -111,6 +113,8 @@ class ProductsPage {
       }
     } catch (error) {
       console.error('Load products error:', error);
+    } finally {
+      if (container) container.classList.remove('loading-overlay');
     }
   }
 

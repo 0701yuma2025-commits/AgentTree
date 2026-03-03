@@ -9,13 +9,9 @@ const campaignsPage = {
    * キャンペーン一覧読み込み
    */
   async loadCampaigns() {
+    const container = document.getElementById('campaignsPage');
+    if (container) container.classList.add('loading-overlay');
     try {
-      // ローディング表示
-      const tbody = document.getElementById('campaignsTable')?.querySelector('tbody');
-      if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">読み込み中...</td></tr>';
-      }
-
       // データ取得
       this.campaigns = await window.campaignsAPI.getCampaigns({ include_expired: true });
 
@@ -23,9 +19,12 @@ const campaignsPage = {
       this.renderCampaignsTable();
     } catch (error) {
       errorLog('Load campaigns error:', error);
+      const tbody = document.getElementById('campaignsTable')?.querySelector('tbody');
       if (tbody) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">データの読み込みに失敗しました</td></tr>';
       }
+    } finally {
+      if (container) container.classList.remove('loading-overlay');
     }
   },
 
