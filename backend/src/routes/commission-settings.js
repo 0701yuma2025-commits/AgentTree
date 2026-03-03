@@ -121,6 +121,29 @@ router.post('/', authMiddleware, async (req, res) => {
       }
     }
 
+    // 数値項目のバリデーション
+    if (minimum_payment_amount !== undefined && (minimum_payment_amount < 0 || minimum_payment_amount > 10000000)) {
+      return res.status(400).json({ success: false, message: '最低支払額は0〜10,000,000の範囲で指定してください' });
+    }
+    if (payment_day !== undefined && (payment_day < 1 || payment_day > 31)) {
+      return res.status(400).json({ success: false, message: '支払日は1〜31の範囲で指定してください' });
+    }
+    if (closing_day !== undefined && (closing_day < 1 || closing_day > 31)) {
+      return res.status(400).json({ success: false, message: '締日は1〜31の範囲で指定してください' });
+    }
+    const rateFields = [
+      { val: tier1_from_tier2_bonus, name: 'Tier1→Tier2ボーナス率' },
+      { val: tier2_from_tier3_bonus, name: 'Tier2→Tier3ボーナス率' },
+      { val: tier3_from_tier4_bonus, name: 'Tier3→Tier4ボーナス率' },
+      { val: withholding_tax_rate, name: '源泉徴収率' },
+      { val: non_invoice_deduction_rate, name: 'インボイス未登録控除率' }
+    ];
+    for (const { val, name } of rateFields) {
+      if (val !== undefined && (val < 0 || val > 100)) {
+        return res.status(400).json({ success: false, message: `${name}は0〜100の範囲で指定してください` });
+      }
+    }
+
     // 既存の有効な設定を無効化
     await supabase
       .from('commission_settings')

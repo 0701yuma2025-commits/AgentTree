@@ -25,7 +25,11 @@ router.get('/', authenticateToken, async (req, res) => {
 
     // ユーザー自身のテンプレートまたはシステム共通（user_id IS NULL）のみ
     if (req.user.role !== 'admin') {
-      query = query.or(`user_id.eq.${String(req.user.id).replace(/[^a-f0-9-]/gi, '')},user_id.is.null`);
+      const safeUserId = String(req.user.id).replace(/[^a-f0-9-]/gi, '');
+      if (safeUserId.length !== req.user.id.length) {
+        return res.status(400).json({ success: false, message: 'ユーザーIDの形式が不正です' });
+      }
+      query = query.or(`user_id.eq.${safeUserId},user_id.is.null`);
     }
 
     // タイプフィルター
@@ -69,7 +73,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     // 管理者以外は自分のテンプレートまたは共有テンプレートのみ
     if (req.user.role !== 'admin') {
-      query = query.or(`user_id.eq.${String(req.user.id).replace(/[^a-f0-9-]/gi, '')},user_id.is.null`);
+      const safeUserId = String(req.user.id).replace(/[^a-f0-9-]/gi, '');
+      if (safeUserId.length !== req.user.id.length) {
+        return res.status(400).json({ success: false, message: 'ユーザーIDの形式が不正です' });
+      }
+      query = query.or(`user_id.eq.${safeUserId},user_id.is.null`);
     }
 
     const { data, error } = await query.single();

@@ -259,6 +259,10 @@ router.post('/test', authenticateToken, (req, res, next) => {
     const { email } = req.user;
     const { type = 'test' } = req.body;
 
+    // typeのバリデーション（英数字とアンダースコアのみ許可）
+    const validTypes = ['test', 'email', 'payment', 'commission', 'alert'];
+    const safeType = validTypes.includes(type) ? type : 'test';
+
     // テストメール送信
     const result = await emailService.sendMail({
       to: email,
@@ -266,7 +270,7 @@ router.post('/test', authenticateToken, (req, res, next) => {
       html: `
         <h2>テスト通知</h2>
         <p>これはテスト通知です。</p>
-        <p>通知タイプ: ${type}</p>
+        <p>通知タイプ: ${safeType}</p>
         <p>送信時刻: ${new Date().toLocaleString('ja-JP')}</p>
       `
     });

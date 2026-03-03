@@ -7,7 +7,7 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
-const { safeErrorMessage } = require('../utils/errorHelper');
+const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 // サブルーターをマウント
@@ -99,9 +99,10 @@ router.get('/', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('Get sales error:', error.message);
-    res.status(500).json({
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({
       success: false,
-      message: 'データの取得に失敗しました'
+      message: dbErr?.message || 'データの取得に失敗しました'
     });
   }
 });
@@ -169,10 +170,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Get sale detail error:', error.message);
-    res.status(500).json({
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({
       success: false,
-      message: 'サーバーエラーが発生しました',
-      error: safeErrorMessage(error)
+      message: dbErr?.message || 'データの取得に失敗しました'
     });
   }
 });
