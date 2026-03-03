@@ -27,6 +27,19 @@ const DEFAULT_HIERARCHY_BONUS_RATES = {
 };
 
 /**
+ * デフォルトの報酬設定値
+ * commission_settingsテーブルにレコードがない場合のフォールバック
+ */
+const DEFAULT_COMMISSION_SETTINGS = {
+  tier1_from_tier2_bonus: DEFAULT_HIERARCHY_BONUS_RATES[1],
+  tier2_from_tier3_bonus: DEFAULT_HIERARCHY_BONUS_RATES[2],
+  tier3_from_tier4_bonus: DEFAULT_HIERARCHY_BONUS_RATES[3],
+  minimum_payment_amount: 10000,
+  withholding_tax_rate: 10.21,
+  non_invoice_deduction_rate: 2.00
+};
+
+/**
  * 売上に基づく報酬を計算（商品情報を考慮）
  * @param {Object} sale - 売上データ
  * @param {Object} agency - 代理店データ
@@ -497,6 +510,7 @@ module.exports = {
   generateCommissionSummary,
   DEFAULT_TIER_RATES,
   DEFAULT_HIERARCHY_BONUS_RATES,
+  DEFAULT_COMMISSION_SETTINGS,
   // 後方互換性のためのエイリアス
   HIERARCHY_BONUS_RATES: DEFAULT_HIERARCHY_BONUS_RATES
 };

@@ -64,7 +64,7 @@ agency-system-v2/
 │       │   ├── rateLimiter.js  # 基本レート制限
 │       │   └── __tests__/
 │       ├── routes/
-│       │   ├── auth.js         # POST /login, /logout, /refresh-token
+│       │   ├── auth.js         # POST /login, /logout, /refresh
 │       │   ├── auth/
 │       │   │   ├── account.js  # PUT /change-email, /change-password
 │       │   │   └── two-factor.js  # 2FA TOTP設定・検証
@@ -336,7 +336,7 @@ Tier 1 (直販代理店)    ← 商品別 tier1_commission_rate
 |--------|------|------|------|
 | POST | `/login` | - | ログイン |
 | POST | `/logout` | JWT | ログアウト |
-| POST | `/refresh-token` | - | トークン更新 |
+| POST | `/refresh` | - | トークン更新 |
 | PUT | `/change-email` | JWT | メール変更 |
 | PUT | `/change-password` | JWT | パスワード変更 |
 | POST | `/reset-password-request` | - | リセット申請 |

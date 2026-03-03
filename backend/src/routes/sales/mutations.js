@@ -7,21 +7,12 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
-const { calculateCommissionForSale, calculateCampaignBonusNew } = require('../../utils/calculateCommission');
+const { calculateCommissionForSale, calculateCampaignBonusNew, DEFAULT_COMMISSION_SETTINGS } = require('../../utils/calculateCommission');
 const { detectAnomalies } = require('../../utils/anomalyDetection');
 const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
 const emailService = require('../../services/emailService');
 
-/** デフォルトの報酬設定値 */
-const DEFAULT_COMMISSION_SETTINGS = {
-  tier1_from_tier2_bonus: 2.00,
-  tier2_from_tier3_bonus: 1.50,
-  tier3_from_tier4_bonus: 1.00,
-  minimum_payment_amount: 10000,
-  withholding_tax_rate: 10.21,
-  non_invoice_deduction_rate: 2.00
-};
 
 /**
  * 親代理店チェーンを取得
@@ -271,14 +262,7 @@ router.post('/',
             .limit(1)
             .single();
 
-          const settings = commissionSettings || {
-            tier1_from_tier2_bonus: 2.00,
-            tier2_from_tier3_bonus: 1.50,
-            tier3_from_tier4_bonus: 1.00,
-            minimum_payment_amount: 10000,
-            withholding_tax_rate: 10.21,
-            non_invoice_deduction_rate: 2.00
-          };
+          const settings = commissionSettings || DEFAULT_COMMISSION_SETTINGS;
 
           // 報酬を計算（売上登録時の設定値を適用）
           const commissionResult = calculateCommissionForSale(data, agencyData, product, parentChain, settings);
