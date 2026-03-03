@@ -166,8 +166,8 @@ const clearOldRateLimits = () => {
   }
 };
 
-// 1時間ごとに古いデータをクリア
-setInterval(clearOldRateLimits, 60 * 60 * 1000);
+// 1時間ごとに古いデータをクリア（unrefでプロセス終了をブロックしない）
+setInterval(clearOldRateLimits, 60 * 60 * 1000).unref();
 
 module.exports = {
   agencyCreationRateLimit,

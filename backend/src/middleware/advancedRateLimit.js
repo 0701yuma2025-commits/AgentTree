@@ -133,10 +133,10 @@ class BruteForceProtection {
     current.lastAttempt = Date.now();
     this.attempts.set(key, current);
 
-    // 24時間後に自動クリア
+    // 24時間後に自動クリア（unrefでプロセス終了をブロックしない）
     setTimeout(() => {
       this.attempts.delete(key);
-    }, 24 * 60 * 60 * 1000);
+    }, 24 * 60 * 60 * 1000).unref();
   }
 
   /**

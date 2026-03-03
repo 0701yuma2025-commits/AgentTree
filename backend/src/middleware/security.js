@@ -142,11 +142,11 @@ class IPBlocklist {
    */
   block(ip, duration = null) {
     if (duration) {
-      // 一時的なブロック
+      // 一時的なブロック（unrefでプロセス終了をブロックしない）
       this.tempBlocked.set(ip, Date.now() + duration);
       setTimeout(() => {
         this.tempBlocked.delete(ip);
-      }, duration);
+      }, duration).unref();
     } else {
       // 永続的なブロック
       this.blockedIPs.add(ip);
