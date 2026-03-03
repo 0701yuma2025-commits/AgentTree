@@ -24,6 +24,13 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 
+// 推奨環境変数の警告
+const recommendedEnvVars = ['RESEND_API_KEY', 'FRONTEND_URL', 'NODE_ENV'];
+const missingRecommended = recommendedEnvVars.filter(v => !process.env[v]);
+if (missingRecommended.length > 0) {
+  console.warn(`WARNING: 推奨環境変数が未設定です: ${missingRecommended.join(', ')}`);
+}
+
 // Expressアプリケーション初期化
 const app = express();
 

@@ -13,7 +13,28 @@ const authenticateToken = async (req, res, next) => {
   try {
     // 1. httpOnly Cookie → 2. Authorization ヘッダーの順でトークンを取得
     const authHeader = req.headers['authorization'];
-    const token = req.cookies?.access_token || (authHeader && authHeader.split(' ')[1]);
+    const cookieToken = req.cookies?.access_token;
+    const bearerToken = authHeader && authHeader.split(' ')[1];
+
+    // CSRF対策: Cookie認証時はOrigin/Refererヘッダーを検証
+    if (cookieToken && !bearerToken) {
+      const origin = req.headers['origin'] || req.headers['referer'] || '';
+      const allowedOrigins = [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:8000',
+        'https://agenttree.onrender.com'
+      ];
+      const isAllowed = allowedOrigins.some(o => origin.startsWith(o)) || req.method === 'GET';
+      if (!isAllowed) {
+        return res.status(403).json({
+          error: true,
+          code: 'CSRF_REJECTED',
+          message: '不正なリクエスト元です'
+        });
+      }
+    }
+
+    const token = cookieToken || bearerToken;
 
     if (!token) {
       return res.status(401).json({

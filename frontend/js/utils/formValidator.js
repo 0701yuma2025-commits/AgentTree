@@ -16,7 +16,7 @@ const FormValidator = {
    */
   showErrors(errors) {
     if (errors.length === 0) return true;
-    alert(errors.join('\n'));
+    showToast(errors.join('\n'));
     return false;
   },
 

@@ -15,7 +15,7 @@ class AgenciesDetailPage {
       const agency = await agenciesAPI.getAgency(agencyId);
 
       if (!agency) {
-        alert('代理店情報が取得できませんでした');
+        showToast('代理店情報が取得できませんでした', 'error');
         return;
       }
 
@@ -230,7 +230,7 @@ class AgenciesDetailPage {
 
     } catch (error) {
       console.error('View agency error:', error);
-      alert('代理店情報の取得に失敗しました');
+      showToast('代理店情報の取得に失敗しました', 'error');
     }
   }
 
@@ -292,7 +292,7 @@ class AgenciesDetailPage {
       // 代理店情報を取得
       const agency = await agenciesAPI.getAgency(agencyId);
       if (!agency) {
-        alert('代理店情報が取得できませんでした');
+        showToast('代理店情報が取得できませんでした', 'error');
         return;
       }
 
@@ -422,7 +422,7 @@ class AgenciesDetailPage {
         if (birthDateInput && birthDateInput.value) {
           const validation = window.ageValidator.validateAge(birthDateInput.value);
           if (!validation.isValid) {
-            alert(validation.message);
+            showToast(validation.message, 'error');
             return;
           }
         }
@@ -438,7 +438,7 @@ class AgenciesDetailPage {
 
     } catch (error) {
       console.error('Edit agency error:', error);
-      alert('代理店編集画面の表示に失敗しました');
+      showToast('代理店編集画面の表示に失敗しました', 'error');
     }
   }
 
@@ -494,13 +494,13 @@ class AgenciesDetailPage {
       };
 
       await agenciesAPI.updateAgency(agencyId, formData);
-      alert('代理店情報を更新しました');
+      showToast('代理店情報を更新しました', 'success');
       this.app.closeModal();
       await this.app.agenciesPage.loadAgencies(); // 一覧を再読み込み
 
     } catch (error) {
       console.error('Save agency changes error:', error);
-      alert('代理店情報の更新に失敗しました');
+      showToast('代理店情報の更新に失敗しました', 'error');
     }
   }
 
@@ -516,13 +516,13 @@ class AgenciesDetailPage {
       // 削除APIを実行
       await agenciesAPI.delete(agencyId);
 
-      alert('代理店を削除しました');
+      showToast('代理店を削除しました', 'success');
       this.app.closeModal();
       await this.app.agenciesPage.loadAgencies();
 
     } catch (error) {
       console.error('Delete agency error:', error);
-      alert(error.message || '代理店の削除に失敗しました');
+      showToast(error.message || '代理店の削除に失敗しました', 'error');
     }
   }
 
@@ -696,7 +696,7 @@ class AgenciesDetailPage {
     if (birthDate && window.ageValidator) {
       const ageValidation = window.ageValidator.validateAge(birthDate);
       if (!ageValidation.isValid) {
-        alert(ageValidation.message);
+        showToast(ageValidation.message, 'error');
         return;
       }
     }
@@ -747,14 +747,14 @@ class AgenciesDetailPage {
     try {
       await agenciesAPI.createAgency(data);
       if (isAdmin) {
-        alert('代理店を登録しました');
+        showToast('代理店を登録しました', 'success');
       } else {
-        alert('代理店の登録申請を送信しました。管理者による承認をお待ちください。');
+        showToast('代理店の登録申請を送信しました。管理者による承認をお待ちください。', 'success');
       }
       this.app.hideModal();
       await this.app.agenciesPage.loadAgencies();
     } catch (error) {
-      alert('登録に失敗しました');
+      showToast('登録に失敗しました', 'error');
     }
   }
 }

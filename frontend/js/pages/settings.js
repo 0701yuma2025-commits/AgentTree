@@ -103,7 +103,7 @@ class SettingsPage {
 
     // バリデーション: 空 or T+13桁
     if (invoiceNumber && !/^T?[0-9]{13}$/.test(invoiceNumber)) {
-      alert('インボイス登録番号はT + 13桁の数字で入力してください（例: T1234567890123）');
+      showToast('インボイス登録番号はT + 13桁の数字で入力してください（例: T1234567890123）', 'error');
       return;
     }
 
@@ -125,15 +125,15 @@ class SettingsPage {
     try {
       const response = await window.commissionSettingsAPI.update(data);
       if (response.success) {
-        alert('会社情報を保存しました');
+        showToast('会社情報を保存しました', 'success');
         await this.loadCommissionRates();
         this.displayCompanyInfo();
       } else {
-        alert(response.message || '保存に失敗しました');
+        showToast(response.message || '保存に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Save company info error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -413,14 +413,14 @@ class SettingsPage {
       });
 
       if (response.success) {
-        alert('メールアドレス変更リクエストを送信しました。新しいメールアドレスに送信された確認メールをご確認ください。');
+        showToast('メールアドレス変更リクエストを送信しました。新しいメールアドレスに送信された確認メールをご確認ください。', 'success');
         document.getElementById('changeEmailForm').reset();
       } else {
-        alert(response.message || 'メールアドレスの変更に失敗しました');
+        showToast(response.message || 'メールアドレスの変更に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Change email error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -444,16 +444,16 @@ class SettingsPage {
       });
 
       if (response.success) {
-        alert('パスワードを変更しました。セキュリティのため、再度ログインしてください。');
+        showToast('パスワードを変更しました。セキュリティのため、再度ログインしてください。', 'success');
         // ログアウトして再ログインを促す
         await authAPI.logout();
         window.location.reload();
       } else {
-        alert(response.message || 'パスワードの変更に失敗しました');
+        showToast(response.message || 'パスワードの変更に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Change password error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -482,14 +482,14 @@ class SettingsPage {
     try {
       const response = await window.commissionSettingsAPI.update(data);
       if (response.success) {
-        alert('報酬設定を更新しました');
+        showToast('報酬設定を更新しました', 'success');
         await this.loadCommissionRates();
       } else {
-        alert(response.message || '保存に失敗しました');
+        showToast(response.message || '保存に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Save commission rates error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -714,7 +714,7 @@ class SettingsPage {
     const code = document.getElementById('2faEmailCode').value;
 
     if (!code || code.length !== CONFIG.VALIDATION.TWO_FA_CODE_LENGTH) {
-      alert(`${CONFIG.VALIDATION.TWO_FA_CODE_LENGTH}桁の認証コードを入力してください`);
+      showToast(`${CONFIG.VALIDATION.TWO_FA_CODE_LENGTH}桁の認証コードを入力してください`, 'error');
       return;
     }
 
@@ -722,15 +722,15 @@ class SettingsPage {
       const response = await authAPI.verify2FAEmail(code);
 
       if (response.success) {
-        alert('2FAが有効化されました！');
+        showToast('2FAが有効化されました！', 'success');
         this.close2FAVerifyModal();
         await this.load2FAStatus();
       } else {
-        alert(response.message || '認証コードが正しくありません');
+        showToast(response.message || '認証コードが正しくありません', 'error');
       }
     } catch (error) {
       console.error('Verify 2FA email error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 

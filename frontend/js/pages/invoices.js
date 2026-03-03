@@ -151,13 +151,13 @@ class InvoicesPage {
         const generateBtn = document.getElementById('generateMonthlySummaryBtn');
 
         if (!agencySelect.value || !monthSelect.value) {
-            alert('代理店と対象月を選択してください');
+            showToast('代理店と対象月を選択してください', 'error');
             return;
         }
 
         const selectedAgency = this.agencies.find(a => a.id === agencySelect.value);
         if (!selectedAgency) {
-            alert('選択された代理店が見つかりません');
+            showToast('選択された代理店が見つかりません', 'error');
             return;
         }
 
@@ -188,7 +188,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('月次集計明細書生成エラー:', error);
-            alert('月次集計明細書の生成に失敗しました');
+            showToast('月次集計明細書の生成に失敗しました', 'error');
         } finally {
             generateBtn.disabled = false;
             generateBtn.textContent = '月次集計明細書生成';
@@ -342,7 +342,7 @@ class InvoicesPage {
         try {
             const invoice = this.invoices.find(inv => inv.id === invoiceId);
             if (!invoice) {
-                alert('請求書情報が見つかりません');
+                showToast('請求書情報が見つかりません', 'error');
                 return;
             }
 
@@ -397,7 +397,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('PDFダウンロードエラー:', error);
-            alert('PDFのダウンロードに失敗しました');
+            showToast('PDFのダウンロードに失敗しました', 'error');
         }
     }
 
@@ -531,7 +531,7 @@ class InvoicesPage {
                 document.getElementById('confirmRecipient').addEventListener('click', async () => {
                     const companyName = document.getElementById('recipient_company_name').value;
                     if (!companyName) {
-                        alert('会社名は必須です');
+                        showToast('会社名は必須です', 'error');
                         return;
                     }
 
@@ -550,7 +550,7 @@ class InvoicesPage {
                     if (document.getElementById('save_as_template').checked) {
                         const templateName = document.getElementById('template_name').value;
                         if (!templateName) {
-                            alert('テンプレート名を入力してください');
+                            showToast('テンプレート名を入力してください', 'error');
                             return;
                         }
 
@@ -588,7 +588,7 @@ class InvoicesPage {
         const previewContent = document.getElementById('paymentPreviewContent');
 
         if (!monthSelect.value) {
-            alert('対象月を選択してください');
+            showToast('対象月を選択してください', 'error');
             return;
         }
 
@@ -602,7 +602,7 @@ class InvoicesPage {
             }
 
             if (!data.payments || data.payments.length === 0) {
-                alert('指定月の承認済み支払いデータが見つかりません');
+                showToast('指定月の承認済み支払いデータが見つかりません', 'error');
                 previewArea.classList.add('hidden');
                 return;
             }
@@ -653,7 +653,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('振込データプレビューエラー:', error);
-            alert('振込データのプレビューに失敗しました');
+            showToast('振込データのプレビューに失敗しました', 'error');
             previewArea.classList.add('hidden');
         }
     }
@@ -664,7 +664,7 @@ class InvoicesPage {
         const exportBtn = document.getElementById('exportPaymentBtn');
 
         if (!monthSelect.value) {
-            alert('対象月を選択してください');
+            showToast('対象月を選択してください', 'error');
             return;
         }
 
@@ -705,7 +705,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('振込データダウンロードエラー:', error);
-            alert('振込データのダウンロードに失敗しました');
+            showToast('振込データのダウンロードに失敗しました', 'error');
         } finally {
             exportBtn.disabled = false;
             exportBtn.textContent = 'ダウンロード';
@@ -717,7 +717,7 @@ class InvoicesPage {
         const confirmBtn = document.getElementById('confirmPaymentBtn');
 
         if (!monthSelect.value) {
-            alert('対象月を選択してください');
+            showToast('対象月を選択してください', 'error');
             return;
         }
 
@@ -742,7 +742,7 @@ class InvoicesPage {
                 return; // JWT認証エラーでリダイレクトされた場合
             }
 
-            alert(`振込実行を確定しました。\n\n更新件数: ${result.updated_count || 0}件`);
+            showToast(`振込実行を確定しました。\n\n更新件数: ${result.updated_count || 0}件`, 'success');
 
             // プレビューエリアを非表示にする
             document.getElementById('paymentPreviewArea').classList.add('hidden');
@@ -754,7 +754,7 @@ class InvoicesPage {
 
         } catch (error) {
             console.error('振込確定エラー:', error);
-            alert('振込確定処理に失敗しました');
+            showToast('振込確定処理に失敗しました', 'error');
         } finally {
             confirmBtn.disabled = false;
             confirmBtn.textContent = '振込実行を確定';

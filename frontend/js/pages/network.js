@@ -14,7 +14,7 @@ class NetworkPage {
     // 3D Force Graphライブラリの読み込みを待つ
     if (typeof ForceGraph3D === 'undefined') {
       console.error('3D Force Graph library not loaded');
-      alert('3D可視化ライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
+      showToast('3D可視化ライブラリの読み込みに失敗しました。ページを再読み込みしてください。', 'error');
       return;
     }
 

@@ -179,10 +179,10 @@ class AgenciesPage {
     if (confirm('この代理店を承認しますか？')) {
       try {
         const result = await agenciesAPI.approveAgency(id);
-        alert(result.message || '承認しました');
+        showToast(result.message || '承認しました', 'error');
         await this.loadAgencies();
       } catch (error) {
-        alert(error.response?.data?.message || '承認に失敗しました');
+        showToast(error.response?.data?.message || '承認に失敗しました', 'error');
       }
     }
   }
@@ -196,14 +196,14 @@ class AgenciesPage {
       if (confirm('この代理店を拒否しますか？')) {
         try {
           const result = await agenciesAPI.rejectAgency(id, rejectionReason.trim());
-          alert(result.message || '拒否しました');
+          showToast(result.message || '拒否しました', 'error');
           await this.loadAgencies();
         } catch (error) {
-          alert(error.response?.data?.message || '拒否に失敗しました');
+          showToast(error.response?.data?.message || '拒否に失敗しました', 'error');
         }
       }
     } else {
-      alert('拒否理由は必須です');
+      showToast('拒否理由は必須です', 'error');
     }
   }
 
@@ -216,15 +216,15 @@ class AgenciesPage {
       if (confirm('この代理店を停止しますか？')) {
         try {
           const result = await agenciesAPI.suspendAgency(id, suspensionReason.trim());
-          alert(result.message || '停止しました');
+          showToast(result.message || '停止しました', 'error');
           await this.loadAgencies();
         } catch (error) {
           console.error('Suspend agency error:', error);
-          alert(error.response?.data?.message || '停止に失敗しました');
+          showToast(error.response?.data?.message || '停止に失敗しました', 'error');
         }
       }
     } else {
-      alert('停止理由は必須です');
+      showToast('停止理由は必須です', 'error');
     }
   }
 
@@ -235,11 +235,11 @@ class AgenciesPage {
     if (confirm('この代理店を再有効化しますか？')) {
       try {
         const result = await agenciesAPI.reactivateAgency(id);
-        alert(result.message || '再有効化しました');
+        showToast(result.message || '再有効化しました', 'error');
         await this.loadAgencies();
       } catch (error) {
         console.error('Reactivate agency error:', error);
-        alert(error.response?.data?.message || error.message || '再有効化に失敗しました');
+        showToast(error.response?.data?.message || error.message || '再有効化に失敗しました', 'error');
       }
     }
   }

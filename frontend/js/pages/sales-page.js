@@ -250,7 +250,7 @@ class SalesPage {
 
       if (!response || !response.success) {
         console.error('Invalid response:', response);
-        alert('\u58F2\u4E0A\u60C5\u5831\u304C\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F');
+        showToast('\u58F2\u4E0A\u60C5\u5831\u304C\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F', 'info');
         return;
       }
 
@@ -260,7 +260,7 @@ class SalesPage {
       const modalBody = document.getElementById('modalBody');
       if (!modalBody) {
         console.error('modalBody element not found');
-        alert('\u30E2\u30FC\u30C0\u30EB\u8981\u7D20\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093');
+        showToast('\u30E2\u30FC\u30C0\u30EB\u8981\u7D20\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093', 'info');
         return;
       }
 
@@ -338,7 +338,7 @@ class SalesPage {
       const modal = document.getElementById('modal');
       if (!modal) {
         console.error('modal element not found');
-        alert('\u30E2\u30FC\u30C0\u30EB\u8981\u7D20\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093');
+        showToast('\u30E2\u30FC\u30C0\u30EB\u8981\u7D20\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093', 'info');
         return;
       }
       modal.classList.remove('hidden');
@@ -346,7 +346,7 @@ class SalesPage {
     } catch (error) {
       console.error('Show sale detail error:', error);
       console.error('Error stack:', error.stack);
-      alert('\u58F2\u4E0A\u8A73\u7D30\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+      showToast('\u58F2\u4E0A\u8A73\u7D30\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'info');
     }
   }
 
@@ -358,7 +358,7 @@ class SalesPage {
       // 売上情報を取得
       const response = await apiClient.get(`/sales/${saleId}`);
       if (!response || !response.success) {
-        alert('\u58F2\u4E0A\u60C5\u5831\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+        showToast('\u58F2\u4E0A\u60C5\u5831\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'info');
         return;
       }
 
@@ -368,7 +368,7 @@ class SalesPage {
 
       // ステータスによる編集可否チェック
       if (status === 'paid' && !isAdmin) {
-        alert('\u652F\u6255\u6E08\u307F\u306E\u58F2\u4E0A\u306F\u7DE8\u96C6\u3067\u304D\u307E\u305B\u3093');
+        showToast('\u652F\u6255\u6E08\u307F\u306E\u58F2\u4E0A\u306F\u7DE8\u96C6\u3067\u304D\u307E\u305B\u3093', 'info');
         return;
       }
 
@@ -504,15 +504,15 @@ class SalesPage {
         try {
           const result = await apiClient.put(`/sales/${saleId}`, updateData);
           if (result.success) {
-            alert('\u58F2\u4E0A\u60C5\u5831\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F');
+            showToast('\u58F2\u4E0A\u60C5\u5831\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F', 'info');
             this.app.hideModal();
             await this.loadSales(true);
           } else {
-            alert(result.message || '\u66F4\u65B0\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+            showToast(result.message || '\u66F4\u65B0\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'error');
           }
         } catch (error) {
           console.error('Update sale error:', error);
-          alert('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ' + (error.message || ''));
+          showToast('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ' + (error.message || '', 'info'));
         }
       });
 
@@ -521,7 +521,7 @@ class SalesPage {
 
     } catch (error) {
       console.error('Edit sale error:', error);
-      alert('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F');
+      showToast('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F', 'info');
     }
   }
 
@@ -536,15 +536,15 @@ class SalesPage {
     try {
       const result = await apiClient.delete(`/sales/${saleId}`);
       if (result.success) {
-        alert('\u58F2\u4E0A\u60C5\u5831\u3092\u524A\u9664\u3057\u307E\u3057\u305F');
+        showToast('\u58F2\u4E0A\u60C5\u5831\u3092\u524A\u9664\u3057\u307E\u3057\u305F', 'info');
         this.app.hideModal();
         await this.loadSales(true);
       } else {
-        alert(result.message || '\u524A\u9664\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+        showToast(result.message || '\u524A\u9664\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'error');
       }
     } catch (error) {
       console.error('Delete sale error:', error);
-      alert('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F');
+      showToast('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F', 'info');
     }
   }
 
@@ -557,7 +557,7 @@ class SalesPage {
       const saleResponse = await apiClient.get(`/sales/${saleId}`);
 
       if (!historyResponse.success || !saleResponse.success) {
-        alert('\u5C65\u6B74\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+        showToast('\u5C65\u6B74\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'info');
         return;
       }
 
@@ -636,7 +636,7 @@ class SalesPage {
 
     } catch (error) {
       console.error('Show sale history error:', error);
-      alert('\u5C65\u6B74\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+      showToast('\u5C65\u6B74\u306E\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'info');
     }
   }
 
@@ -849,7 +849,7 @@ class SalesPage {
     try {
       const response = await apiClient.post('/sales', data);
       if (response.success) {
-        alert('\u58F2\u4E0A\u3092\u767B\u9332\u3057\u307E\u3057\u305F');
+        showToast('\u58F2\u4E0A\u3092\u767B\u9332\u3057\u307E\u3057\u305F', 'info');
         this.app.hideModal();
 
         // 現在のページが売上ページの場合はリロード
@@ -858,7 +858,7 @@ class SalesPage {
         }
       }
     } catch (error) {
-      alert('\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F');
+      showToast('\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'info');
     }
   }
 }

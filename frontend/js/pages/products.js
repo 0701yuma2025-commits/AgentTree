@@ -207,7 +207,7 @@ class ProductsPage {
     if (isEdit) {
       product = this.products.find(p => p.id === productId);
       if (!product) {
-        alert('商品が見つかりません');
+        showToast('商品が見つかりません', 'error');
         return;
       }
     }
@@ -347,15 +347,15 @@ class ProductsPage {
       }
 
       if (response.success) {
-        alert(isEdit ? '商品を更新しました' : '商品を作成しました');
+        showToast(isEdit ? '商品を更新しました' : '商品を作成しました', 'success');
         app.closeModal();
         await this.loadProducts();
       } else {
-        alert(response.message || '保存に失敗しました');
+        showToast(response.message || '保存に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Save product error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -365,7 +365,7 @@ class ProductsPage {
   async deleteProduct(productId) {
     const product = this.products.find(p => p.id === productId);
     if (!product) {
-      alert('商品が見つかりません');
+      showToast('商品が見つかりません', 'error');
       return;
     }
 
@@ -376,14 +376,14 @@ class ProductsPage {
     try {
       const response = await window.productsAPI.deleteProduct(productId);
       if (response.success) {
-        alert('商品を削除しました');
+        showToast('商品を削除しました', 'success');
         await this.loadProducts();
       } else {
-        alert(response.message || '削除に失敗しました');
+        showToast(response.message || '削除に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Delete product error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 }

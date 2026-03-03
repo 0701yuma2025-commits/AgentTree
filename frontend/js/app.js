@@ -10,6 +10,50 @@ function escapeHtml(text) {
 }
 
 /**
+ * グローバルトースト通知
+ * alert()の代わりに使用する非ブロッキング通知
+ * @param {string} message - 表示メッセージ
+ * @param {string} type - 'success' | 'error' | 'info' | 'warning'
+ * @param {number} duration - 表示時間（ms）。0で手動閉じのみ
+ */
+function showToast(message, type = 'info', duration) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+
+  // 閉じるボタン
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'toast-close';
+  closeBtn.textContent = '×';
+  closeBtn.onclick = () => toast.remove();
+  toast.appendChild(closeBtn);
+
+  container.appendChild(toast);
+
+  // アニメーション
+  requestAnimationFrame(() => toast.classList.add('toast-show'));
+
+  const ms = duration !== undefined ? duration
+    : type === 'error' ? CONFIG.TIMING.ERROR_MESSAGE_DURATION
+    : CONFIG.TIMING.SUCCESS_MESSAGE_DURATION;
+
+  if (ms > 0) {
+    setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => toast.remove(), 300);
+    }, ms);
+  }
+}
+
+/**
  * メインアプリケーション
  */
 
@@ -184,9 +228,9 @@ class App {
           end_date: endDate
         });
 
-        alert('CSVエクスポートが完了しました');
+        showToast('CSVエクスポートが完了しました', 'success');
       } catch (error) {
-        alert('CSVエクスポートに失敗しました');
+        showToast('CSVエクスポートに失敗しました', 'error');
       }
     });
 
@@ -199,9 +243,9 @@ class App {
           month: month
         });
 
-        alert('CSVエクスポートが完了しました');
+        showToast('CSVエクスポートが完了しました', 'success');
       } catch (error) {
-        alert('CSVエクスポートに失敗しました');
+        showToast('CSVエクスポートに失敗しました', 'error');
       }
     });
 
@@ -214,9 +258,9 @@ class App {
           tier: tierFilter
         });
 
-        alert('CSVエクスポートが完了しました');
+        showToast('CSVエクスポートが完了しました', 'success');
       } catch (error) {
-        alert('CSVエクスポートに失敗しました');
+        showToast('CSVエクスポートに失敗しました', 'error');
       }
     });
 
@@ -870,7 +914,7 @@ class App {
   copyInviteLink(token) {
     const url = `${window.location.origin}/invite-accept.html?token=${token}`;
     navigator.clipboard.writeText(url);
-    alert('招待リンクをコピーしました');
+    showToast('招待リンクをコピーしました', 'success');
   }
 
   /**
@@ -889,7 +933,7 @@ class App {
 
     // 日付フォーマットの検証
     if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(paymentDate)) {
-      alert('日付は YYYY-MM-DD 形式で入力してください（例: 2026-02-26）');
+      showToast('日付は YYYY-MM-DD 形式で入力してください（例: 2026-02-26）', 'error');
       return;
     }
 
@@ -898,7 +942,7 @@ class App {
     // 支払方法の検証
     const validMethods = ['bank_transfer', 'cash', 'other'];
     if (paymentMethod && !validMethods.includes(paymentMethod)) {
-      alert('支払方法は bank_transfer / cash / other のいずれかを入力してください');
+      showToast('支払方法は bank_transfer / cash / other のいずれかを入力してください', 'error');
       return;
     }
 
@@ -921,14 +965,14 @@ class App {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert(data.message || '支払完了として記録しました');
+        showToast(data.message || '支払完了として記録しました', 'success');
         await this.loadCommissions();
       } else {
-        alert(data.message || '支払記録に失敗しました');
+        showToast(data.message || '支払記録に失敗しました', 'error');
       }
     } catch (error) {
       console.error('Mark as paid error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -941,7 +985,7 @@ class App {
 
     // 月フォーマットの検証
     if (!/^\d{4}-\d{2}$/.test(month)) {
-      alert('正しい形式で入力してください（例: 2025-09）');
+      showToast('正しい形式で入力してください（例: 2025-09）', 'error');
       return;
     }
 
@@ -954,17 +998,17 @@ class App {
 
       if (response.success) {
         const data = response.data;
-        alert(`報酬計算・確定が完了しました！\n対象月: ${data.month}\n確定件数: ${data.total_commissions}件\n確定金額: ¥${data.total_amount.toLocaleString()}`);
+        showToast(`報酬計算・確定が完了しました！\n対象月: ${data.month}\n確定件数: ${data.total_commissions}件\n確定金額: ¥${data.total_amount.toLocaleString()}`, 'success');
 
         // 報酬ページの再読み込み
         if (this.currentPage === 'commissions') {
           await this.loadCommissions();
         }
       } else {
-        alert(response.message || '報酬計算に失敗しました');
+        showToast(response.message || '報酬計算に失敗しました', 'error');
       }
     } catch (error) {
-      alert('報酬計算中にエラーが発生しました');
+      showToast('報酬計算中にエラーが発生しました', 'error');
     }
   }
 
@@ -1056,14 +1100,14 @@ class App {
         const result = await response.json();
 
         if (result.success) {
-          alert('パスワードリセットメールを送信しました。メールをご確認ください。');
+          showToast('パスワードリセットメールを送信しました。メールをご確認ください。', 'success');
           this.hideModal();
         } else {
-          alert(result.message || 'リセットメールの送信に失敗しました');
+          showToast(result.message || 'リセットメールの送信に失敗しました', 'error');
         }
       } catch (error) {
         console.error('Password reset request error:', error);
-        alert('エラーが発生しました。もう一度お試しください。');
+        showToast('エラーが発生しました。もう一度お試しください。', 'error');
       }
     });
   }

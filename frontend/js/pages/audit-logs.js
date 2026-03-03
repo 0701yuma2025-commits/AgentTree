@@ -89,7 +89,7 @@ class AuditLogsPage {
       }
     } catch (error) {
       console.error('Failed to load audit logs:', error);
-      alert('監査ログの読み込みに失敗しました');
+      showToast('監査ログの読み込みに失敗しました', 'error');
     }
   }
 
@@ -210,10 +210,10 @@ class AuditLogsPage {
   async exportCsv() {
     try {
       await AuditLogsAPI.exportCsv(this.filters);
-      alert('CSVエクスポートが完了しました');
+      showToast('CSVエクスポートが完了しました', 'success');
     } catch (error) {
       console.error('Failed to export CSV:', error);
-      alert('CSVエクスポートに失敗しました');
+      showToast('CSVエクスポートに失敗しました', 'error');
     }
   }
 
@@ -232,7 +232,7 @@ class AuditLogsPage {
       }
     } catch (error) {
       console.error('Failed to load log detail:', error);
-      alert('ログ詳細の読み込みに失敗しました');
+      showToast('ログ詳細の読み込みに失敗しました', 'error');
     }
   }
 

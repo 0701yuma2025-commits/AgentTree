@@ -172,7 +172,7 @@ class DocumentsManager {
     const typeSelect = document.getElementById('documentType');
 
     if (!fileInput.files[0]) {
-      alert('ファイルを選択してください');
+      showToast('ファイルを選択してください', 'error');
       return;
     }
 
@@ -181,19 +181,19 @@ class DocumentsManager {
 
     // ファイルサイズチェック（10MB）
     if (file.size > 10 * 1024 * 1024) {
-      alert('ファイルサイズは10MB以下にしてください');
+      showToast('ファイルサイズは10MB以下にしてください', 'error');
       return;
     }
 
     try {
       const response = await window.documentsAPI.uploadDocument(file, this.agencyId, documentType);
       if (response.success) {
-        alert('書類をアップロードしました');
+        showToast('書類をアップロードしました', 'success');
         fileInput.value = '';
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('アップロードに失敗しました');
+      showToast('アップロードに失敗しました', 'error');
     }
   }
 
@@ -206,11 +206,11 @@ class DocumentsManager {
     try {
       const response = await window.documentsAPI.verifyDocument(documentId, status);
       if (response.success) {
-        alert('書類を承認しました');
+        showToast('書類を承認しました', 'success');
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('承認に失敗しました');
+      showToast('承認に失敗しました', 'error');
     }
   }
 
@@ -224,11 +224,11 @@ class DocumentsManager {
     try {
       const response = await window.documentsAPI.verifyDocument(documentId, 'rejected', reason);
       if (response.success) {
-        alert('書類を却下しました');
+        showToast('書類を却下しました', 'success');
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('却下に失敗しました');
+      showToast('却下に失敗しました', 'error');
     }
   }
 
@@ -241,11 +241,11 @@ class DocumentsManager {
     try {
       const response = await window.documentsAPI.deleteDocument(documentId);
       if (response.success) {
-        alert('書類を削除しました');
+        showToast('書類を削除しました', 'success');
         await this.loadDocuments();
       }
     } catch (error) {
-      alert('削除に失敗しました');
+      showToast('削除に失敗しました', 'error');
     }
   }
 }

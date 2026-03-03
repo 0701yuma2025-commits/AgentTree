@@ -453,14 +453,14 @@ class CommissionsPage {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert(data.message || 'ステータスを更新しました');
+        showToast(data.message || 'ステータスを更新しました', 'info');
         await this.loadCommissions();
       } else {
-        alert(data.message || 'ステータス更新に失敗しました');
+        showToast(data.message || 'ステータス更新に失敗しました', 'info');
       }
     } catch (error) {
       console.error('Update commission status error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -491,14 +491,14 @@ class CommissionsPage {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert(data.message || '支払完了として記録しました');
+        showToast(data.message || '支払完了として記録しました', 'info');
         await this.loadCommissions();
       } else {
-        alert(data.message || '支払記録に失敗しました');
+        showToast(data.message || '支払記録に失敗しました', 'info');
       }
     } catch (error) {
       console.error('Mark as paid error:', error);
-      alert('エラーが発生しました');
+      showToast('エラーが発生しました', 'error');
     }
   }
 
@@ -512,7 +512,7 @@ class CommissionsPage {
 
     // 月が選択されていない場合のチェック
     if (!month) {
-      alert('計算対象月を選択してください');
+      showToast('計算対象月を選択してください', 'error');
       return;
     }
 
@@ -527,7 +527,7 @@ class CommissionsPage {
 
       if (response && response.success) {
         const data = response.data;
-        alert(`報酬計算が完了しました！\n対象月: ${year}年${parseInt(monthNum)}月\n計算件数: ${data.total_commissions}件\n合計金額: ¥${data.total_amount.toLocaleString()}`);
+        showToast(`報酬計算が完了しました！\n対象月: ${year}年${parseInt(monthNum)}月\n計算件数: ${data.total_commissions}件\n合計金額: ¥${data.total_amount.toLocaleString()}`, 'success');
 
         // データを再読み込み（月選択を維持）
         this.selectedMonth = month;  // 選択月を更新
@@ -535,10 +535,10 @@ class CommissionsPage {
         await this.loadCommissions();  // 報酬一覧も更新
         this.filterAndDisplayCommissions();  // 選択月でフィルタリング
       } else {
-        alert(response?.message || '報酬計算に失敗しました');
+        showToast(response?.message || '報酬計算に失敗しました', 'error');
       }
     } catch (error) {
-      alert('報酬計算中にエラーが発生しました: ' + (error.message || '不明なエラー'));
+      showToast('報酬計算中にエラーが発生しました: ', 'error' + (error.message || '不明なエラー'));
     }
   }
 
@@ -562,7 +562,7 @@ class CommissionsPage {
       );
 
       if (pendingCommissions.length === 0) {
-        alert('承認可能な報酬がありません');
+        showToast('承認可能な報酬がありません', 'error');
         return;
       }
 
@@ -587,11 +587,11 @@ class CommissionsPage {
         }
       }
 
-      alert(`一括承認が完了しました\n成功: ${approvedCount}件\n失敗: ${failedCount}件`);
+      showToast(`一括承認が完了しました\n成功: ${approvedCount}件\n失敗: ${failedCount}件`, 'success');
       await this.loadMonthData();
     } catch (error) {
       console.error('Approve all error:', error);
-      alert('一括承認中にエラーが発生しました');
+      showToast('一括承認中にエラーが発生しました', 'error');
     }
   }
 
@@ -601,7 +601,7 @@ class CommissionsPage {
   async viewSaleDetail(saleId) {
     if (!saleId) {
       console.error('Sale ID is required');
-      alert('売上情報が見つかりません');
+      showToast('売上情報が見つかりません', 'error');
       return;
     }
 
@@ -676,11 +676,11 @@ class CommissionsPage {
         // モーダルを表示
         app.showModal(modalContent);
       } else {
-        alert('売上情報の取得に失敗しました');
+        showToast('売上情報の取得に失敗しました', 'error');
       }
     } catch (error) {
       console.error('View sale detail error:', error);
-      alert('売上詳細の表示中にエラーが発生しました');
+      showToast('売上詳細の表示中にエラーが発生しました', 'error');
     }
   }
 
@@ -705,7 +705,7 @@ class CommissionsPage {
       const approvedCommissions = this.commissions.filter(c => c.status === 'approved');
 
       if (approvedCommissions.length === 0) {
-        alert('支払可能な報酬がありません');
+        showToast('支払可能な報酬がありません', 'error');
         return;
       }
 
@@ -733,11 +733,11 @@ class CommissionsPage {
         }
       }
 
-      alert(`支払実行が完了しました\n成功: ${paidCount}件\n失敗: ${failedCount}件`);
+      showToast(`支払実行が完了しました\n成功: ${paidCount}件\n失敗: ${failedCount}件`, 'success');
       await this.loadMonthData();
     } catch (error) {
       console.error('Execute payment error:', error);
-      alert('支払実行中にエラーが発生しました');
+      showToast('支払実行中にエラーが発生しました', 'error');
     }
   }
 
@@ -785,7 +785,7 @@ class CommissionsPage {
 
     } catch (error) {
       console.error('Download receipt error:', error);
-      alert('領収書のダウンロードに失敗しました');
+      showToast('領収書のダウンロードに失敗しました', 'error');
     }
   }
 
@@ -915,7 +915,7 @@ class CommissionsPage {
         document.getElementById('confirmRecipient').addEventListener('click', async () => {
           const companyName = document.getElementById('recipient_company_name').value;
           if (!companyName) {
-            alert('会社名は必須です');
+            showToast('会社名は必須です', 'error');
             return;
           }
 
@@ -934,7 +934,7 @@ class CommissionsPage {
           if (document.getElementById('save_as_template').checked) {
             const templateName = document.getElementById('template_name').value;
             if (!templateName) {
-              alert('テンプレート名を入力してください');
+              showToast('テンプレート名を入力してください', 'error');
               return;
             }
 
