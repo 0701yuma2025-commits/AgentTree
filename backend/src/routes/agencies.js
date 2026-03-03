@@ -13,6 +13,7 @@ const { agencyCreationRateLimit } = require('../middleware/rateLimiter');
 const { validateAge, validateDateFormat } = require('../utils/ageValidator');
 const { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { handleDbError } = require('../utils/errorHelper');
 
 // サブルーターマウント
 router.use('/', require('./agencies/status'));
@@ -322,9 +323,10 @@ router.post('/',
       });
     } catch (error) {
       console.error('Create agency error:', error.message);
-      res.status(500).json({
+      const dbErr = handleDbError(error);
+      res.status(dbErr?.status || 500).json({
         success: false,
-        message: 'データの作成に失敗しました'
+        message: dbErr?.message || 'データの作成に失敗しました'
       });
     }
   }

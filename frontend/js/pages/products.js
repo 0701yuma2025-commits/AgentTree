@@ -246,18 +246,18 @@ class ProductsPage {
           </div>
           <div class="form-group">
             <label for="productName">商品名*</label>
-            <input type="text" id="productName" value="${escapeHtml(product?.name || '')}" required>
+            <input type="text" id="productName" value="${escapeHtml(product?.name || '')}" required maxlength="100">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="productPrice">価格*</label>
-            <input type="number" id="productPrice" value="${product?.price || ''}" min="0" required>
+            <input type="number" id="productPrice" value="${product?.price || ''}" min="0" max="999999999" required>
           </div>
           <div class="form-group">
             <label for="productDescription">説明</label>
-            <textarea id="productDescription" rows="3">${escapeHtml(product?.description || '')}</textarea>
+            <textarea id="productDescription" rows="3" maxlength="1000">${escapeHtml(product?.description || '')}</textarea>
           </div>
         </div>
 

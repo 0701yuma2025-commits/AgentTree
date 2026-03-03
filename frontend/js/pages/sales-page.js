@@ -736,19 +736,19 @@ class SalesPage {
         </div>
         <div class="form-group">
           <label for="customerName">\u9867\u5BA2\u540D*</label>
-          <input type="text" id="customerName" required>
+          <input type="text" id="customerName" required maxlength="100">
         </div>
         <div class="form-group">
           <label for="customerEmail">\u9867\u5BA2\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9</label>
-          <input type="email" id="customerEmail">
+          <input type="email" id="customerEmail" maxlength="255">
         </div>
         <div class="form-group">
           <label for="customerPhone">\u9867\u5BA2\u96FB\u8A71\u756A\u53F7</label>
-          <input type="tel" id="customerPhone">
+          <input type="tel" id="customerPhone" maxlength="15" pattern="[0-9\-]{10,15}" title="10〜15桁の数字（ハイフン可）">
         </div>
         <div class="form-group">
           <label for="saleNotes">\u5099\u8003</label>
-          <textarea id="saleNotes" rows="3"></textarea>
+          <textarea id="saleNotes" rows="3" maxlength="1000"></textarea>
         </div>
         <button type="submit" class="btn btn-primary">\u767B\u9332</button>
         <button type="button" class="btn" onclick="app.hideModal()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>

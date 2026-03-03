@@ -12,6 +12,7 @@ const { detectAnomalies } = require('../../utils/anomalyDetection');
 const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
 const emailService = require('../../services/emailService');
+const { handleDbError } = require('../../utils/errorHelper');
 
 
 /**
@@ -425,9 +426,10 @@ router.post('/',
       });
     } catch (error) {
       console.error('Create sale error:', error.message);
-      res.status(500).json({
+      const dbErr = handleDbError(error);
+      res.status(dbErr?.status || 500).json({
         success: false,
-        message: 'データの作成に失敗しました'
+        message: dbErr?.message || 'データの作成に失敗しました'
       });
     }
   }
@@ -760,9 +762,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Update sale error:', error.message);
-    res.status(500).json({
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({
       success: false,
-      message: 'データの更新に失敗しました'
+      message: dbErr?.message || 'データの更新に失敗しました'
     });
   }
 });
@@ -809,9 +812,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete sale error:', error.message);
-    res.status(500).json({
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({
       success: false,
-      message: 'データの削除に失敗しました'
+      message: dbErr?.message || 'データの削除に失敗しました'
     });
   }
 });

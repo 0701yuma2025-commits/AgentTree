@@ -76,7 +76,7 @@ class SettingsPage {
                 <input type="text" id="operator_invoice_number"
                        value="${currentNumber}"
                        placeholder="T1234567890123"
-                       pattern="^T?[0-9]{13}$"
+                       pattern="^T[0-9]{13}$"
                        maxlength="14">
                 <small>T + 13桁の数字（例: T1234567890123）</small>
               </div>
@@ -102,7 +102,7 @@ class SettingsPage {
     const invoiceNumber = document.getElementById('operator_invoice_number').value.trim();
 
     // バリデーション: 空 or T+13桁
-    if (invoiceNumber && !/^T?[0-9]{13}$/.test(invoiceNumber)) {
+    if (invoiceNumber && !/^T[0-9]{13}$/.test(invoiceNumber)) {
       showToast('インボイス登録番号はT + 13桁の数字で入力してください（例: T1234567890123）', 'error');
       return;
     }

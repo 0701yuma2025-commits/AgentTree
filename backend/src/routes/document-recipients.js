@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { handleDbError } = require('../utils/errorHelper');
 
 /**
  * 宛先テンプレート一覧取得
@@ -146,7 +147,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('宛先テンプレート作成エラー:', error.message);
-    res.status(500).json({ success: false, message: '宛先テンプレートの作成に失敗しました' });
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({ success: false, message: dbErr?.message || '宛先テンプレートの作成に失敗しました' });
   }
 });
 
@@ -218,7 +220,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('宛先テンプレート更新エラー:', error.message);
-    res.status(500).json({ success: false, message: '宛先テンプレートの更新に失敗しました' });
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({ success: false, message: dbErr?.message || '宛先テンプレートの更新に失敗しました' });
   }
 });
 

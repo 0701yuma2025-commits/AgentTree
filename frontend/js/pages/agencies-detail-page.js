@@ -557,11 +557,11 @@ class AgenciesDetailPage {
       <form id="createAgencyForm">
         <div class="form-group">
           <label for="agencyName">会社名 <span class="required">*</span></label>
-          <input type="text" id="agencyName" required>
+          <input type="text" id="agencyName" required maxlength="100">
         </div>
         <div class="form-group">
           <label for="agencyRepresentative">代表者名 <span class="required">*</span></label>
-          <input type="text" id="agencyRepresentative" required>
+          <input type="text" id="agencyRepresentative" required maxlength="50">
         </div>
         <div class="form-group">
           <label for="agencyBirthDate">代表者生年月日</label>
@@ -570,7 +570,7 @@ class AgenciesDetailPage {
         </div>
         <div class="form-group">
           <label for="agencyEmail">メールアドレス <span class="required">*</span></label>
-          <input type="email" id="agencyEmail" required>
+          <input type="email" id="agencyEmail" required maxlength="255">
         </div>
         <div class="form-group">
           <label for="agencyTier">階層 <span class="required">*</span></label>
@@ -597,11 +597,11 @@ class AgenciesDetailPage {
         </div>
         <div class="form-group">
           <label for="agencyPhone">電話番号</label>
-          <input type="tel" id="agencyPhone">
+          <input type="tel" id="agencyPhone" maxlength="15" pattern="[0-9\-]{10,15}" title="10〜15桁の数字（ハイフン可）">
         </div>
         <div class="form-group">
           <label for="agencyAddress">住所</label>
-          <textarea id="agencyAddress" rows="3"></textarea>
+          <textarea id="agencyAddress" rows="3" maxlength="500"></textarea>
         </div>
         <div class="form-group">
           <label for="agencyType">会社種別</label>

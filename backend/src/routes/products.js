@@ -7,7 +7,7 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken: authMiddleware, requireAdmin } = require('../middleware/auth');
 const { generateProductCode } = require('../utils/generateCode');
-const { safeErrorMessage } = require('../utils/errorHelper');
+const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
 
 /**
  * 商品一覧取得
@@ -246,9 +246,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update product error:', error.message);
-    res.status(500).json({
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({
       success: false,
-      message: safeErrorMessage(error)
+      message: dbErr?.message || '商品の更新に失敗しました'
     });
   }
 });
@@ -286,9 +287,10 @@ router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete product error:', error.message);
-    res.status(500).json({
+    const dbErr = handleDbError(error);
+    res.status(dbErr?.status || 500).json({
       success: false,
-      message: safeErrorMessage(error)
+      message: dbErr?.message || '商品の削除に失敗しました'
     });
   }
 });

@@ -7,7 +7,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { safeErrorMessage } = require('../utils/errorHelper');
+const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
 
 /**
  * GET /api/campaigns
@@ -229,9 +229,10 @@ router.post('/',
       });
     } catch (error) {
       console.error('Create campaign error:', error.message);
-      res.status(500).json({
+      const dbErr = handleDbError(error);
+      res.status(dbErr?.status || 500).json({
         success: false,
-        message: safeErrorMessage(error)
+        message: dbErr?.message || 'キャンペーンの作成に失敗しました'
       });
     }
   }
@@ -347,9 +348,10 @@ router.put('/:id',
       });
     } catch (error) {
       console.error('Update campaign error:', error.message);
-      res.status(500).json({
+      const dbErr = handleDbError(error);
+      res.status(dbErr?.status || 500).json({
         success: false,
-        message: safeErrorMessage(error)
+        message: dbErr?.message || 'キャンペーンの更新に失敗しました'
       });
     }
   }
@@ -393,9 +395,10 @@ router.delete('/:id',
       });
     } catch (error) {
       console.error('Delete campaign error:', error.message);
-      res.status(500).json({
+      const dbErr = handleDbError(error);
+      res.status(dbErr?.status || 500).json({
         success: false,
-        message: safeErrorMessage(error)
+        message: dbErr?.message || 'キャンペーンの削除に失敗しました'
       });
     }
   }

@@ -131,12 +131,12 @@ const campaignsPage = {
         <form id="createCampaignForm">
           <div class="form-group">
             <label for="campaignName">キャンペーン名 <span class="required">*</span></label>
-            <input type="text" id="campaignName" class="form-control" required>
+            <input type="text" id="campaignName" class="form-control" required maxlength="100">
           </div>
 
           <div class="form-group">
             <label for="campaignDescription">説明</label>
-            <textarea id="campaignDescription" class="form-control" rows="3"></textarea>
+            <textarea id="campaignDescription" class="form-control" rows="3" maxlength="1000"></textarea>
           </div>
 
           <div class="form-row">
@@ -367,12 +367,12 @@ const campaignsPage = {
           <form id="editCampaignForm">
             <div class="form-group">
               <label for="campaignName">キャンペーン名 <span class="required">*</span></label>
-              <input type="text" id="campaignName" class="form-control" value="${escapeHtml(campaign.name)}" required>
+              <input type="text" id="campaignName" class="form-control" value="${escapeHtml(campaign.name)}" required maxlength="100">
             </div>
 
             <div class="form-group">
               <label for="campaignDescription">説明</label>
-              <textarea id="campaignDescription" class="form-control" rows="3">${escapeHtml(campaign.description)}</textarea>
+              <textarea id="campaignDescription" class="form-control" rows="3" maxlength="1000">${escapeHtml(campaign.description)}</textarea>
             </div>
 
             <div class="form-row">
