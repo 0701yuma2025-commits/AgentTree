@@ -11,7 +11,7 @@ const { generateAgencyCode } = require('../utils/generateCode');
 const emailService = require('../services/emailService');
 const { agencyCreationRateLimit } = require('../middleware/rateLimiter');
 const { validateAge, validateDateFormat } = require('../utils/ageValidator');
-const { getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
+const { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 // サブルーターマウント
@@ -335,6 +335,27 @@ router.post('/',
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // 権限チェック：代理店ユーザーは自分または傘下の代理店のみ閲覧可能
+    if (req.user.role === 'agency') {
+      if (!req.user.agency) {
+        return res.status(403).json({
+          success: false,
+          message: '代理店情報が見つかりません'
+        });
+      }
+
+      if (req.user.agency.id !== id) {
+        // 傘下代理店かチェック
+        const subordinateIds = await getSubordinateAgencyIds(req.user.agency.id);
+        if (!subordinateIds.includes(id)) {
+          return res.status(403).json({
+            success: false,
+            message: 'この代理店の情報を閲覧する権限がありません'
+          });
+        }
+      }
+    }
 
     const { data, error } = await supabase
       .from('agencies')
