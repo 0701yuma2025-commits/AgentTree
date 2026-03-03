@@ -133,7 +133,7 @@ class SettingsPage {
       }
     } catch (error) {
       console.error('Save company info error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || '保存に失敗しました', 'error');
     }
   }
 
@@ -420,7 +420,7 @@ class SettingsPage {
       }
     } catch (error) {
       console.error('Change email error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 
@@ -453,7 +453,7 @@ class SettingsPage {
       }
     } catch (error) {
       console.error('Change password error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 
@@ -489,7 +489,7 @@ class SettingsPage {
       }
     } catch (error) {
       console.error('Save commission rates error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 
@@ -535,7 +535,7 @@ class SettingsPage {
         <div class="2fa-status-card">
           <h4>メール2段階認証</h4>
           <p class="2fa-description">
-            ログイン時に登録メールアドレス（${user.email}）に認証コードを送信します。<br>
+            ログイン時に登録メールアドレス（${escapeHtml(user.email)}）に認証コードを送信します。<br>
             アカウントのセキュリティを向上させます。
           </p>
 
@@ -730,7 +730,7 @@ class SettingsPage {
       }
     } catch (error) {
       console.error('Verify 2FA email error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 

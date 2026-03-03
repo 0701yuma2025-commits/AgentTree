@@ -464,7 +464,7 @@ class CommissionsPage {
       }
     } catch (error) {
       console.error('Update commission status error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 
@@ -500,7 +500,7 @@ class CommissionsPage {
       }
     } catch (error) {
       console.error('Mark as paid error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 

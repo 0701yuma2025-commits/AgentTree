@@ -754,7 +754,8 @@ class AgenciesDetailPage {
       this.app.hideModal();
       await this.app.agenciesPage.loadAgencies();
     } catch (error) {
-      showToast('登録に失敗しました', 'error');
+      console.error('Create agency error:', error);
+      showToast(error.message || '登録に失敗しました', 'error');
     }
   }
 }

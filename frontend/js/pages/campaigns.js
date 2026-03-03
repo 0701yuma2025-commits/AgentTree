@@ -603,7 +603,7 @@ const campaignsPage = {
       }
     } catch (error) {
       errorLog('Delete campaign error:', error);
-      app.showMessage('message', 'キャンペーンの削除に失敗しました', 'error');
+      app.showMessage('message', error.message || 'キャンペーンの削除に失敗しました', 'error');
     }
   },
 

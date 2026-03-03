@@ -361,7 +361,7 @@ class ProductsPage {
       }
     } catch (error) {
       console.error('Save product error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 
@@ -389,7 +389,7 @@ class ProductsPage {
       }
     } catch (error) {
       console.error('Delete product error:', error);
-      showToast('エラーが発生しました', 'error');
+      showToast(error.message || 'エラーが発生しました', 'error');
     }
   }
 }
