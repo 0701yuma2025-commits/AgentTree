@@ -242,8 +242,22 @@ router.post('/reset-password', passwordResetRateLimit, async (req, res) => {
       });
     }
 
-    // Supabaseのパスワードリセット機能を使用
-    const { error } = await supabase.auth.updateUser({
+    // Supabaseのリカバリートークンを検証してからパスワード変更
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: token,
+      type: 'recovery'
+    });
+
+    if (verifyError || !verifyData?.user) {
+      console.error('Token verification error:', verifyError?.message || 'No user returned');
+      return res.status(400).json({
+        success: false,
+        message: 'リセットトークンが無効または期限切れです'
+      });
+    }
+
+    // 検証済みユーザーのパスワードを更新（admin APIを使用）
+    const { error } = await supabase.auth.admin.updateUserById(verifyData.user.id, {
       password: new_password
     });
 
