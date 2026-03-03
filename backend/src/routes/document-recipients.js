@@ -7,6 +7,8 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { handleDbError } = require('../utils/errorHelper');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('document-recipients');
 
 /**
  * 宛先テンプレート一覧取得
@@ -45,14 +47,14 @@ router.get('/', authenticateToken, async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-      console.error('宛先テンプレート取得エラー:', error.message);
+      logger.error('宛先テンプレート取得エラー:', error.message);
       return res.status(500).json({ success: false, message: '宛先テンプレートの取得に失敗しました' });
     }
 
     res.json({ success: true, data: data || [] });
 
   } catch (error) {
-    console.error('宛先テンプレート取得エラー:', error.message);
+    logger.error('宛先テンプレート取得エラー:', error.message);
     res.status(500).json({ success: false, message: '宛先テンプレートの取得に失敗しました' });
   }
 });
@@ -89,7 +91,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     res.json({ success: true, data });
 
   } catch (error) {
-    console.error('宛先テンプレート取得エラー:', error.message);
+    logger.error('宛先テンプレート取得エラー:', error.message);
     res.status(500).json({ success: false, message: '宛先テンプレートの取得に失敗しました' });
   }
 });
@@ -147,14 +149,14 @@ router.post('/', authenticateToken, async (req, res) => {
       .single();
 
     if (error) {
-      console.error('宛先テンプレート作成エラー:', error.message);
+      logger.error('宛先テンプレート作成エラー:', error.message);
       return res.status(500).json({ success: false, message: '宛先テンプレートの作成に失敗しました' });
     }
 
     res.status(201).json({ success: true, data });
 
   } catch (error) {
-    console.error('宛先テンプレート作成エラー:', error.message);
+    logger.error('宛先テンプレート作成エラー:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({ success: false, message: dbErr?.message || '宛先テンプレートの作成に失敗しました' });
   }
@@ -220,14 +222,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
       .single();
 
     if (error) {
-      console.error('宛先テンプレート更新エラー:', error.message);
+      logger.error('宛先テンプレート更新エラー:', error.message);
       return res.status(500).json({ success: false, message: '宛先テンプレートの更新に失敗しました' });
     }
 
     res.json({ success: true, data });
 
   } catch (error) {
-    console.error('宛先テンプレート更新エラー:', error.message);
+    logger.error('宛先テンプレート更新エラー:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({ success: false, message: dbErr?.message || '宛先テンプレートの更新に失敗しました' });
   }
@@ -263,14 +265,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       .eq('id', id);
 
     if (error) {
-      console.error('宛先テンプレート削除エラー:', error.message);
+      logger.error('宛先テンプレート削除エラー:', error.message);
       return res.status(500).json({ success: false, message: '宛先テンプレートの削除に失敗しました' });
     }
 
     res.json({ success: true, message: '宛先テンプレートを削除しました' });
 
   } catch (error) {
-    console.error('宛先テンプレート削除エラー:', error.message);
+    logger.error('宛先テンプレート削除エラー:', error.message);
     res.status(500).json({ success: false, message: '宛先テンプレートの削除に失敗しました' });
   }
 });
@@ -291,7 +293,7 @@ router.post('/:id/use', authenticateToken, async (req, res) => {
       .single();
 
     if (fetchError) {
-      console.error('使用回数取得エラー:', fetchError.message);
+      logger.error('使用回数取得エラー:', fetchError.message);
       return res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
     }
 
@@ -307,14 +309,14 @@ router.post('/:id/use', authenticateToken, async (req, res) => {
       .single();
 
     if (error) {
-      console.error('使用回数更新エラー:', error.message);
+      logger.error('使用回数更新エラー:', error.message);
       return res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
     }
 
     res.json({ success: true, data });
 
   } catch (error) {
-    console.error('使用回数更新エラー:', error.message);
+    logger.error('使用回数更新エラー:', error.message);
     res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
   }
 });

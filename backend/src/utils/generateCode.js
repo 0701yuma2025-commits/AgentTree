@@ -4,6 +4,8 @@
  */
 
 const { supabase } = require('../config/supabase');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('generateCode');
 
 const MAX_RETRIES = 5;
 
@@ -68,7 +70,7 @@ async function generateAgencyCode() {
       errorMessage: '代理店コードの生成に失敗しました'
     });
   } catch (error) {
-    console.error('Generate agency code error:', error);
+    logger.error({ err: error }, 'Generate agency code error');
     throw new Error('代理店コードの生成に失敗しました');
   }
 }
@@ -92,7 +94,7 @@ async function generateSaleNumber() {
       errorMessage: '売上番号の生成に失敗しました'
     });
   } catch (error) {
-    console.error('Generate sale number error:', error);
+    logger.error({ err: error }, 'Generate sale number error');
     throw new Error('売上番号の生成に失敗しました');
   }
 }
@@ -112,7 +114,7 @@ async function generateProductCode() {
       errorMessage: '商品コードの生成に失敗しました'
     });
   } catch (error) {
-    console.error('Generate product code error:', error);
+    logger.error({ err: error }, 'Generate product code error');
     throw new Error('商品コードの生成に失敗しました');
   }
 }
@@ -143,7 +145,7 @@ async function generatePaymentNumber() {
       const month = (now.getMonth() + 1).toString().padStart(2, '0');
       return `PAY${year}${month}0001`;
     }
-    console.error('Generate payment number error:', error);
+    logger.error({ err: error }, 'Generate payment number error');
     throw new Error('支払い番号の生成に失敗しました');
   }
 }

@@ -5,6 +5,8 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
 const { v4: uuidv4 } = require('uuid');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('documents');
 
 // Multerの設定（メモリストレージ使用）
 const storage = multer.memoryStorage();
@@ -69,7 +71,7 @@ router.get('/:agencyId', authenticateToken, async (req, res) => {
       data: data || []
     });
   } catch (error) {
-    console.error('Get documents error:', error.message);
+    logger.error('Get documents error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ドキュメント一覧の取得に失敗しました'
@@ -147,7 +149,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
       data: documentData
     });
   } catch (error) {
-    console.error('Upload document error:', error.message);
+    logger.error('Upload document error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ファイルアップロードに失敗しました'
@@ -197,7 +199,7 @@ router.put('/:id/verify', authenticateToken, requireAdmin, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Verify document error:', error.message);
+    logger.error('Verify document error:', error.message);
     res.status(500).json({
       success: false,
       message: '書類確認に失敗しました'
@@ -242,7 +244,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       .from('documents')
       .remove([filePath]);
 
-    if (storageError) console.error('Storage deletion error:', storageError.message);
+    if (storageError) logger.error('Storage deletion error:', storageError.message);
 
     // データベースから削除
     const { error: deleteError } = await supabase
@@ -257,7 +259,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       message: '書類を削除しました'
     });
   } catch (error) {
-    console.error('Delete document error:', error.message);
+    logger.error('Delete document error:', error.message);
     res.status(500).json({
       success: false,
       message: '書類削除に失敗しました'

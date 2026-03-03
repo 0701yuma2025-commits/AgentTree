@@ -7,6 +7,8 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('network');
 
 /**
  * GET /api/network/agencies
@@ -116,7 +118,7 @@ router.get('/agencies', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get network data error:', error.message);
+    logger.error('Get network data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ネットワークデータの取得に失敗しました'

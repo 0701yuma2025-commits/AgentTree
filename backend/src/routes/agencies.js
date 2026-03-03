@@ -14,6 +14,8 @@ const { validateAge, validateDateFormat } = require('../utils/ageValidator');
 const { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { handleDbError } = require('../utils/errorHelper');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('agencies');
 
 // サブルーターマウント
 router.use('/', require('./agencies/status'));
@@ -101,7 +103,7 @@ router.get('/', authenticateToken, async (req, res) => {
       data: data || []
     });
   } catch (error) {
-    console.error('Get agencies error:', error.message);
+    logger.error('Get agencies error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -322,7 +324,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create agency error:', error.message);
+      logger.error('Create agency error:', error.message);
       const dbErr = handleDbError(error);
       res.status(dbErr?.status || 500).json({
         success: false,
@@ -395,7 +397,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Get agency error:', error.message);
+    logger.error('Get agency error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -455,7 +457,7 @@ router.put('/:id',
               try {
                 filteredUpdates[field] = JSON.parse(updates[field]);
               } catch (e) {
-                console.error(`Failed to parse ${field}:`, e);
+                logger.error({ err: e }, `Failed to parse ${field}`);
                 filteredUpdates[field] = null;
               }
             } else {
@@ -481,7 +483,7 @@ router.put('/:id',
         data
       });
     } catch (error) {
-      console.error('Update agency error:', error.message);
+      logger.error('Update agency error:', error.message);
       res.status(500).json({
         success: false,
         message: 'データの更新に失敗しました'
@@ -569,7 +571,7 @@ router.delete('/:id',
         message: '代理店を削除しました'
       });
     } catch (error) {
-      console.error('Delete agency error:', error.message);
+      logger.error('Delete agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '削除処理に失敗しました'

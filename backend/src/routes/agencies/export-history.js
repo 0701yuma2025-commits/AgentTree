@@ -9,6 +9,8 @@ const { authenticateToken } = require('../../middleware/auth');
 const { Parser } = require('json2csv');
 const { sanitizeCsvRow } = require('../../utils/csvSanitizer');
 const { getSubordinateAgencyIds } = require('../../utils/agencyHelpers');
+const { createModuleLogger } = require('../../config/logger');
+const logger = createModuleLogger('agencies-export');
 
 /**
  * GET /api/agencies/export
@@ -86,7 +88,7 @@ router.get('/export', authenticateToken, async (req, res) => {
     res.send(csv);
 
   } catch (error) {
-    console.error('Export agencies error:', error.message);
+    logger.error('Export agencies error:', error.message);
     res.status(500).json({
       success: false,
       message: '代理店データのエクスポートに失敗しました'
@@ -174,7 +176,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
     const invitationError = null;
 
     if (invitationError) {
-      console.error('Invitation history fetch error:', invitationError.message);
+      logger.error('Invitation history fetch error:', invitationError.message);
       return res.status(500).json({
         success: false,
         message: '招待履歴の取得に失敗しました'
@@ -242,7 +244,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Agency history fetch error:', error.message);
+    logger.error('Agency history fetch error:', error.message);
     res.status(500).json({
       success: false,
       message: '履歴の取得に失敗しました'

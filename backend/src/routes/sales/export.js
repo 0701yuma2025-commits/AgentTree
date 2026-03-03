@@ -10,6 +10,8 @@ const { getSubordinateAgencyIds } = require('../../utils/agencyHelpers');
 const { Parser } = require('json2csv');
 const { safeErrorMessage } = require('../../utils/errorHelper');
 const { sanitizeCsvRow } = require('../../utils/csvSanitizer');
+const { createModuleLogger } = require('../../config/logger');
+const logger = createModuleLogger('sales-export');
 
 /**
  * GET /api/sales/export
@@ -110,7 +112,7 @@ router.get('/export', authenticateToken, async (req, res) => {
     res.send(csv);
 
   } catch (error) {
-    console.error('Export sales error details:', {
+    logger.error('Export sales error details:', {
       message: safeErrorMessage(error),
       code: error.code,
       details: error.details
@@ -172,7 +174,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
       data: summary
     });
   } catch (error) {
-    console.error('Get sales summary error:', error.message);
+    logger.error('Get sales summary error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -304,7 +306,7 @@ router.get('/organization-summary', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get organization summary error:', error.message);
+    logger.error('Get organization summary error:', error.message);
     res.status(500).json({
       success: false,
       message: '組織売上サマリーの取得に失敗しました'

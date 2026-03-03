@@ -6,6 +6,8 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('pdf-generator');
 
 // 日本語フォントパス（オプション）
 // フォントが存在しない場合はデフォルトフォントを使用
@@ -32,7 +34,7 @@ async function generateInvoicePDF(invoiceData) {
         try {
           doc.registerFont('Japanese', FONT_PATH);
         } catch (e) {
-          console.log('Font registration skipped:', e.message);
+          logger.info('Font registration skipped:', e.message);
         }
       }
 
@@ -238,7 +240,7 @@ async function generateReceiptPDF(receiptData) {
         try {
           doc.registerFont('Japanese', FONT_PATH);
         } catch (e) {
-          console.log('Font registration skipped:', e.message);
+          logger.info('Font registration skipped:', e.message);
         }
       }
 
@@ -289,7 +291,7 @@ async function generateReceiptPDF(receiptData) {
 
       // 発行元情報（領収書発行者＝代理店）
       let footerY = 520;
-      console.log('領収書PDF生成 - フッター開始Y座標:', footerY);
+      logger.info('領収書PDF生成 - フッター開始Y座標:', footerY);
       doc.fontSize(10);
 
       // 代理店名

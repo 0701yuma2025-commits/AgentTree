@@ -8,6 +8,8 @@ const { body, validationResult } = require('express-validator');
 const { supabase } = require('../../config/supabase');
 const { authenticateToken, requireAdmin } = require('../../middleware/auth');
 const emailService = require('../../services/emailService');
+const { createModuleLogger } = require('../../config/logger');
+const logger = createModuleLogger('agencies-status');
 
 /**
  * PUT /api/agencies/:id/approve
@@ -63,7 +65,7 @@ router.put('/:id/approve',
       // 承認通知メールを送信（トークンを含む）
       emailService.sendAgencyApprovedEmail({ ...data, passwordResetToken })
         .catch(err => {
-          console.error('承認メール送信エラー:', err.message);
+          logger.error('承認メール送信エラー:', err.message);
         });
 
       res.json({
@@ -72,7 +74,7 @@ router.put('/:id/approve',
         message: '代理店を承認しました'
       });
     } catch (error) {
-      console.error('Approve agency error:', error.message);
+      logger.error('Approve agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '承認処理に失敗しました'
@@ -146,7 +148,7 @@ router.put('/:id/reject',
       // 却下通知メールを送信
       emailService.sendAgencyRejectedEmail(data, rejection_reason)
         .catch(err => {
-          console.error('却下メール送信エラー:', err.message);
+          logger.error('却下メール送信エラー:', err.message);
         });
 
       res.json({
@@ -155,7 +157,7 @@ router.put('/:id/reject',
         message: '代理店を拒否しました'
       });
     } catch (error) {
-      console.error('Reject agency error:', error.message);
+      logger.error('Reject agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '拒否処理に失敗しました'
@@ -218,7 +220,7 @@ router.put('/:id/reactivate',
         message: '代理店を再有効化しました'
       });
     } catch (error) {
-      console.error('Reactivate agency error:', error.message);
+      logger.error('Reactivate agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '再有効化に失敗しました'
@@ -276,7 +278,7 @@ router.put('/:id/suspend',
 
       // 停止通知メールを送信（非同期で実行）
       emailService.sendAgencySuspendedEmail(data, suspension_reason)
-        .catch((err) => console.error('停止通知メール送信エラー:', err.message));
+        .catch((err) => logger.error('停止通知メール送信エラー:', err.message));
 
       res.json({
         success: true,
@@ -284,7 +286,7 @@ router.put('/:id/suspend',
         message: '代理店を停止しました'
       });
     } catch (error) {
-      console.error('Suspend agency error:', error.message);
+      logger.error('Suspend agency error:', error.message);
       res.status(500).json({
         success: false,
         message: '停止処理に失敗しました'

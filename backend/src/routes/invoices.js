@@ -7,6 +7,8 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { generateInvoicePDF, generateReceiptPDF, generatePaymentStatementPDF } = require('../utils/pdf-generator');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('invoices');
 
 /**
  * 運営側のインボイス登録番号を取得（DB優先、env変数フォールバック）
@@ -205,7 +207,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('請求書生成エラー:', error.message);
+    logger.error('請求書生成エラー:', error.message);
     res.status(500).json({ success: false, message: '請求書の生成に失敗しました' });
   }
 });
@@ -296,7 +298,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('領収書生成エラー:', error.message);
+    logger.error('領収書生成エラー:', error.message);
     res.status(500).json({ success: false, message: '領収書の生成に失敗しました' });
   }
 });
@@ -397,7 +399,7 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('売上ベース請求書生成エラー:', error.message);
+    logger.error('売上ベース請求書生成エラー:', error.message);
     res.status(500).json({ success: false, message: '請求書の生成に失敗しました' });
   }
 });
@@ -483,7 +485,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('売上ベース領収書生成エラー:', error.message);
+    logger.error('売上ベース領収書生成エラー:', error.message);
     res.status(500).json({ success: false, message: '領収書の生成に失敗しました' });
   }
 });
@@ -533,7 +535,7 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
       .order('created_at', { ascending: true });
 
     if (commissionsError) {
-      console.error('報酬データ取得エラー:', commissionsError.message);
+      logger.error('報酬データ取得エラー:', commissionsError.message);
       return res.status(500).json({ success: false, message: '報酬データの取得に失敗しました' });
     }
 
@@ -597,7 +599,7 @@ router.post('/admin-monthly-summary', authenticateToken, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('管理者向け月次集計明細書生成エラー:', error.message);
+    logger.error('管理者向け月次集計明細書生成エラー:', error.message);
     res.status(500).json({ success: false, message: '管理者向け月次集計明細書の生成に失敗しました' });
   }
 });
@@ -649,7 +651,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
       .eq('status', 'paid');
 
     if (error) {
-      console.error('報酬データ取得エラー:', error.message);
+      logger.error('報酬データ取得エラー:', error.message);
       return res.status(500).json({ success: false, message: '報酬データの取得に失敗しました' });
     }
 
@@ -704,7 +706,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('月単位領収書生成エラー:', error.message);
+    logger.error('月単位領収書生成エラー:', error.message);
     res.status(500).json({ success: false, message: '月単位領収書の生成に失敗しました' });
   }
 });
@@ -727,14 +729,14 @@ router.get('/agencies', authenticateToken, async (req, res) => {
       .order('agency_code', { ascending: true });
 
     if (error) {
-      console.error('代理店一覧取得エラー:', error.message);
+      logger.error('代理店一覧取得エラー:', error.message);
       return res.status(500).json({ success: false, message: '代理店一覧の取得に失敗しました' });
     }
 
     res.json({ success: true, data: agencies || [] });
 
   } catch (error) {
-    console.error('代理店一覧取得エラー:', error.message);
+    logger.error('代理店一覧取得エラー:', error.message);
     res.status(500).json({ success: false, message: '代理店一覧の取得に失敗しました' });
   }
 });
@@ -787,7 +789,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-      console.error('請求書一覧取得エラー:', error.message);
+      logger.error('請求書一覧取得エラー:', error.message);
       return res.status(500).json({ success: false, message: '請求書一覧の取得に失敗しました' });
     }
 
@@ -813,7 +815,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json({ success: true, data: invoices });
 
   } catch (error) {
-    console.error('請求書一覧取得エラー:', error.message);
+    logger.error('請求書一覧取得エラー:', error.message);
     res.status(500).json({ success: false, message: '請求書一覧の取得に失敗しました' });
   }
 });

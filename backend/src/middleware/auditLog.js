@@ -3,6 +3,8 @@
  */
 
 const { supabase } = require('../config/supabase');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('auditLog');
 
 /**
  * 監査ログを記録
@@ -42,10 +44,10 @@ async function createAuditLog({
       });
 
     if (error) {
-      console.error('Failed to create audit log:', error.message);
+      logger.error('Failed to create audit log:', error.message);
     }
   } catch (error) {
-    console.error('Audit log error:', error.message);
+    logger.error('Audit log error:', error.message);
     // 監査ログ記録失敗はシステム全体を止めない
   }
 }
@@ -102,7 +104,7 @@ function auditLogMiddleware(action, resourceType) {
             errorMessage: status === 'failure' ? errorMessage : null
           });
         } catch (error) {
-          console.error('Audit log middleware error:', error.message);
+          logger.error('Audit log middleware error:', error.message);
         }
       });
 

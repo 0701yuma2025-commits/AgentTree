@@ -3,6 +3,8 @@
  */
 
 const { Resend } = require('resend');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('emailSender');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -18,9 +20,9 @@ async function sendEmail({ to, subject, html, text }) {
   try {
     // メール送信が無効な場合はスキップ
     if (process.env.ENABLE_EMAIL !== 'true') {
-      console.log('[Email] メール送信は無効化されています');
-      console.log(`[Email] To: ${maskEmail(to)}`);
-      console.log(`[Email] Subject: ${subject}`);
+      logger.info('[Email] メール送信は無効化されています');
+      logger.info(`[Email] To: ${maskEmail(to)}`);
+      logger.info(`[Email] Subject: ${subject}`);
       return { success: true, message: 'メール送信は無効化されています（開発環境）' };
     }
 
@@ -34,15 +36,15 @@ async function sendEmail({ to, subject, html, text }) {
     });
 
     if (error) {
-      console.error('[Email] 送信エラー:', error.message);
+      logger.error('[Email] 送信エラー:', error.message);
       throw new Error(`メール送信に失敗しました: ${error.message}`);
     }
 
-    console.log(`[Email] 送信成功: ${maskEmail(to)} - ${subject}`);
+    logger.info(`[Email] 送信成功: ${maskEmail(to)} - ${subject}`);
     return { success: true, data };
 
   } catch (error) {
-    console.error('[Email] メール送信エラー:', error.message);
+    logger.error('[Email] メール送信エラー:', error.message);
     throw error;
   }
 }

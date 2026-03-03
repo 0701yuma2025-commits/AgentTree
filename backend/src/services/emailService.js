@@ -4,6 +4,8 @@
  */
 
 const { Resend } = require('resend');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('emailService');
 
 class EmailService {
   constructor() {
@@ -26,9 +28,9 @@ class EmailService {
   async sendMail({ to, subject, html, text }) {
     if (this.isDevelopment) {
       const recipient = Array.isArray(to) ? to.map(this.maskEmail).join(', ') : this.maskEmail(to);
-      console.log('📧 [開発環境] メール送信をシミュレート:');
-      console.log('  To:', recipient);
-      console.log('  Subject:', subject);
+      logger.info('📧 [開発環境] メール送信をシミュレート:');
+      logger.info('  To:', recipient);
+      logger.info('  Subject:', subject);
       return { success: true, messageId: 'dev-' + Date.now() };
     }
 
@@ -42,14 +44,14 @@ class EmailService {
       });
 
       if (error) {
-        console.error('❌ Resend エラー:', error.message);
+        logger.error('❌ Resend エラー:', error.message);
         return { success: false, error: error.message };
       }
 
-      console.log('✅ メール送信成功:', data.id);
+      logger.info('✅ メール送信成功:', data.id);
       return { success: true, messageId: data.id };
     } catch (error) {
-      console.error('❌ メール送信エラー:', error.message);
+      logger.error('❌ メール送信エラー:', error.message);
       return { success: false, error: error.message };
     }
   }

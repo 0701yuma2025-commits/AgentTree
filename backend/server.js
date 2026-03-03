@@ -8,6 +8,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
+const pinoHttp = require('pino-http');
+const { logger } = require('./src/config/logger');
 
 // セキュリティミドルウェアのインポート
 const { enforceHTTPS, securityHeaders, sanitizeInput, ipBlocklist } = require('./src/middleware/security');
@@ -20,7 +22,7 @@ const { startScheduler } = require('./src/scripts/cron-scheduler');
 const requiredEnvVars = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
 const missingVars = requiredEnvVars.filter(v => !process.env[v]);
 if (missingVars.length > 0) {
-  console.error(`FATAL: 必須環境変数が未設定です: ${missingVars.join(', ')}`);
+  logger.fatal(`必須環境変数が未設定です: ${missingVars.join(', ')}`);
   process.exit(1);
 }
 
@@ -28,7 +30,7 @@ if (missingVars.length > 0) {
 const recommendedEnvVars = ['RESEND_API_KEY', 'FRONTEND_URL', 'NODE_ENV'];
 const missingRecommended = recommendedEnvVars.filter(v => !process.env[v]);
 if (missingRecommended.length > 0) {
-  console.warn(`WARNING: 推奨環境変数が未設定です: ${missingRecommended.join(', ')}`);
+  logger.warn(`推奨環境変数が未設定です: ${missingRecommended.join(', ')}`);
 }
 
 // Expressアプリケーション初期化
@@ -52,6 +54,14 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+// HTTPリクエストログ（ヘルスチェックは除外）
+app.use(pinoHttp({
+  logger,
+  autoLogging: {
+    ignore: (req) => req.url === '/health'
+  }
+}));
 
 // HTTPS強制（本番環境）
 app.use(enforceHTTPS);
@@ -159,7 +169,7 @@ app.use((req, res) => {
 
 // エラーハンドラー
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  logger.error({ err }, 'リクエストエラー');
 
   const status = err.status || 500;
 
@@ -185,8 +195,8 @@ app.use((err, req, res, next) => {
 // サーバー起動
 const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
+  logger.info(`Server is running on port ${PORT}`);
+  logger.info(`Environment: ${process.env.NODE_ENV}`);
 
   // スケジューラーを起動
   if (process.env.ENABLE_SCHEDULER !== 'false') {
@@ -196,14 +206,14 @@ const server = app.listen(PORT, () => {
 
 // Graceful shutdown
 const shutdown = (signal) => {
-  console.log(`${signal} received. Shutting down gracefully...`);
+  logger.info(`${signal} received. Shutting down gracefully...`);
   server.close(() => {
-    console.log('Server closed.');
+    logger.info('Server closed.');
     process.exit(0);
   });
   // 10秒以内にクローズできなければ強制終了
   setTimeout(() => {
-    console.error('Forced shutdown after timeout.');
+    logger.fatal('Forced shutdown after timeout.');
     process.exit(1);
   }, 10000);
 };

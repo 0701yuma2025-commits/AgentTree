@@ -8,6 +8,8 @@ const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('campaigns');
 
 /**
  * GET /api/campaigns
@@ -57,7 +59,7 @@ router.get('/', authenticateToken, async (req, res) => {
       data: campaignsWithStatus
     });
   } catch (error) {
-    console.error('Get campaigns error:', error.message);
+    logger.error('Get campaigns error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -88,7 +90,7 @@ router.get('/active', authenticateToken, async (req, res) => {
       data: data || []
     });
   } catch (error) {
-    console.error('Get active campaigns error:', error.message);
+    logger.error('Get active campaigns error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -140,7 +142,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data: campaignData
     });
   } catch (error) {
-    console.error('Get campaign detail error:', error.message);
+    logger.error('Get campaign detail error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -228,7 +230,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create campaign error:', error.message);
+      logger.error('Create campaign error:', error.message);
       const dbErr = handleDbError(error);
       res.status(dbErr?.status || 500).json({
         success: false,
@@ -347,7 +349,7 @@ router.put('/:id',
         data
       });
     } catch (error) {
-      console.error('Update campaign error:', error.message);
+      logger.error('Update campaign error:', error.message);
       const dbErr = handleDbError(error);
       res.status(dbErr?.status || 500).json({
         success: false,
@@ -394,7 +396,7 @@ router.delete('/:id',
         message: 'キャンペーンを削除しました'
       });
     } catch (error) {
-      console.error('Delete campaign error:', error.message);
+      logger.error('Delete campaign error:', error.message);
       const dbErr = handleDbError(error);
       res.status(dbErr?.status || 500).json({
         success: false,
@@ -451,7 +453,7 @@ async function getCampaignStats(campaignId) {
       bonus_count: data?.length || 0
     };
   } catch (error) {
-    console.error('Get campaign stats error:', error.message);
+    logger.error('Get campaign stats error:', error.message);
     return {
       total_bonus: 0,
       agency_count: 0,

@@ -10,6 +10,8 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { sensitiveActionRateLimit } = require('../middleware/rateLimiter');
 const emailService = require('../services/emailService');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('invitations');
 
 // 招待トークン検証用レート制限（1分あたり10回まで）
 const validateRateLimit = rateLimit({
@@ -46,7 +48,7 @@ router.get('/', authenticateToken, async (req, res) => {
       data: data || []
     });
   } catch (error) {
-    console.error('Get invitations error:', error.message);
+    logger.error('Get invitations error:', error.message);
     res.status(500).json({
       success: false,
       message: 'データの取得に失敗しました'
@@ -112,7 +114,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create invitation error:', error.message);
+      logger.error('Create invitation error:', error.message);
       res.status(500).json({
         success: false,
         message: '招待の作成に失敗しました'
@@ -144,7 +146,7 @@ router.get('/validate/:token', validateRateLimit, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Validate invitation error:', error.message);
+    logger.error('Validate invitation error:', error.message);
     res.status(500).json({
       success: false,
       message: 'トークンの検証に失敗しました'
@@ -224,7 +226,7 @@ router.post('/accept',
         user_id: authData.user?.id
       });
     } catch (error) {
-      console.error('Accept invitation error:', error.message);
+      logger.error('Accept invitation error:', error.message);
       res.status(500).json({
         success: false,
         message: '招待の受諾に失敗しました'
@@ -259,10 +261,10 @@ async function sendInvitationEmail(invitation) {
     });
 
     if (!result.success) {
-      console.error('Failed to send invitation email:', result.error);
+      logger.error('Failed to send invitation email:', result.error);
     }
   } catch (error) {
-    console.error('Send invitation email error:', error.message);
+    logger.error('Send invitation email error:', error.message);
   }
 }
 

@@ -4,6 +4,8 @@
 
 const jwt = require('jsonwebtoken');
 const { supabase } = require('../config/supabase');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('auth');
 
 /**
  * JWTトークン検証ミドルウェア
@@ -51,7 +53,7 @@ const authenticateToken = async (req, res, next) => {
         audience: 'agenttree-api'
       });
     } catch (error) {
-      console.error('JWT verification error:', error.message);
+      logger.error('JWT verification error:', error.message);
 
       // エラー種別に応じて適切なレスポンスを返す
       if (error.name === 'TokenExpiredError') {
@@ -104,7 +106,7 @@ const authenticateToken = async (req, res, next) => {
         });
       }
     } catch (error) {
-      console.error('Token data extraction error:', error.message);
+      logger.error('Token data extraction error:', error.message);
       return res.status(403).json({
         error: true,
         code: 'INVALID_TOKEN',
@@ -121,7 +123,7 @@ const authenticateToken = async (req, res, next) => {
         .single();
 
       if (userError) {
-        console.log('User lookup warning:', userError.message);
+        logger.info('User lookup warning:', userError.message);
       }
 
       // req.userにユーザー情報を設定
@@ -141,7 +143,7 @@ const authenticateToken = async (req, res, next) => {
           .single();
 
         if (agencyError) {
-          console.log('Agency lookup warning:', agencyError.message);
+          logger.info('Agency lookup warning:', agencyError.message);
         }
 
         if (agency) {
@@ -150,7 +152,7 @@ const authenticateToken = async (req, res, next) => {
         }
       }
     } catch (dbError) {
-      console.error('Database lookup error:', dbError.message);
+      logger.error('Database lookup error:', dbError.message);
       // データベースエラーがあってもJWT認証は成功しているので続行
       req.user = {
         id: id,
@@ -162,7 +164,7 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     // どんなエラーでもサーバークラッシュを防ぐ
-    console.error('認証処理の致命的エラー:', error.message);
+    logger.error('認証処理の致命的エラー:', error.message);
 
     // 認証エラーとして統一的に処理
     return res.status(403).json({

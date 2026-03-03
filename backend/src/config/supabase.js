@@ -3,16 +3,18 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { createModuleLogger } = require('./logger');
+const logger = createModuleLogger('supabase');
 
 // Supabase URL と キーの検証（遅延評価）
 function validateConfig() {
   if (!process.env.SUPABASE_URL) {
-    console.error('Error: SUPABASE_URL is not set in environment variables');
+    logger.error('Error: SUPABASE_URL is not set in environment variables');
     return false;
   }
 
   if (!process.env.SUPABASE_SERVICE_KEY) {
-    console.error('Error: SUPABASE_SERVICE_KEY is not set in environment variables');
+    logger.error('Error: SUPABASE_SERVICE_KEY is not set in environment variables');
     return false;
   }
 
@@ -26,7 +28,7 @@ function getSupabaseClient() {
   if (!supabase) {
     if (!validateConfig()) {
       // エラーをログに記録し、nullを返す（サーバーをクラッシュさせない）
-      console.error('Supabase client initialization failed due to missing configuration');
+      logger.error('Supabase client initialization failed due to missing configuration');
       return null;
     }
 
@@ -41,9 +43,9 @@ function getSupabaseClient() {
           }
         }
       );
-      console.log('Supabase client initialized successfully');
+      logger.info('Supabase client initialized successfully');
     } catch (error) {
-      console.error('Failed to create Supabase client:', error.message);
+      logger.error('Failed to create Supabase client:', error.message);
       return null;
     }
   }
@@ -56,7 +58,7 @@ const supabaseProxy = new Proxy({}, {
   get: function(target, prop) {
     const client = getSupabaseClient();
     if (!client) {
-      console.error('Supabase client is not available');
+      logger.error('Supabase client is not available');
       // エラーを投げずに、安全なダミーオブジェクトを返す
       return () => Promise.reject(new Error('Supabase client not initialized'));
     }

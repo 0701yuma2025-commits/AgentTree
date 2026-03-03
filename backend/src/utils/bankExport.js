@@ -5,6 +5,8 @@
 const { Parser } = require('json2csv');
 const iconv = require('iconv-lite');
 const { sanitizeCsvValue } = require('./csvSanitizer');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('bankExport');
 
 /**
  * 全銀フォーマット（総合振込）用データを生成
@@ -42,7 +44,7 @@ function generateZenginFormat(payments, companyInfo) {
 
   payments.forEach((payment, index) => {
     if (!payment.bank_account || !payment.bank_account.bank_code) {
-      console.warn(`支払い先 ${payment.agency_name} の銀行情報が不完全です`);
+      logger.warn(`支払い先 ${payment.agency_name} の銀行情報が不完全です`);
       return;
     }
 

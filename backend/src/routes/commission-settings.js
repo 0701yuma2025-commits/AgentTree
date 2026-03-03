@@ -7,6 +7,8 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken: authMiddleware } = require('../middleware/auth');
 const { safeErrorMessage } = require('../utils/errorHelper');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('commission-settings');
 
 /**
  * 現在有効な報酬設定を取得
@@ -43,7 +45,7 @@ router.get('/current', authMiddleware, async (req, res) => {
       data: settings || defaultSettings
     });
   } catch (error) {
-    console.error('Get commission settings error:', error.message);
+    logger.error('Get commission settings error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -76,7 +78,7 @@ router.get('/history', authMiddleware, async (req, res) => {
       data: settings || []
     });
   } catch (error) {
-    console.error('Get commission settings history error:', error.message);
+    logger.error('Get commission settings history error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -184,7 +186,7 @@ router.post('/', authMiddleware, async (req, res) => {
       data: newSettings
     });
   } catch (error) {
-    console.error('Update commission settings error:', error.message);
+    logger.error('Update commission settings error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -247,7 +249,7 @@ router.get('/next-payment-date', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Calculate next payment date error:', error.message);
+    logger.error('Calculate next payment date error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)

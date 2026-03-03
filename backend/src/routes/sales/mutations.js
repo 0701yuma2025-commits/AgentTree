@@ -13,6 +13,8 @@ const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
 const emailService = require('../../services/emailService');
 const { handleDbError } = require('../../utils/errorHelper');
+const { createModuleLogger } = require('../../config/logger');
+const logger = createModuleLogger('sales-mutations');
 
 
 /**
@@ -207,14 +209,14 @@ router.post('/',
           .eq('id', data.id);
 
         if (updateError) {
-          console.error('異常フラグ更新エラー:', updateError.message);
+          logger.error('異常フラグ更新エラー:', updateError.message);
         }
 
         // 管理者に通知を送信
         try {
           await sendAnomalyNotification(data, anomalyResult);
         } catch (notifyError) {
-          console.error('異常通知送信エラー:', notifyError.message);
+          logger.error('異常通知送信エラー:', notifyError.message);
         }
       }
 
@@ -366,7 +368,7 @@ router.post('/',
           commissionCreated = true;
         }
       } catch (commissionCalcError) {
-        console.error('Commission calculation/creation error, rolling back sale:', commissionCalcError.message);
+        logger.error('Commission calculation/creation error, rolling back sale:', commissionCalcError.message);
         // 補償トランザクション: 売上と（もしあれば）報酬を削除
         await supabase.from('commissions').delete().eq('sale_id', data.id);
         await supabase.from('sales').delete().eq('id', data.id);
@@ -417,7 +419,7 @@ router.post('/',
           }, agencyInfo.contact_email);
         }
       } catch (emailError) {
-        console.error('Sales notification email error:', emailError.message);
+        logger.error('Sales notification email error:', emailError.message);
       }
 
       res.status(201).json({
@@ -425,7 +427,7 @@ router.post('/',
         data
       });
     } catch (error) {
-      console.error('Create sale error:', error.message);
+      logger.error('Create sale error:', error.message);
       const dbErr = handleDbError(error);
       res.status(dbErr?.status || 500).json({
         success: false,
@@ -692,11 +694,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
           .insert(historyRecords);
 
         if (historyError) {
-          console.error('変更履歴の保存エラー:', historyError.message);
+          logger.error('変更履歴の保存エラー:', historyError.message);
           // 履歴保存エラーは売上更新の成功には影響しない
         }
       } catch (historyError) {
-        console.error('変更履歴の保存エラー:', historyError.message);
+        logger.error('変更履歴の保存エラー:', historyError.message);
       }
     }
 
@@ -747,7 +749,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
           }
         }
       } catch (commissionUpdateError) {
-        console.error('報酬再計算エラー:', commissionUpdateError.message);
+        logger.error('報酬再計算エラー:', commissionUpdateError.message);
         return res.json({
           success: true, message: '売上情報を更新しました',
           warning: '報酬の再計算に失敗しました。管理者に確認してください。', data
@@ -761,7 +763,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Update sale error:', error.message);
+    logger.error('Update sale error:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({
       success: false,
@@ -795,7 +797,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         .contains('related_data', { sale_id: id });
     } catch (notificationError) {
       // notification_historyテーブルが存在しない場合はスキップ
-      console.log('Notification history deletion skipped:', notificationError.message);
+      logger.info('Notification history deletion skipped:', notificationError.message);
     }
 
     // 2. 売上を物理削除（報酬は自動CASCADE削除）
@@ -811,7 +813,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       message: '売上情報を削除しました'
     });
   } catch (error) {
-    console.error('Delete sale error:', error.message);
+    logger.error('Delete sale error:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({
       success: false,

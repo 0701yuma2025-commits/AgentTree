@@ -8,6 +8,8 @@ const rateLimit = require('express-rate-limit');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { safeErrorMessage } = require('../utils/errorHelper');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('payments');
 
 /**
  * 報酬データを代理店ごとに集計する共通関数
@@ -109,7 +111,7 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
     // 銀行口座情報がない代理店を警告（代理店名のみログ。口座情報はログに出さない）
     const missingBankInfo = payments.filter(p => !p.bank_account || !p.bank_account.bank_code);
     if (missingBankInfo.length > 0) {
-      console.warn(`銀行口座情報が不完全な代理店: ${missingBankInfo.length}件`);
+      logger.warn(`銀行口座情報が不完全な代理店: ${missingBankInfo.length}件`);
     }
 
     let exportData;
@@ -164,7 +166,7 @@ router.get('/export', authenticateToken, requireAdmin, exportRateLimit, async (r
     res.send(exportData);
 
   } catch (error) {
-    console.error('Export payment data error:', error.message);
+    logger.error('Export payment data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'エクスポートに失敗しました',
@@ -228,7 +230,7 @@ router.get('/preview', authenticateToken, requireAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Preview payment data error:', error.message);
+    logger.error('Preview payment data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'プレビューの取得に失敗しました',
@@ -287,7 +289,7 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
       .insert(paymentRecords);
 
     if (recordError) {
-      console.error('Payment record creation error:', recordError.message);
+      logger.error('Payment record creation error:', recordError.message);
     }
 
     const response = {
@@ -306,7 +308,7 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
     res.json(response);
 
   } catch (error) {
-    console.error('Confirm payment error:', error.message);
+    logger.error('Confirm payment error:', error.message);
     res.status(500).json({
       success: false,
       message: '支払い確定に失敗しました',

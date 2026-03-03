@@ -8,6 +8,8 @@ const cron = require('node-cron');
 const { createClient } = require('@supabase/supabase-js');
 const { calculateMonthlyCommissions } = require('../utils/calculateCommission');
 const emailService = require('../services/emailService');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('cron-scheduler');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -19,7 +21,7 @@ const supabase = createClient(
  * 実行タイミング: 毎月末日 23:59
  */
 async function monthlyClosing() {
-  console.log('🔒 月次締め処理を開始します...');
+  logger.info('🔒 月次締め処理を開始します...');
 
   try {
     const now = new Date();
@@ -38,7 +40,7 @@ async function monthlyClosing() {
     if (salesError) throw salesError;
 
     if (pendingSales && pendingSales.length > 0) {
-      console.log(`⚠️  未確定売上が ${pendingSales.length} 件あります`);
+      logger.info(`⚠️  未確定売上が ${pendingSales.length} 件あります`);
 
       // 管理者に通知
       const { data: admins } = await supabase
@@ -68,10 +70,10 @@ async function monthlyClosing() {
       }
     }
 
-    console.log('✅ 月次締め処理が完了しました');
+    logger.info('✅ 月次締め処理が完了しました');
 
   } catch (error) {
-    console.error('❌ 月次締め処理でエラーが発生しました:', error);
+    logger.error({ err: error }, '❌ 月次締め処理でエラーが発生しました');
 
     // エラー時は管理者に通知
     const { data: admins } = await supabase
@@ -100,7 +102,7 @@ async function monthlyClosing() {
  * 実行タイミング: 毎月1日 02:00
  */
 async function calculateCommissions() {
-  console.log('💰 報酬計算を開始します...');
+  logger.info('💰 報酬計算を開始します...');
 
   try {
     // 前月を計算
@@ -114,7 +116,7 @@ async function calculateCommissions() {
     const nextMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 1);
     const nextMonthStr = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
 
-    console.log(`対象月: ${targetMonth}`);
+    logger.info(`対象月: ${targetMonth}`);
 
     // 前月の確定済み売上を取得
     const { data: sales, error: salesError } = await supabase
@@ -131,11 +133,11 @@ async function calculateCommissions() {
     if (salesError) throw salesError;
 
     if (!sales || sales.length === 0) {
-      console.log('ℹ️  対象となる売上がありません');
+      logger.info('ℹ️  対象となる売上がありません');
       return;
     }
 
-    console.log(`${sales.length} 件の売上を処理します`);
+    logger.info(`${sales.length} 件の売上を処理します`);
 
     // 全代理店データを取得
     const { data: agencies, error: agenciesError } = await supabase
@@ -181,7 +183,7 @@ async function calculateCommissions() {
       if (insertError) throw insertError;
     }
 
-    console.log(`✅ ${commissionsData.length} 件の報酬を計算しました`);
+    logger.info(`✅ ${commissionsData.length} 件の報酬を計算しました`);
 
     // 管理者に通知
     const { data: admins } = await supabase
@@ -211,7 +213,7 @@ async function calculateCommissions() {
     }
 
   } catch (error) {
-    console.error('❌ 報酬計算でエラーが発生しました:', error);
+    logger.error({ err: error }, '❌ 報酬計算でエラーが発生しました');
 
     // エラー時は管理者に通知
     const { data: admins } = await supabase
@@ -243,7 +245,7 @@ async function calculateCommissions() {
  * 統合後に最低支払額を超えたらconfirmedに変更、超えなければ再度carried_forwardとする。
  */
 async function sweepCarriedForwardCommissions() {
-  console.log('🔄 繰越報酬のスイープ処理を開始します...');
+  logger.info('🔄 繰越報酬のスイープ処理を開始します...');
 
   try {
     const now = new Date();
@@ -268,11 +270,11 @@ async function sweepCarriedForwardCommissions() {
     if (fetchError) throw fetchError;
 
     if (!carriedCommissions || carriedCommissions.length === 0) {
-      console.log('ℹ️  繰越対象の報酬がありません');
+      logger.info('ℹ️  繰越対象の報酬がありません');
       return;
     }
 
-    console.log(`${carriedCommissions.length} 件の繰越報酬を処理します`);
+    logger.info(`${carriedCommissions.length} 件の繰越報酬を処理します`);
 
     // 代理店ごとに集約
     const agencyTotals = {};
@@ -315,12 +317,12 @@ async function sweepCarriedForwardCommissions() {
           .in('id', data.commissionIds);
 
         if (updateError) {
-          console.error(`❌ ${agencyId} の繰越報酬更新に失敗:`, updateError);
+          logger.error({ err: updateError }, `❌ ${agencyId} の繰越報酬更新に失敗`);
           continue;
         }
 
         sweptCount += data.commissionIds.length;
-        console.log(`✅ 代理店 ${agencyId}: ${data.commissionIds.length}件の繰越報酬を当月(${currentMonth})に統合 (合計: ¥${grandTotal.toLocaleString()})`);
+        logger.info(`✅ 代理店 ${agencyId}: ${data.commissionIds.length}件の繰越報酬を当月(${currentMonth})に統合 (合計: ¥${grandTotal.toLocaleString()})`);
       } else {
         // まだ最低支払額未満 → monthだけ当月に更新（次月のスイープ対象に）
         const { error: updateError } = await supabase
@@ -332,16 +334,16 @@ async function sweepCarriedForwardCommissions() {
           .in('id', data.commissionIds);
 
         if (updateError) {
-          console.error(`❌ ${agencyId} の繰越報酬月更新に失敗:`, updateError);
+          logger.error({ err: updateError }, `❌ ${agencyId} の繰越報酬月更新に失敗`);
           continue;
         }
 
         remainCount += data.commissionIds.length;
-        console.log(`⏭️  代理店 ${agencyId}: 最低支払額未満のため繰越継続 (¥${grandTotal.toLocaleString()} < ¥${minimumPayment.toLocaleString()})`);
+        logger.info(`⏭️  代理店 ${agencyId}: 最低支払額未満のため繰越継続 (¥${grandTotal.toLocaleString()} < ¥${minimumPayment.toLocaleString()})`);
       }
     }
 
-    console.log(`✅ 繰越スイープ完了: ${sweptCount}件統合, ${remainCount}件繰越継続`);
+    logger.info(`✅ 繰越スイープ完了: ${sweptCount}件統合, ${remainCount}件繰越継続`);
 
     // 管理者に通知（統合があった場合のみ）
     if (sweptCount > 0) {
@@ -370,7 +372,7 @@ async function sweepCarriedForwardCommissions() {
     }
 
   } catch (error) {
-    console.error('❌ 繰越報酬スイープでエラーが発生しました:', error);
+    logger.error({ err: error }, '❌ 繰越報酬スイープでエラーが発生しました');
 
     const { data: admins } = await supabase
       .from('users')
@@ -398,7 +400,7 @@ async function sweepCarriedForwardCommissions() {
  * 実行タイミング: 毎月20日 09:00
  */
 async function sendPaymentReminders() {
-  console.log('📧 支払い通知メールを送信します...');
+  logger.info('📧 支払い通知メールを送信します...');
 
   try {
     const now = new Date();
@@ -417,7 +419,7 @@ async function sendPaymentReminders() {
     if (commError) throw commError;
 
     if (!commissions || commissions.length === 0) {
-      console.log('ℹ️  送信対象の報酬がありません');
+      logger.info('ℹ️  送信対象の報酬がありません');
       return;
     }
 
@@ -471,10 +473,10 @@ async function sendPaymentReminders() {
       sentCount++;
     }
 
-    console.log(`✅ ${sentCount} 件の通知メールを送信しました`);
+    logger.info(`✅ ${sentCount} 件の通知メールを送信しました`);
 
   } catch (error) {
-    console.error('❌ 支払い通知メール送信でエラーが発生しました:', error);
+    logger.error({ err: error }, '❌ 支払い通知メール送信でエラーが発生しました');
   }
 }
 
@@ -483,7 +485,7 @@ async function sendPaymentReminders() {
  * 実行タイミング: 毎月25日 10:00
  */
 async function processMonthlyPayments() {
-  console.log('💸 月次支払い処理を開始します...');
+  logger.info('💸 月次支払い処理を開始します...');
 
   try {
     const now = new Date();
@@ -503,11 +505,11 @@ async function processMonthlyPayments() {
     if (commError) throw commError;
 
     if (!commissions || commissions.length === 0) {
-      console.log('ℹ️  支払い対象の報酬がありません');
+      logger.info('ℹ️  支払い対象の報酬がありません');
       return;
     }
 
-    console.log(`${commissions.length} 件の報酬を処理します`);
+    logger.info(`${commissions.length} 件の報酬を処理します`);
 
     // 代理店ごとに集計
     const agencyPayments = {};
@@ -532,7 +534,7 @@ async function processMonthlyPayments() {
     for (const [agencyId, data] of Object.entries(agencyPayments)) {
       // 最低支払額チェック（1万円未満はスキップ）
       if (data.total < 10000) {
-        console.log(`⏭️  ${data.agency.company_name}: 最低支払額未満 (¥${data.total.toLocaleString()})`);
+        logger.info(`⏭️  ${data.agency.company_name}: 最低支払額未満 (¥${data.total.toLocaleString()})`);
         continue;
       }
 
@@ -546,7 +548,7 @@ async function processMonthlyPayments() {
         .in('id', data.commissionIds);
 
       if (updateError) {
-        console.error(`❌ ${data.agency.company_name} の報酬更新に失敗:`, updateError);
+        logger.error({ err: updateError }, `❌ ${data.agency.company_name} の報酬更新に失敗`);
         continue;
       }
 
@@ -566,7 +568,7 @@ async function processMonthlyPayments() {
         .insert(paymentRecord);
 
       if (insertError) {
-        console.error(`❌ ${data.agency.company_name} の支払い履歴記録に失敗:`, insertError);
+        logger.error({ err: insertError }, `❌ ${data.agency.company_name} の支払い履歴記録に失敗`);
         continue;
       }
 
@@ -603,10 +605,10 @@ async function processMonthlyPayments() {
       processedCount++;
       totalAmount += data.total;
 
-      console.log(`✅ ${data.agency.company_name}: ¥${data.total.toLocaleString()}`);
+      logger.info(`✅ ${data.agency.company_name}: ¥${data.total.toLocaleString()}`);
     }
 
-    console.log(`✅ ${processedCount} 社への支払い処理が完了しました (合計: ¥${totalAmount.toLocaleString()})`);
+    logger.info(`✅ ${processedCount} 社への支払い処理が完了しました (合計: ¥${totalAmount.toLocaleString()})`);
 
     // 4. 管理者に支払い完了レポート送信
     const { data: admins } = await supabase
@@ -652,7 +654,7 @@ async function processMonthlyPayments() {
     }
 
   } catch (error) {
-    console.error('❌ 月次支払い処理でエラーが発生しました:', error);
+    logger.error({ err: error }, '❌ 月次支払い処理でエラーが発生しました');
 
     // エラー時は管理者に通知
     const { data: admins } = await supabase
@@ -683,7 +685,7 @@ async function processMonthlyPayments() {
  * agenciesテーブルに残存する期限切れの password_reset_token / password_reset_expiry を NULL に更新する。
  */
 async function cleanupExpiredResetTokens() {
-  console.log('🧹 期限切れパスワードリセットトークンのクリーンアップを開始します...');
+  logger.info('🧹 期限切れパスワードリセットトークンのクリーンアップを開始します...');
 
   try {
     // password_reset_expiry が現在時刻より前のレコードを取得
@@ -696,7 +698,7 @@ async function cleanupExpiredResetTokens() {
     if (fetchError) throw fetchError;
 
     if (!expiredAgencies || expiredAgencies.length === 0) {
-      console.log('ℹ️  クリーンアップ対象のトークンがありません');
+      logger.info('ℹ️  クリーンアップ対象のトークンがありません');
       return;
     }
 
@@ -712,9 +714,9 @@ async function cleanupExpiredResetTokens() {
 
     if (updateError) throw updateError;
 
-    console.log(`✅ ${ids.length} 件の期限切れリセットトークンをクリーンアップしました`);
+    logger.info(`✅ ${ids.length} 件の期限切れリセットトークンをクリーンアップしました`);
   } catch (error) {
-    console.error('❌ リセットトークンクリーンアップでエラーが発生しました:', error);
+    logger.error({ err: error }, '❌ リセットトークンクリーンアップでエラーが発生しました');
   }
 }
 
@@ -722,7 +724,7 @@ async function cleanupExpiredResetTokens() {
  * スケジューラーを起動
  */
 function startScheduler() {
-  console.log('🚀 支払いサイクル自動化スケジューラーを起動します');
+  logger.info('🚀 支払いサイクル自動化スケジューラーを起動します');
 
   // 毎月末日 23:59 に月次締め処理
   // L は月末を表す（node-cronの拡張構文ではないため、代替実装）
@@ -758,7 +760,7 @@ function startScheduler() {
 
   // 日次バックアップ（毎日 03:00）
   cron.schedule('0 3 * * *', async () => {
-    console.log('💾 日次バックアップ処理（未実装）');
+    logger.info('💾 日次バックアップ処理（未実装）');
   });
 
   // 毎日 04:00 に期限切れリセットトークンのクリーンアップ
@@ -766,14 +768,14 @@ function startScheduler() {
     await cleanupExpiredResetTokens();
   });
 
-  console.log('✅ スケジューラーが起動しました');
-  console.log('⏰ 月次締め: 毎月末日 23:59');
-  console.log('⏰ 報酬計算: 毎月1日 02:00');
-  console.log('⏰ 繰越スイープ: 毎月1日 03:00');
-  console.log('⏰ 支払い通知: 毎月20日 09:00');
-  console.log('⏰ 支払い実行: 毎月25日 10:00');
-  console.log('⏰ バックアップ: 毎日 03:00');
-  console.log('⏰ トークンクリーンアップ: 毎日 04:00');
+  logger.info('✅ スケジューラーが起動しました');
+  logger.info('⏰ 月次締め: 毎月末日 23:59');
+  logger.info('⏰ 報酬計算: 毎月1日 02:00');
+  logger.info('⏰ 繰越スイープ: 毎月1日 03:00');
+  logger.info('⏰ 支払い通知: 毎月20日 09:00');
+  logger.info('⏰ 支払い実行: 毎月25日 10:00');
+  logger.info('⏰ バックアップ: 毎日 03:00');
+  logger.info('⏰ トークンクリーンアップ: 毎日 04:00');
 }
 
 // このファイルが直接実行された場合
@@ -782,7 +784,7 @@ if (require.main === module) {
 
   // プロセスを維持
   process.on('SIGTERM', () => {
-    console.log('🛑 スケジューラーを停止します');
+    logger.info('🛑 スケジューラーを停止します');
     process.exit(0);
   });
 }

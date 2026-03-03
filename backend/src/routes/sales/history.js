@@ -7,6 +7,8 @@ const router = express.Router();
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const { getSubordinateAgencyIds } = require('../../utils/agencyHelpers');
+const { createModuleLogger } = require('../../config/logger');
+const logger = createModuleLogger('sales-history');
 
 /**
  * GET /api/sales/:id/history
@@ -73,7 +75,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
       data: formattedHistory
     });
   } catch (error) {
-    console.error('Get sale history error:', error.message);
+    logger.error('Get sale history error:', error.message);
     res.status(500).json({
       success: false,
       message: '変更履歴の取得に失敗しました'

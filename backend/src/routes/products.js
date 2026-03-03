@@ -8,6 +8,8 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken: authMiddleware, requireAdmin } = require('../middleware/auth');
 const { generateProductCode } = require('../utils/generateCode');
 const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('products');
 
 /**
  * 商品一覧取得
@@ -27,7 +29,7 @@ router.get('/', authMiddleware, async (req, res) => {
       data: products || []
     });
   } catch (error) {
-    console.error('Get products error:', error.message);
+    logger.error('Get products error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -62,7 +64,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('Get product error:', error.message);
+    logger.error('Get product error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -141,7 +143,7 @@ router.post('/', authMiddleware, async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('Create product error:', error.message);
+    logger.error('Create product error:', error.message);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error)
@@ -245,7 +247,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       data: product
     });
   } catch (error) {
-    console.error('Update product error:', error.message);
+    logger.error('Update product error:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({
       success: false,
@@ -286,7 +288,7 @@ router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
       message: '商品を削除しました'
     });
   } catch (error) {
-    console.error('Delete product error:', error.message);
+    logger.error('Delete product error:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({
       success: false,

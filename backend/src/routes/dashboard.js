@@ -7,6 +7,8 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('dashboard');
 
 /**
  * GET /api/dashboard/stats
@@ -242,7 +244,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         };
 
       } catch (error) {
-        console.error('Failed to fetch organization sales:', error.message);
+        logger.error('Failed to fetch organization sales:', error.message);
         stats.organizationSales = null;
       }
     }
@@ -281,7 +283,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get dashboard stats error:', error.message);
+    logger.error('Get dashboard stats error:', error.message);
     res.status(500).json({
       success: false,
       message: 'ダッシュボードデータの取得に失敗しました'
@@ -361,7 +363,7 @@ router.get('/charts', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get chart data error:', error.message);
+    logger.error('Get chart data error:', error.message);
     res.status(500).json({
       success: false,
       message: 'グラフデータの取得に失敗しました'

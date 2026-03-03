@@ -3,6 +3,8 @@
  */
 
 const { supabase } = require('../config/supabase');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('rateLimiter');
 
 // メモリストレージ（本番環境ではRedis推奨）
 const rateLimitStore = new Map();
@@ -80,7 +82,7 @@ const agencyCreationRateLimit = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Rate limit check error:', error.message);
+    logger.error('Rate limit check error:', error.message);
     // エラーの場合は通過させる（セキュリティより可用性を優先）
     next();
   }

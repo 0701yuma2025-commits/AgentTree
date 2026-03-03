@@ -5,6 +5,8 @@ const bcrypt = require('bcrypt');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('create-admin');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -18,25 +20,25 @@ async function createAdmin() {
     const fullName = process.env.ADMIN_NAME || process.argv[4] || 'System Admin';
 
     if (!email || !password) {
-      console.error('使用方法:');
-      console.error('  環境変数: ADMIN_EMAIL=xxx ADMIN_PASSWORD=xxx node src/scripts/create-admin.js');
-      console.error('  引数:     node src/scripts/create-admin.js <email> <password> [name]');
-      console.error('');
-      console.error('パスワード要件: 8文字以上、大文字・小文字・数字・特殊文字を含む');
+      logger.error('使用方法:');
+      logger.error('  環境変数: ADMIN_EMAIL=xxx ADMIN_PASSWORD=xxx node src/scripts/create-admin.js');
+      logger.error('  引数:     node src/scripts/create-admin.js <email> <password> [name]');
+      logger.error('');
+      logger.error('パスワード要件: 8文字以上、大文字・小文字・数字・特殊文字を含む');
       process.exit(1);
     }
 
     // パスワード強度の基本チェック
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) ||
         !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      console.error('パスワードが要件を満たしていません:');
-      console.error('  - 8文字以上');
-      console.error('  - 大文字・小文字・数字・特殊文字をそれぞれ1つ以上含む');
+      logger.error('パスワードが要件を満たしていません:');
+      logger.error('  - 8文字以上');
+      logger.error('  - 大文字・小文字・数字・特殊文字をそれぞれ1つ以上含む');
       process.exit(1);
     }
 
-    console.log('管理者アカウントを作成しています...');
-    console.log('');
+    logger.info('管理者アカウントを作成しています...');
+    logger.info('');
 
     // Supabase Authでユーザーを作成
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -50,7 +52,7 @@ async function createAdmin() {
 
     if (authError) {
       if (authError.message.includes('already been registered') || authError.message.includes('already exists')) {
-        console.log('⚠️  管理者アカウントは既に存在します');
+        logger.info('⚠️  管理者アカウントは既に存在します');
 
         // 既存ユーザーのパスワードをリセット
         const { data: users } = await supabase.auth.admin.listUsers();
@@ -63,7 +65,7 @@ async function createAdmin() {
           );
 
           if (updateError) throw updateError;
-          console.log('✅ パスワードをリセットしました');
+          logger.info('✅ パスワードをリセットしました');
 
           // usersテーブルを更新
           await supabase
@@ -81,7 +83,7 @@ async function createAdmin() {
         throw authError;
       }
     } else {
-      console.log('✅ Supabase Authでユーザーを作成しました');
+      logger.info('✅ Supabase Authでユーザーを作成しました');
 
       // createUserでパスワードが正しくセットされない場合があるため、updateUserByIdで再設定
       const { error: pwError } = await supabase.auth.admin.updateUserById(
@@ -89,7 +91,7 @@ async function createAdmin() {
         { password: password }
       );
       if (pwError) {
-        console.error('⚠️  パスワード再設定エラー:', pwError.message);
+        logger.error('⚠️  パスワード再設定エラー:', pwError.message);
       }
 
       // usersテーブルにもレコードを作成
@@ -105,18 +107,18 @@ async function createAdmin() {
         });
 
       if (dbError && dbError.code !== '23505') {
-        console.error('⚠️  usersテーブルへの挿入エラー:', dbError.message);
+        logger.error('⚠️  usersテーブルへの挿入エラー:', dbError.message);
       } else {
-        console.log('✅ usersテーブルにレコードを作成しました');
+        logger.info('✅ usersテーブルにレコードを作成しました');
       }
     }
 
-    console.log('');
-    console.log('管理者アカウントの作成が完了しました。');
-    console.log('(アカウント情報はセキュリティのためログに表示しません)');
+    logger.info('');
+    logger.info('管理者アカウントの作成が完了しました。');
+    logger.info('(アカウント情報はセキュリティのためログに表示しません)');
 
   } catch (error) {
-    console.error('❌ エラーが発生しました:', error.message);
+    logger.error('❌ エラーが発生しました:', error.message);
     process.exit(1);
   }
 }
@@ -124,6 +126,6 @@ async function createAdmin() {
 createAdmin()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    logger.error(error);
     process.exit(1);
   });

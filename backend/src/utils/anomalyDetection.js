@@ -3,6 +3,8 @@
  */
 
 const { supabase } = require('../config/supabase');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('anomalyDetection');
 
 /**
  * 売上スパイクを検知
@@ -79,7 +81,7 @@ async function detectSalesSpike(newSale, thresholdPercent = 500) {
     };
 
   } catch (error) {
-    console.error('売上スパイク検知エラー:', error);
+    logger.error({ err: error }, '売上スパイク検知エラー');
     return {
       detected: false,
       error: '検知処理中にエラーが発生しました'
@@ -119,7 +121,7 @@ async function detectRapidSalesEntry(agencyId, timeWindowHours = 24, maxCount = 
     };
 
   } catch (error) {
-    console.error('大量売上登録検知エラー:', error);
+    logger.error({ err: error }, '大量売上登録検知エラー');
     return {
       detected: false,
       error: '検知処理中にエラーが発生しました'
@@ -188,7 +190,7 @@ async function detectAbnormalAmount(sale, maxAmount = 10000000) {
     };
 
   } catch (error) {
-    console.error('異常金額検知エラー:', error);
+    logger.error({ err: error }, '異常金額検知エラー');
     return {
       detected: false,
       error: '検知処理中にエラーが発生しました'

@@ -9,6 +9,8 @@ const { authenticateToken } = require('../middleware/auth');
 const { getSubordinateAgencyIds } = require('../utils/agencyHelpers');
 const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { createModuleLogger } = require('../config/logger');
+const logger = createModuleLogger('sales');
 
 // サブルーターをマウント
 router.use('/', require('./sales/mutations'));
@@ -98,7 +100,7 @@ router.get('/', authenticateToken, async (req, res) => {
       res.json(paginatedResponse([], count || 0, { page, limit }));
     }
   } catch (error) {
-    console.error('Get sales error:', error.message);
+    logger.error('Get sales error:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({
       success: false,
@@ -169,7 +171,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data: data
     });
   } catch (error) {
-    console.error('Get sale detail error:', error.message);
+    logger.error('Get sale detail error:', error.message);
     const dbErr = handleDbError(error);
     res.status(dbErr?.status || 500).json({
       success: false,
