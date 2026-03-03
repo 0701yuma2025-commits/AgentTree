@@ -113,17 +113,6 @@ const sanitizeInput = (req, res, next) => {
 };
 
 /**
- * SQLインジェクション対策
- *
- * Supabaseクライアントはパラメータ化クエリを使用するため、
- * SQL文字列の直接組み立てはなく、SQLインジェクションのリスクは低い。
- * このミドルウェアはno-opとして残し、防御の記録とする。
- */
-const preventSQLInjection = (req, res, next) => {
-  next();
-};
-
-/**
  * セッション設定の強化
  */
 const sessionConfig = {
@@ -208,7 +197,6 @@ module.exports = {
   enforceHTTPS,
   securityHeaders,
   sanitizeInput,
-  preventSQLInjection,
   sessionConfig,
   ipBlocklist
 };

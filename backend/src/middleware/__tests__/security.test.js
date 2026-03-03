@@ -8,7 +8,6 @@
 const {
   enforceHTTPS,
   sanitizeInput,
-  preventSQLInjection,
   ipBlocklist,
   IPBlocklist,
 } = (() => {
@@ -231,16 +230,3 @@ describe('IPBlocklist', () => {
   });
 });
 
-// ── preventSQLInjection ──
-
-describe('preventSQLInjection', () => {
-  test('no-op → 常に通過', () => {
-    const req = makeMockReq({ body: { query: "'; DROP TABLE users;--" } });
-    const res = makeMockRes();
-    const next = jest.fn();
-
-    preventSQLInjection(req, res, next);
-
-    expect(next).toHaveBeenCalled();
-  });
-});

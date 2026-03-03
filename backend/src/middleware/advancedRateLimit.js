@@ -166,6 +166,11 @@ class BruteForceProtection {
    */
   middleware() {
     return async (req, res, next) => {
+      // ログインエンドポイント以外はスキップ
+      if (req.path !== '/api/auth/login') {
+        return next();
+      }
+
       const key = `${req.ip}:${req.body?.email || 'unknown'}`;
       const delay = this.getDelay(key);
 
@@ -177,12 +182,10 @@ class BruteForceProtection {
       // レスポンスを監視して失敗/成功を記録
       const originalJson = res.json;
       res.json = function(data) {
-        if (req.path === '/api/auth/login') {
-          if (data.error || !data.success) {
-            bruteForceProtection.recordFailure(key);
-          } else {
-            bruteForceProtection.recordSuccess(key);
-          }
+        if (data.error || !data.success) {
+          bruteForceProtection.recordFailure(key);
+        } else {
+          bruteForceProtection.recordSuccess(key);
         }
         return originalJson.call(this, data);
       };

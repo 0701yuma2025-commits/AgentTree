@@ -9,7 +9,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 // セキュリティミドルウェアのインポート
-const { enforceHTTPS, securityHeaders, sanitizeInput, preventSQLInjection, ipBlocklist } = require('./src/middleware/security');
+const { enforceHTTPS, securityHeaders, sanitizeInput, ipBlocklist } = require('./src/middleware/security');
 const { loginRateLimiter, invitationRateLimiter, globalApiRateLimiter, passwordResetRateLimiter, bruteForceProtection } = require('./src/middleware/advancedRateLimit');
 
 // スケジューラーのインポート
@@ -97,9 +97,6 @@ app.use('/api/invitations', invitationRateLimiter);
 
 // 入力値のサニタイゼーション
 app.use(sanitizeInput);
-
-// SQLインジェクション対策
-app.use(preventSQLInjection);
 
 // CSRF対策: 状態変更リクエストのOrigin検証（本番環境のみ）
 app.use((req, res, next) => {

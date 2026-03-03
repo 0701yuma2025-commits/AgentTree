@@ -99,7 +99,7 @@ const authenticateToken = async (req, res, next) => {
       };
 
       // 代理店ユーザーの場合は代理店情報も追加（メールベースで検索）
-      if (req.user.role === 'agency' || req.user.email) {
+      if (req.user.role === 'agency') {
         const { data: agency, error: agencyError } = await supabase
           .from('agencies')
           .select('*')
