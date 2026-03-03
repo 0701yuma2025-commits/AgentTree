@@ -359,9 +359,9 @@ function hideLoading() {
 }
 
 function showSuccessMessage(message) {
-  showToast(message, 'info');
+  showToast(message, 'success');
 }
 
 function showErrorMessage(message) {
-  showToast(message, 'info');
+  showToast(message, 'error');
 }

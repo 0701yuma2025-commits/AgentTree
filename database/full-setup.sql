@@ -168,10 +168,6 @@ CREATE TABLE IF NOT EXISTS products (
   price DECIMAL(15,2) NOT NULL,
   category VARCHAR(100),
   commission_rate DECIMAL(5,2),
-  commission_rate_tier1 DECIMAL(5,2) DEFAULT 10.00,
-  commission_rate_tier2 DECIMAL(5,2) DEFAULT 8.00,
-  commission_rate_tier3 DECIMAL(5,2) DEFAULT 6.00,
-  commission_rate_tier4 DECIMAL(5,2) DEFAULT 4.00,
   tier1_commission_rate DECIMAL(5,2) DEFAULT 10.00 CHECK (tier1_commission_rate >= 0 AND tier1_commission_rate <= 100),
   tier2_commission_rate DECIMAL(5,2) DEFAULT 8.00 CHECK (tier2_commission_rate >= 0 AND tier2_commission_rate <= 100),
   tier3_commission_rate DECIMAL(5,2) DEFAULT 6.00 CHECK (tier3_commission_rate >= 0 AND tier3_commission_rate <= 100),
@@ -632,7 +628,7 @@ ALTER TABLE commissions ADD CONSTRAINT chk_commissions_final_amount_positive CHE
 ALTER TABLE commissions ADD CONSTRAINT chk_commissions_tier_bonus_positive CHECK (tier_bonus >= 0);
 ALTER TABLE commissions ADD CONSTRAINT chk_commissions_campaign_bonus_positive CHECK (campaign_bonus >= 0);
 ALTER TABLE commissions ADD CONSTRAINT chk_commissions_withholding_tax_positive CHECK (withholding_tax >= 0);
-ALTER TABLE commissions ADD CONSTRAINT chk_commissions_status_valid CHECK (status IN ('pending', 'approved', 'paid'));
+ALTER TABLE commissions ADD CONSTRAINT chk_commissions_status_valid CHECK (status IN ('pending', 'confirmed', 'approved', 'paid', 'carried_forward', 'cancelled'));
 ALTER TABLE commissions ADD CONSTRAINT chk_commissions_month_format CHECK (month IS NULL OR month ~ '^\d{4}-(0[1-9]|1[0-2])$');
 
 ALTER TABLE campaigns ADD CONSTRAINT chk_campaigns_date_range CHECK (start_date <= end_date);

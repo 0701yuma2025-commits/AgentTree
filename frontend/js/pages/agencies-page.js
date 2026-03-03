@@ -179,7 +179,7 @@ class AgenciesPage {
     if (confirm('この代理店を承認しますか？')) {
       try {
         const result = await agenciesAPI.approveAgency(id);
-        showToast(result.message || '承認しました', 'error');
+        showToast(result.message || '承認しました', 'success');
         await this.loadAgencies();
       } catch (error) {
         showToast(error.response?.data?.message || '承認に失敗しました', 'error');
@@ -196,7 +196,7 @@ class AgenciesPage {
       if (confirm('この代理店を拒否しますか？')) {
         try {
           const result = await agenciesAPI.rejectAgency(id, rejectionReason.trim());
-          showToast(result.message || '拒否しました', 'error');
+          showToast(result.message || '拒否しました', 'success');
           await this.loadAgencies();
         } catch (error) {
           showToast(error.response?.data?.message || '拒否に失敗しました', 'error');
@@ -216,7 +216,7 @@ class AgenciesPage {
       if (confirm('この代理店を停止しますか？')) {
         try {
           const result = await agenciesAPI.suspendAgency(id, suspensionReason.trim());
-          showToast(result.message || '停止しました', 'error');
+          showToast(result.message || '停止しました', 'success');
           await this.loadAgencies();
         } catch (error) {
           console.error('Suspend agency error:', error);
@@ -235,7 +235,7 @@ class AgenciesPage {
     if (confirm('この代理店を再有効化しますか？')) {
       try {
         const result = await agenciesAPI.reactivateAgency(id);
-        showToast(result.message || '再有効化しました', 'error');
+        showToast(result.message || '再有効化しました', 'success');
         await this.loadAgencies();
       } catch (error) {
         console.error('Reactivate agency error:', error);

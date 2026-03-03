@@ -22,7 +22,7 @@ const authenticateToken = async (req, res, next) => {
       const allowedOrigins = [
         process.env.FRONTEND_URL || 'http://localhost:3000',
         'http://localhost:8000',
-        'https://agenttree.onrender.com'
+        'https://agenttree-frontend.onrender.com'
       ];
       const isAllowed = allowedOrigins.some(o => origin.startsWith(o)) || req.method === 'GET';
       if (!isAllowed) {
