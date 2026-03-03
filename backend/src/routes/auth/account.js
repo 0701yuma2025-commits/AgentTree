@@ -294,11 +294,14 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
       });
     }
 
-    // トークンで代理店を検索
+    // トークンをハッシュ化してDB照合（DBにはハッシュ値のみ保存）
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
     const { data: agencies, error: agencyError } = await supabase
       .from('agencies')
       .select('*')
-      .eq('password_reset_token', token);
+      .eq('password_reset_token', tokenHash);
 
     if (agencyError) {
       console.error('Database error:', agencyError.message);

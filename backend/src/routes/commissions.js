@@ -326,35 +326,20 @@ router.post('/calculate',
         carry_forward_reason: commission.carry_forward_reason || null
       }));
 
-      // 既存の同月報酬データをバックアップしてから置換（擬似トランザクション）
-      const { data: existingData } = await supabase
+      // RPC関数でDELETE+INSERTをトランザクション内で実行（データ消失防止）
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('upsert_monthly_commissions', {
+          p_month: month,
+          p_commissions: JSON.stringify(commissionsForDB)
+        });
+
+      if (rpcError) throw rpcError;
+
+      // 挿入されたデータを取得（レスポンス用）
+      const { data: insertedData } = await supabase
         .from('commissions')
-        .select('*')
+        .select()
         .eq('month', month);
-
-      const { error: deleteError } = await supabase
-        .from('commissions')
-        .delete()
-        .eq('month', month);
-
-      if (deleteError) throw deleteError;
-
-      // 新しい報酬データを挿入
-      const { data: insertedData, error: insertError } = await supabase
-        .from('commissions')
-        .insert(commissionsForDB)
-        .select();
-
-      if (insertError) {
-        // INSERT失敗時：バックアップデータで復元を試みる
-        if (existingData && existingData.length > 0) {
-          const rollbackData = existingData.map(({ id, created_at, updated_at, ...rest }) => rest);
-          await supabase.from('commissions').insert(rollbackData).catch(rollbackErr => {
-            console.error('Rollback failed:', rollbackErr);
-          });
-        }
-        throw insertError;
-      }
 
       res.json({
         success: true,

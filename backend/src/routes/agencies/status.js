@@ -45,12 +45,13 @@ router.put('/:id/approve',
       const crypto = require('crypto');
       const passwordResetToken = crypto.randomBytes(32).toString('hex');
       const passwordResetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const tokenHash = crypto.createHash('sha256').update(passwordResetToken).digest('hex');
 
       const { data, error } = await supabase
         .from('agencies')
         .update({
           status: 'active',
-          password_reset_token: passwordResetToken,
+          password_reset_token: tokenHash,
           password_reset_expiry: passwordResetExpiry
         })
         .eq('id', id)

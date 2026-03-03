@@ -538,7 +538,7 @@ class CommissionsPage {
         showToast(response?.message || '報酬計算に失敗しました', 'error');
       }
     } catch (error) {
-      showToast('報酬計算中にエラーが発生しました: ', 'error' + (error.message || '不明なエラー'));
+      showToast('報酬計算中にエラーが発生しました: ' + (error.message || '不明なエラー'), 'error');
     }
   }
 

@@ -628,13 +628,13 @@ class InvoicesPage {
             data.payments.forEach(payment => {
                 html += `
                     <tr>
-                        <td>${payment.agency_code || '-'}</td>
-                        <td>${payment.company_name || '-'}</td>
-                        <td>${payment.bank_name || '-'}</td>
-                        <td>${payment.branch_name || '-'}</td>
-                        <td>${payment.account_type || '-'}</td>
-                        <td>${payment.account_number || '-'}</td>
-                        <td>${payment.account_holder || '-'}</td>
+                        <td>${escapeHtml(payment.agency_code || '-')}</td>
+                        <td>${escapeHtml(payment.company_name || '-')}</td>
+                        <td>${escapeHtml(payment.bank_name || '-')}</td>
+                        <td>${escapeHtml(payment.branch_name || '-')}</td>
+                        <td>${escapeHtml(payment.account_type || '-')}</td>
+                        <td>${escapeHtml(payment.account_number || '-')}</td>
+                        <td>${escapeHtml(payment.account_holder || '-')}</td>
                         <td>¥${(payment.amount || 0).toLocaleString()}</td>
                     </tr>
                 `;

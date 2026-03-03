@@ -26,11 +26,12 @@ const documentsAPI = {
       formData.append('agency_id', agencyId);
       formData.append('document_type', documentType);
 
-      const response = await fetch(`${API_URL}/documents/upload`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/documents/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('agency_system_token') || localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN) || localStorage.getItem('token')}`
         },
+        credentials: 'include',
         body: formData
       });
 

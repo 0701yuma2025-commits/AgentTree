@@ -512,7 +512,7 @@ class SalesPage {
           }
         } catch (error) {
           console.error('Update sale error:', error);
-          showToast('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ' + (error.message || '', 'info'));
+          showToast('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ' + (error.message || ''), 'error');
         }
       });
 

@@ -290,17 +290,18 @@ router.post('/',
         const crypto = require('crypto');
         const passwordResetToken = crypto.randomBytes(32).toString('hex');
         const passwordResetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const tokenHash = crypto.createHash('sha256').update(passwordResetToken).digest('hex');
 
-        // トークンを保存
+        // ハッシュ化したトークンを保存（DB漏洩時の安全性確保）
         await supabase
           .from('agencies')
           .update({
-            password_reset_token: passwordResetToken,
+            password_reset_token: tokenHash,
             password_reset_expiry: passwordResetExpiry
           })
           .eq('id', data.id);
 
-        // 承認メール送信
+        // 承認メール送信（平文トークンをURLに含める）
         await emailService.sendAgencyApprovedEmail({
           ...data,
           passwordResetToken
