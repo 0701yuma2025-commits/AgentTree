@@ -1,8 +1,57 @@
 /**
  * コード生成ユーティリティ
+ * リトライ付きで同時リクエストによるコード重複を防止
  */
 
 const { supabase } = require('../config/supabase');
+
+const MAX_RETRIES = 5;
+
+/**
+ * 汎用コード生成（リトライ付き）
+ * @param {Object} opts
+ * @param {string} opts.table - テーブル名
+ * @param {string} opts.column - コードカラム名
+ * @param {string} opts.prefix - コードプレフィックス
+ * @param {number} opts.padLength - 連番の桁数
+ * @param {string} opts.errorMessage - エラーメッセージ
+ * @returns {Promise<string>} 生成されたコード
+ */
+async function generateUniqueCode({ table, column, prefix, padLength, errorMessage }) {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    // 最新のコードを取得
+    const { data, error } = await supabase
+      .from(table)
+      .select(column)
+      .like(column, `${prefix}%`)
+      .order(column, { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    let nextNumber = 1;
+    if (data && data.length > 0) {
+      const lastCode = data[0][column];
+      const lastNumber = parseInt(lastCode.slice(-padLength));
+      nextNumber = lastNumber + 1;
+    }
+
+    const numberPart = nextNumber.toString().padStart(padLength, '0');
+    const code = `${prefix}${numberPart}`;
+
+    // コードが既に存在しないか確認（レースウィンドウ縮小）
+    const { data: existing } = await supabase
+      .from(table)
+      .select('id')
+      .eq(column, code)
+      .maybeSingle();
+
+    if (!existing) return code;
+    // 既に使われている場合、再クエリで最新のMAXを取得してリトライ
+  }
+
+  throw new Error(errorMessage);
+}
 
 /**
  * 代理店コード生成
@@ -11,29 +60,13 @@ const { supabase } = require('../config/supabase');
  */
 async function generateAgencyCode() {
   try {
-    const year = new Date().getFullYear();
-    const prefix = `AGN${year}`;
-
-    // 今年の最新の代理店コードを取得
-    const { data, error } = await supabase
-      .from('agencies')
-      .select('agency_code')
-      .like('agency_code', `${prefix}%`)
-      .order('agency_code', { ascending: false })
-      .limit(1);
-
-    if (error) throw error;
-
-    let nextNumber = 1;
-    if (data && data.length > 0) {
-      const lastCode = data[0].agency_code;
-      const lastNumber = parseInt(lastCode.slice(-4));
-      nextNumber = lastNumber + 1;
-    }
-
-    // 4桁にゼロパディング
-    const numberPart = nextNumber.toString().padStart(4, '0');
-    return `${prefix}${numberPart}`;
+    return await generateUniqueCode({
+      table: 'agencies',
+      column: 'agency_code',
+      prefix: `AGN${new Date().getFullYear()}`,
+      padLength: 4,
+      errorMessage: '代理店コードの生成に失敗しました'
+    });
   } catch (error) {
     console.error('Generate agency code error:', error);
     throw new Error('代理店コードの生成に失敗しました');
@@ -50,28 +83,14 @@ async function generateSaleNumber() {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const prefix = `SL${year}${month}`;
 
-    // 今月の最新の売上番号を取得
-    const { data, error } = await supabase
-      .from('sales')
-      .select('sale_number')
-      .like('sale_number', `${prefix}%`)
-      .order('sale_number', { ascending: false })
-      .limit(1);
-
-    if (error) throw error;
-
-    let nextNumber = 1;
-    if (data && data.length > 0) {
-      const lastNumber = data[0].sale_number;
-      const lastSeq = parseInt(lastNumber.slice(-5));
-      nextNumber = lastSeq + 1;
-    }
-
-    // 5桁にゼロパディング
-    const numberPart = nextNumber.toString().padStart(5, '0');
-    return `${prefix}${numberPart}`;
+    return await generateUniqueCode({
+      table: 'sales',
+      column: 'sale_number',
+      prefix: `SL${year}${month}`,
+      padLength: 5,
+      errorMessage: '売上番号の生成に失敗しました'
+    });
   } catch (error) {
     console.error('Generate sale number error:', error);
     throw new Error('売上番号の生成に失敗しました');
@@ -85,29 +104,13 @@ async function generateSaleNumber() {
  */
 async function generateProductCode() {
   try {
-    const year = new Date().getFullYear();
-    const prefix = `PROD${year}`;
-
-    // 今年の最新の商品コードを取得
-    const { data, error } = await supabase
-      .from('products')
-      .select('product_code')
-      .like('product_code', `${prefix}%`)
-      .order('product_code', { ascending: false })
-      .limit(1);
-
-    if (error) throw error;
-
-    let nextNumber = 1;
-    if (data && data.length > 0) {
-      const lastCode = data[0].product_code;
-      const lastNumber = parseInt(lastCode.slice(-4));
-      nextNumber = lastNumber + 1;
-    }
-
-    // 4桁にゼロパディング
-    const numberPart = nextNumber.toString().padStart(4, '0');
-    return `${prefix}${numberPart}`;
+    return await generateUniqueCode({
+      table: 'products',
+      column: 'product_code',
+      prefix: `PROD${new Date().getFullYear()}`,
+      padLength: 4,
+      errorMessage: '商品コードの生成に失敗しました'
+    });
   } catch (error) {
     console.error('Generate product code error:', error);
     throw new Error('商品コードの生成に失敗しました');
@@ -124,29 +127,22 @@ async function generatePaymentNumber() {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const prefix = `PAY${year}${month}`;
 
-    // 今月の最新の支払い番号を取得
-    const { data, error } = await supabase
-      .from('payments')
-      .select('payment_number')
-      .like('payment_number', `${prefix}%`)
-      .order('payment_number', { ascending: false })
-      .limit(1);
-
-    if (error && error.code !== 'PGRST116') throw error; // テーブルが存在しない場合は無視
-
-    let nextNumber = 1;
-    if (data && data.length > 0) {
-      const lastNumber = data[0].payment_number;
-      const lastSeq = parseInt(lastNumber.slice(-4));
-      nextNumber = lastSeq + 1;
-    }
-
-    // 4桁にゼロパディング
-    const numberPart = nextNumber.toString().padStart(4, '0');
-    return `${prefix}${numberPart}`;
+    return await generateUniqueCode({
+      table: 'payments',
+      column: 'payment_number',
+      prefix: `PAY${year}${month}`,
+      padLength: 4,
+      errorMessage: '支払い番号の生成に失敗しました'
+    });
   } catch (error) {
+    if (error?.code === 'PGRST116') {
+      // テーブル未存在の場合は初番号を返す
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      return `PAY${year}${month}0001`;
+    }
     console.error('Generate payment number error:', error);
     throw new Error('支払い番号の生成に失敗しました');
   }

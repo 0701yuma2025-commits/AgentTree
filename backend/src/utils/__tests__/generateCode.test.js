@@ -24,6 +24,10 @@ beforeEach(() => {
   mockSupabase.like.mockReturnValue(mockSupabase);
   mockSupabase.order.mockReturnValue(mockSupabase);
   mockSupabase.limit.mockReturnValue(mockSupabase);
+  mockSupabase.eq.mockReturnValue(mockSupabase);
+
+  // デフォルト: コード存在チェックは null（存在しない）
+  mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
 
   jest.useFakeTimers();
   jest.setSystemTime(new Date('2026-03-15'));
@@ -63,6 +67,26 @@ describe('generateAgencyCode', () => {
     const code = await generateAgencyCode();
     expect(code).toMatch(/^AGN\d{4}\d{4}$/);
     expect(code.length).toBe(11);
+  });
+
+  test('コード重複時 → リトライして次の番号を生成', async () => {
+    let callCount = 0;
+    mockSupabase.then.mockImplementation((resolve) => {
+      callCount++;
+      if (callCount === 1) {
+        // 1回目: MAX = AGN20260005
+        return resolve({ data: [{ agency_code: 'AGN20260005' }], error: null });
+      }
+      // 2回目: MAX = AGN20260006（競合相手がINSERT済み）
+      return resolve({ data: [{ agency_code: 'AGN20260006' }], error: null });
+    });
+
+    mockSupabase.maybeSingle
+      .mockResolvedValueOnce({ data: { id: 'existing' }, error: null }) // 1回目: 存在する→リトライ
+      .mockResolvedValueOnce({ data: null, error: null }); // 2回目: 存在しない→OK
+
+    const code = await generateAgencyCode();
+    expect(code).toBe('AGN20260007');
   });
 
   test('DBエラー → エラーをスロー', async () => {
@@ -168,13 +192,14 @@ describe('generatePaymentNumber', () => {
     expect(num).toBe('PAY2026030011');
   });
 
-  test('テーブル未存在エラー（PGRST116）は無視 → 初番号', async () => {
+  test('リトライ上限超過 → エラーをスロー', async () => {
+    // 5回とも既存コードが見つかる（全リトライ失敗）
     mockSupabase.then.mockImplementation((resolve) =>
-      resolve({ data: null, error: { code: 'PGRST116', message: 'table not found' } })
+      resolve({ data: [{ payment_number: 'PAY2026030001' }], error: null })
     );
+    mockSupabase.maybeSingle.mockResolvedValue({ data: { id: 'existing' }, error: null });
 
-    const num = await generatePaymentNumber();
-    expect(num).toBe('PAY2026030001');
+    await expect(generatePaymentNumber()).rejects.toThrow('支払い番号の生成に失敗しました');
   });
 
   test('その他のDBエラー → エラーをスロー', async () => {
