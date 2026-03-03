@@ -235,6 +235,164 @@ async function calculateCommissions() {
 }
 
 /**
+ * 繰越報酬の自動スイープ
+ * 実行タイミング: 毎月1日 03:00（報酬計算の後）
+ *
+ * carried_forward ステータスの報酬を翌月（当月）に統合する。
+ * 統合後に最低支払額を超えたらconfirmedに変更、超えなければ再度carried_forwardとする。
+ */
+async function sweepCarriedForwardCommissions() {
+  console.log('🔄 繰越報酬のスイープ処理を開始します...');
+
+  try {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // 報酬設定を取得（最低支払額の判定に使用）
+    const { data: settingsRows } = await supabase
+      .from('commission_settings')
+      .select('minimum_payment_amount')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const minimumPayment = settingsRows?.[0]?.minimum_payment_amount || 10000;
+
+    // carried_forward ステータスの報酬を取得
+    const { data: carriedCommissions, error: fetchError } = await supabase
+      .from('commissions')
+      .select('*')
+      .eq('status', 'carried_forward');
+
+    if (fetchError) throw fetchError;
+
+    if (!carriedCommissions || carriedCommissions.length === 0) {
+      console.log('ℹ️  繰越対象の報酬がありません');
+      return;
+    }
+
+    console.log(`${carriedCommissions.length} 件の繰越報酬を処理します`);
+
+    // 代理店ごとに集約
+    const agencyTotals = {};
+    for (const comm of carriedCommissions) {
+      if (!agencyTotals[comm.agency_id]) {
+        agencyTotals[comm.agency_id] = {
+          commissionIds: [],
+          total: 0
+        };
+      }
+      agencyTotals[comm.agency_id].commissionIds.push(comm.id);
+      agencyTotals[comm.agency_id].total += comm.final_amount;
+    }
+
+    let sweptCount = 0;
+    let remainCount = 0;
+
+    for (const [agencyId, data] of Object.entries(agencyTotals)) {
+      // 当月の既存報酬合計を取得（繰越分を加算して最低支払額を判定）
+      const { data: currentCommissions } = await supabase
+        .from('commissions')
+        .select('final_amount')
+        .eq('agency_id', agencyId)
+        .eq('month', currentMonth)
+        .neq('status', 'carried_forward');
+
+      const currentTotal = (currentCommissions || []).reduce((sum, c) => sum + c.final_amount, 0);
+      const grandTotal = currentTotal + data.total;
+
+      if (grandTotal >= minimumPayment) {
+        // 最低支払額を超えた → 繰越報酬のmonthを当月に更新し、confirmedに変更
+        const { error: updateError } = await supabase
+          .from('commissions')
+          .update({
+            month: currentMonth,
+            status: 'confirmed',
+            calculation_details: supabase.rpc ? undefined : undefined, // calculation_detailsはそのまま維持
+            updated_at: new Date().toISOString()
+          })
+          .in('id', data.commissionIds);
+
+        if (updateError) {
+          console.error(`❌ ${agencyId} の繰越報酬更新に失敗:`, updateError);
+          continue;
+        }
+
+        sweptCount += data.commissionIds.length;
+        console.log(`✅ 代理店 ${agencyId}: ${data.commissionIds.length}件の繰越報酬を当月(${currentMonth})に統合 (合計: ¥${grandTotal.toLocaleString()})`);
+      } else {
+        // まだ最低支払額未満 → monthだけ当月に更新（次月のスイープ対象に）
+        const { error: updateError } = await supabase
+          .from('commissions')
+          .update({
+            month: currentMonth,
+            updated_at: new Date().toISOString()
+          })
+          .in('id', data.commissionIds);
+
+        if (updateError) {
+          console.error(`❌ ${agencyId} の繰越報酬月更新に失敗:`, updateError);
+          continue;
+        }
+
+        remainCount += data.commissionIds.length;
+        console.log(`⏭️  代理店 ${agencyId}: 最低支払額未満のため繰越継続 (¥${grandTotal.toLocaleString()} < ¥${minimumPayment.toLocaleString()})`);
+      }
+    }
+
+    console.log(`✅ 繰越スイープ完了: ${sweptCount}件統合, ${remainCount}件繰越継続`);
+
+    // 管理者に通知（統合があった場合のみ）
+    if (sweptCount > 0) {
+      const { data: admins } = await supabase
+        .from('users')
+        .select('email, full_name')
+        .eq('role', 'admin');
+
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          await emailService.sendMail({
+            to: admin.email,
+            subject: `【完了】繰越報酬スイープ処理 (${currentMonth})`,
+            html: `
+              <h2>繰越報酬スイープ完了</h2>
+              <p>${admin.full_name} 様</p>
+              <p>繰越報酬の自動統合処理が完了しました。</p>
+              <ul>
+                <li>統合件数: ${sweptCount}件（confirmedに変更）</li>
+                <li>繰越継続: ${remainCount}件（最低支払額未満）</li>
+              </ul>
+            `
+          });
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ 繰越報酬スイープでエラーが発生しました:', error);
+
+    const { data: admins } = await supabase
+      .from('users')
+      .select('email')
+      .eq('role', 'admin');
+
+    if (admins && admins.length > 0) {
+      for (const admin of admins) {
+        await emailService.sendMail({
+          to: admin.email,
+          subject: '【エラー】繰越報酬スイープ処理の失敗',
+          html: `
+            <h2>エラー通知</h2>
+            <p>繰越報酬スイープ処理中にエラーが発生しました。</p>
+            <p>詳細はサーバーログを確認してください。</p>
+          `
+        });
+      }
+    }
+  }
+}
+
+/**
  * 支払い通知メール送信
  * 実行タイミング: 毎月20日 09:00
  */
@@ -540,6 +698,11 @@ function startScheduler() {
     await calculateCommissions();
   });
 
+  // 毎月1日 03:00 に繰越報酬スイープ（報酬計算の後に実行）
+  cron.schedule('0 3 1 * *', async () => {
+    await sweepCarriedForwardCommissions();
+  });
+
   // 毎月20日 09:00 に支払い通知メール
   cron.schedule('0 9 20 * *', async () => {
     await sendPaymentReminders();
@@ -558,6 +721,7 @@ function startScheduler() {
   console.log('✅ スケジューラーが起動しました');
   console.log('⏰ 月次締め: 毎月末日 23:59');
   console.log('⏰ 報酬計算: 毎月1日 02:00');
+  console.log('⏰ 繰越スイープ: 毎月1日 03:00');
   console.log('⏰ 支払い通知: 毎月20日 09:00');
   console.log('⏰ 支払い実行: 毎月25日 10:00');
   console.log('⏰ バックアップ: 毎日 03:00');
@@ -579,6 +743,7 @@ module.exports = {
   startScheduler,
   monthlyClosing,
   calculateCommissions,
+  sweepCarriedForwardCommissions,
   sendPaymentReminders,
   processMonthlyPayments
 };

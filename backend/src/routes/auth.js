@@ -14,6 +14,7 @@ const { loginRateLimit } = require('../middleware/rateLimiter');
 const { logLogin, logLogout } = require('../middleware/auditLog');
 const { generateAgencyCode } = require('../utils/generateCode');
 const { generate6DigitCode } = require('./auth/two-factor');
+const { setTokenCookie, setRefreshTokenCookie, clearAuthCookies } = require('../utils/cookieHelper');
 
 // signInWithPassword専用の認証クライアント（共有クライアントのセッション汚染を防止）
 function createAuthClient() {
@@ -282,7 +283,12 @@ router.post('/login', loginRateLimit, async (req, res) => {
       role: finalRole
     }, req, true);
 
+    // httpOnly Cookieにトークンを設定（XSS対策）
+    setTokenCookie(res, token);
+    setRefreshTokenCookie(res, refreshToken);
+
     // 2FAが無効な場合は通常通りトークンを返す
+    // 注: tokenとrefreshTokenはレスポンスボディにも含める（フロントエンド移行期間中の後方互換性のため）
     res.json({
       success: true,
       token,
@@ -314,6 +320,9 @@ router.post('/logout', authenticateToken, async (req, res) => {
     // ログアウトを記録
     await logLogout(req.user, req);
 
+    // httpOnly Cookieをクリア
+    clearAuthCookies(res);
+
     await supabase.auth.signOut();
     res.json({ success: true });
   } catch (error) {
@@ -331,7 +340,8 @@ router.post('/logout', authenticateToken, async (req, res) => {
  */
 router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Cookie → リクエストボディの順でリフレッシュトークンを取得
+    const refreshToken = req.cookies?.refresh_token || req.body.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({
@@ -370,6 +380,9 @@ router.post('/refresh', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
+
+    // 新しいアクセストークンをhttpOnly Cookieに設定
+    setTokenCookie(res, newToken);
 
     res.json({
       success: true,

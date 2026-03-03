@@ -308,6 +308,7 @@ CREATE TABLE IF NOT EXISTS commissions (
   status VARCHAR(50) DEFAULT 'pending',
   payment_date DATE,
   month VARCHAR(7),
+  calculation_details JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

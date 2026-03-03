@@ -11,8 +11,9 @@ const { supabase } = require('../config/supabase');
 const authenticateToken = async (req, res, next) => {
   // 全体を包括的なtry-catchで囲んでサーバークラッシュを防ぐ
   try {
+    // 1. httpOnly Cookie → 2. Authorization ヘッダーの順でトークンを取得
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = req.cookies?.access_token || (authHeader && authHeader.split(' ')[1]);
 
     if (!token) {
       return res.status(401).json({

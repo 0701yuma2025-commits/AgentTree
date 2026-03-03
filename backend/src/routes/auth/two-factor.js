@@ -11,6 +11,7 @@ const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
 const { loginRateLimit } = require('../../middleware/rateLimiter');
 const { sendEmail } = require('../../utils/emailSender');
+const { setTokenCookie, setRefreshTokenCookie } = require('../../utils/cookieHelper');
 
 /**
  * 6桁の認証コードを生成
@@ -18,6 +19,60 @@ const { sendEmail } = require('../../utils/emailSender');
 function generate6DigitCode() {
   return crypto.randomInt(100000, 1000000).toString();
 }
+
+/**
+ * 2FA検証のブルートフォース対策
+ * - 最大試行回数を超えるとコードを無効化しロックアウト
+ * - ロックアウト期間中は検証を拒否
+ */
+const MAX_2FA_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15分
+const twoFactorAttempts = new Map(); // key: email/userId → { count, lockedUntil }
+
+function check2FABruteForce(identifier) {
+  const record = twoFactorAttempts.get(identifier);
+  if (!record) return { allowed: true };
+
+  if (record.lockedUntil && record.lockedUntil > Date.now()) {
+    const remainingSec = Math.ceil((record.lockedUntil - Date.now()) / 1000);
+    return { allowed: false, remainingSec };
+  }
+
+  // ロックアウト期間が過ぎていればリセット
+  if (record.lockedUntil && record.lockedUntil <= Date.now()) {
+    twoFactorAttempts.delete(identifier);
+    return { allowed: true };
+  }
+
+  return { allowed: true };
+}
+
+function record2FAFailure(identifier) {
+  const record = twoFactorAttempts.get(identifier) || { count: 0, lockedUntil: null };
+  record.count += 1;
+
+  if (record.count >= MAX_2FA_ATTEMPTS) {
+    record.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+  }
+
+  twoFactorAttempts.set(identifier, record);
+  return record.count >= MAX_2FA_ATTEMPTS;
+}
+
+function reset2FAAttempts(identifier) {
+  twoFactorAttempts.delete(identifier);
+}
+
+// 古いエントリを定期クリーンアップ（メモリリーク防止）
+const cleanupInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of twoFactorAttempts) {
+    if (record.lockedUntil && record.lockedUntil < now - LOCKOUT_DURATION_MS) {
+      twoFactorAttempts.delete(key);
+    }
+  }
+}, 10 * 60 * 1000); // 10分ごと
+cleanupInterval.unref(); // プロセス終了を阻害しない
 
 /**
  * GET /api/auth/2fa/status
@@ -288,6 +343,16 @@ router.post('/2fa/email/disable/verify', authenticateToken, async (req, res) => 
       });
     }
 
+    // ブルートフォースチェック
+    const identifier = `disable:${userId}`;
+    const bruteForceCheck = check2FABruteForce(identifier);
+    if (!bruteForceCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: `認証試行回数の上限に達しました。${bruteForceCheck.remainingSec}秒後にお試しください。`
+      });
+    }
+
     // ユーザー情報を取得
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -319,11 +384,26 @@ router.post('/2fa/email/disable/verify', authenticateToken, async (req, res) => 
     }
     const isValidCode = await bcrypt.compare(code, user.two_factor_secret);
     if (!isValidCode) {
+      const locked = record2FAFailure(identifier);
+      if (locked) {
+        await supabase.from('users').update({
+          two_factor_secret: null,
+          updated_at: new Date().toISOString()
+        }).eq('id', userId);
+
+        return res.status(429).json({
+          success: false,
+          message: '認証試行回数の上限に達しました。再度コードを送信してください。'
+        });
+      }
       return res.status(401).json({
         success: false,
-        message: '認証コードが正しくありません'
+        message: `認証コードが正しくありません（残り${MAX_2FA_ATTEMPTS - (twoFactorAttempts.get(identifier)?.count || 0)}回）`
       });
     }
+
+    // 検証成功 → 試行回数をリセット
+    reset2FAAttempts(identifier);
 
     // 2FAを無効化
     const { error: updateError } = await supabase
@@ -381,6 +461,15 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
       });
     }
 
+    // ブルートフォースチェック
+    const bruteForceCheck = check2FABruteForce(email);
+    if (!bruteForceCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: `認証試行回数の上限に達しました。${bruteForceCheck.remainingSec}秒後にお試しください。`
+      });
+    }
+
     // ユーザー情報を取得
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -417,11 +506,28 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
     }
     const isValidCode = await bcrypt.compare(code, user.two_factor_secret);
     if (!isValidCode) {
+      // 失敗回数を記録し、上限到達時はコードを無効化
+      const locked = record2FAFailure(email);
+      if (locked) {
+        // コードを無効化して再送を強制
+        await supabase.from('users').update({
+          two_factor_secret: null,
+          updated_at: new Date().toISOString()
+        }).eq('id', user.id);
+
+        return res.status(429).json({
+          success: false,
+          message: '認証試行回数の上限に達しました。認証コードは無効化されました。再度ログインしてください。'
+        });
+      }
       return res.status(401).json({
         success: false,
-        message: '認証コードが正しくありません'
+        message: `認証コードが正しくありません（残り${MAX_2FA_ATTEMPTS - (twoFactorAttempts.get(email)?.count || 0)}回）`
       });
     }
+
+    // 検証成功 → 試行回数をリセット
+    reset2FAAttempts(email);
 
     // コードを使用済みにする
     await supabase
@@ -475,6 +581,10 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
         userAgency = agency;
       }
     }
+
+    // httpOnly Cookieにトークンを設定（XSS対策）
+    setTokenCookie(res, jwtToken);
+    setRefreshTokenCookie(res, refreshToken);
 
     res.json({
       success: true,

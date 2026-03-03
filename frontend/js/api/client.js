@@ -34,7 +34,8 @@ class ApiClient {
         ...fetchOptions,
         headers,
         body: fetchOptions.body ? JSON.stringify(fetchOptions.body) : undefined,
-        cache: 'no-store'  // ブラウザキャッシュを完全に無効化
+        cache: 'no-store',  // ブラウザキャッシュを完全に無効化
+        credentials: 'include'  // httpOnly Cookieを自動送信（XSS対策）
       });
 
       // 認証エラーの場合の処理

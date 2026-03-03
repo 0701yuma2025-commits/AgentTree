@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 // セキュリティミドルウェアのインポート
 const { enforceHTTPS, securityHeaders, sanitizeInput, ipBlocklist } = require('./src/middleware/security');
@@ -85,6 +86,9 @@ app.use(cors({
 
 // グローバルAPIレート制限（ボディ不要のためパーサー前でOK）
 app.use('/api/', globalApiRateLimiter);
+
+// Cookie パーサー（httpOnly Cookie認証用）
+app.use(cookieParser());
 
 // ボディパーサー（エンドポイント固有レートリミッターがreq.bodyを参照するため先に配置）
 app.use(express.json({ limit: '10mb' }));

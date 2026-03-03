@@ -38,6 +38,7 @@ async function getParentChain(parentAgencyId) {
 
 /**
  * 報酬レコードを新規作成（基本報酬 + 親代理店ボーナス）
+ * 全レコードを1回のINSERTでアトミックに投入する
  */
 async function createCommissionRecords(sale, commissionResult, settings) {
   const month = new Date(sale.sale_date).toISOString().slice(0, 7);
@@ -55,50 +56,51 @@ async function createCommissionRecords(sale, commissionResult, settings) {
     applied_settings: appliedSettings
   };
 
+  // 全報酬レコードを配列に集約
+  const records = [];
+
   // 基本報酬
-  const { error: baseError } = await supabase
-    .from('commissions')
-    .insert({
-      sale_id: sale.id,
-      agency_id: sale.agency_id,
-      month,
-      base_amount: commissionResult.base_amount,
-      tier_bonus: commissionResult.tier_bonus || 0,
-      campaign_bonus: commissionResult.campaign_bonus || 0,
-      withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
-      final_amount: commissionResult.final_amount,
-      status: 'confirmed',
-      tier_level: sale.tier_level || commissionResult.tier_level,
-      calculation_details: calculationDetails
-    });
-  if (baseError) throw baseError;
+  records.push({
+    sale_id: sale.id,
+    agency_id: sale.agency_id,
+    month,
+    base_amount: commissionResult.base_amount,
+    tier_bonus: commissionResult.tier_bonus || 0,
+    campaign_bonus: commissionResult.campaign_bonus || 0,
+    withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
+    final_amount: commissionResult.final_amount,
+    status: 'confirmed',
+    tier_level: sale.tier_level || commissionResult.tier_level,
+    calculation_details: calculationDetails
+  });
 
   // 親代理店ボーナス
   if (commissionResult.parent_commissions?.length > 0) {
     for (const pc of commissionResult.parent_commissions) {
-      const { error: pcError } = await supabase
-        .from('commissions')
-        .insert({
-          sale_id: sale.id,
-          agency_id: pc.agency_id,
-          month,
-          base_amount: 0,
-          tier_bonus: pc.amount,
-          campaign_bonus: 0,
-          withholding_tax: 0,
-          final_amount: pc.amount,
-          status: 'confirmed',
-          tier_level: pc.tier_level,
-          calculation_details: {
-            type: 'hierarchy_bonus',
-            from_agency_id: sale.agency_id,
-            bonus_rate: pc.bonus_rate,
-            applied_settings: appliedSettings
-          }
-        });
-      if (pcError) throw pcError;
+      records.push({
+        sale_id: sale.id,
+        agency_id: pc.agency_id,
+        month,
+        base_amount: 0,
+        tier_bonus: pc.amount,
+        campaign_bonus: 0,
+        withholding_tax: 0,
+        final_amount: pc.amount,
+        status: 'confirmed',
+        tier_level: pc.tier_level,
+        calculation_details: {
+          type: 'hierarchy_bonus',
+          from_agency_id: sale.agency_id,
+          bonus_rate: pc.bonus_rate,
+          applied_settings: appliedSettings
+        }
+      });
     }
   }
+
+  // 1回のINSERTでアトミックに投入（全成功 or 全失敗）
+  const { error } = await supabase.from('commissions').insert(records);
+  if (error) throw error;
 }
 
 /**
@@ -302,67 +304,65 @@ router.post('/',
             }
           };
 
+          // 全報酬レコードを配列に集約し、1回のINSERTでアトミックに投入
+          const commissionRecords = [];
+
+          // 基本報酬
+          commissionRecords.push({
+            sale_id: data.id,
+            agency_id: agency_id,
+            month: month,
+            base_amount: commissionResult.base_amount,
+            tier_bonus: commissionResult.tier_bonus || 0,
+            campaign_bonus: commissionResult.campaign_bonus || 0,
+            withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
+            final_amount: commissionResult.final_amount,
+            status: 'confirmed',
+            tier_level: agencyData.tier_level,
+            calculation_details: calculationDetails
+          });
+
+          // 親代理店の階層ボーナス
+          if (commissionResult.parent_commissions && commissionResult.parent_commissions.length > 0) {
+            for (const parentCommission of commissionResult.parent_commissions) {
+              commissionRecords.push({
+                sale_id: data.id,
+                agency_id: parentCommission.agency_id,
+                month: month,
+                base_amount: 0,
+                tier_bonus: parentCommission.amount,
+                campaign_bonus: 0,
+                withholding_tax: 0,
+                final_amount: parentCommission.amount,
+                status: 'confirmed',
+                tier_level: parentCommission.tier_level,
+                calculation_details: {
+                  type: 'hierarchy_bonus',
+                  from_agency_id: agency_id,
+                  bonus_rate: parentCommission.bonus_rate,
+                  applied_settings: {
+                    tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
+                    tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
+                    tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
+                    minimum_payment_amount: settings.minimum_payment_amount,
+                    withholding_tax_rate: settings.withholding_tax_rate,
+                    non_invoice_deduction_rate: settings.non_invoice_deduction_rate
+                  }
+                }
+              });
+            }
+          }
+
+          // 全レコードを1回のINSERTで投入（全成功 or 全失敗）
           const { error: commissionError } = await supabase
             .from('commissions')
-            .insert({
-              sale_id: data.id,
-              agency_id: agency_id,
-              month: month,
-              base_amount: commissionResult.base_amount,
-              tier_bonus: commissionResult.tier_bonus || 0,
-              campaign_bonus: commissionResult.campaign_bonus || 0,
-              withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
-              final_amount: commissionResult.final_amount,
-              status: 'confirmed',
-              tier_level: agencyData.tier_level,
-              calculation_details: calculationDetails
-            });
+            .insert(commissionRecords);
 
           if (commissionError) {
             throw new Error(`報酬レコード作成失敗: ${commissionError.message}`);
           }
 
           commissionCreated = true;
-
-          // 親代理店の階層ボーナスも登録
-          if (commissionResult.parent_commissions && commissionResult.parent_commissions.length > 0) {
-            for (const parentCommission of commissionResult.parent_commissions) {
-              const { error: parentCommError } = await supabase
-                .from('commissions')
-                .insert({
-                  sale_id: data.id,
-                  agency_id: parentCommission.agency_id,
-                  month: month,
-                  base_amount: 0,
-                  tier_bonus: parentCommission.amount,
-                  campaign_bonus: 0,
-                  withholding_tax: 0,
-                  final_amount: parentCommission.amount,
-                  status: 'confirmed',
-                  tier_level: parentCommission.tier_level,
-                  calculation_details: {
-                    type: 'hierarchy_bonus',
-                    from_agency_id: agency_id,
-                    bonus_rate: parentCommission.bonus_rate,
-                    applied_settings: {
-                      tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
-                      tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
-                      tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
-                      minimum_payment_amount: settings.minimum_payment_amount,
-                      withholding_tax_rate: settings.withholding_tax_rate,
-                      non_invoice_deduction_rate: settings.non_invoice_deduction_rate
-                    }
-                  }
-                });
-
-              if (parentCommError) {
-                // 親ボーナス失敗 → 既に作成した報酬をクリーンアップ
-                console.error('Parent commission creation error, rolling back:', parentCommError);
-                await supabase.from('commissions').delete().eq('sale_id', data.id);
-                throw new Error(`親代理店報酬作成失敗: ${parentCommError.message}`);
-              }
-            }
-          }
         }
       } catch (commissionCalcError) {
         console.error('Commission calculation/creation error, rolling back sale:', commissionCalcError);
