@@ -126,10 +126,11 @@ router.post('/login', loginRateLimit, async (req, res) => {
       {
         id: authData.user.id,
         email: email,
-        role: userProfile.role || 'agency'
+        role: userProfile.role || 'agency',
+        type: 'access'
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d', issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // リフレッシュトークン生成（環境変数の必須チェック）
@@ -141,10 +142,11 @@ router.post('/login', loginRateLimit, async (req, res) => {
       {
         id: authData.user.id,
         email: email,
-        role: userProfile.role || 'agency'
+        role: userProfile.role || 'agency',
+        type: 'refresh'
       },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d', issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // 明示的に role を返す
@@ -354,12 +356,23 @@ router.post('/refresh', async (req, res) => {
     // JWT検証を安全に実行
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, {
+        issuer: 'agenttree',
+        audience: 'agenttree-api'
+      });
     } catch (verifyError) {
       console.error('Refresh token verification error:', verifyError.message);
       return res.status(401).json({
         success: false,
         message: 'リフレッシュトークンが無効です'
+      });
+    }
+
+    // トークンタイプの検証（access tokenの流用を防止）
+    if (decoded.type && decoded.type !== 'refresh') {
+      return res.status(401).json({
+        success: false,
+        message: 'リフレッシュトークンではありません'
       });
     }
 
@@ -370,12 +383,13 @@ router.post('/refresh', async (req, res) => {
 
     const newToken = jwt.sign(
       {
-        id: decoded.id || decoded.userId,  // 両方のフィールドに対応
+        id: decoded.id || decoded.userId,
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
+        type: 'access'
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d', issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // 新しいアクセストークンをhttpOnly Cookieに設定

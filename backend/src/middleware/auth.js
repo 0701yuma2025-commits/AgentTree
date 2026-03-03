@@ -46,7 +46,10 @@ const authenticateToken = async (req, res, next) => {
     // JWT検証（常に署名を検証する）
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET, {
+        issuer: 'agenttree',
+        audience: 'agenttree-api'
+      });
     } catch (error) {
       console.error('JWT verification error:', error.message);
 
@@ -78,6 +81,15 @@ const authenticateToken = async (req, res, next) => {
           message: 'トークンの認証に失敗しました'
         });
       }
+    }
+
+    // トークンタイプの検証（refresh tokenの流用を防止）
+    if (decoded.type && decoded.type !== 'access') {
+      return res.status(403).json({
+        error: true,
+        code: 'INVALID_TOKEN',
+        message: 'アクセストークンではありません'
+      });
     }
 
     // デコードされたユーザー情報を取得

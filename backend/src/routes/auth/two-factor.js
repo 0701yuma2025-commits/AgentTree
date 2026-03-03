@@ -547,10 +547,11 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
       {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        type: 'access'
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d', issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // リフレッシュトークン生成
@@ -562,10 +563,11 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
       {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        type: 'refresh'
       },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d', issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // 代理店情報を取得
