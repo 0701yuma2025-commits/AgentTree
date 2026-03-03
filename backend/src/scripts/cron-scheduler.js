@@ -165,23 +165,20 @@ async function calculateCommissions() {
     // 報酬計算
     const commissionsData = calculateMonthlyCommissions(sales, agencies, products, targetMonth, commissionSettings);
 
-    // RPC関数でDELETE+INSERTをトランザクション内で実行（データ消失防止）
-    const { error: rpcError } = await supabase
-      .rpc('upsert_monthly_commissions', {
-        p_month: targetMonth,
-        p_commissions: JSON.stringify(commissionsData)
-      });
+    // DELETE+INSERTで既存データを置換
+    const { error: deleteError } = await supabase
+      .from('commissions')
+      .delete()
+      .eq('month', targetMonth);
 
-    if (rpcError) {
-      // RPC関数が未作成の場合はフォールバック（直接DELETE+INSERT）
-      if (rpcError.message?.includes('function') || rpcError.code === '42883') {
-        console.warn('RPC function not found, using fallback DELETE+INSERT');
-        await supabase.from('commissions').delete().eq('month', targetMonth);
-        const { error: insertError } = await supabase.from('commissions').insert(commissionsData);
-        if (insertError) throw insertError;
-      } else {
-        throw rpcError;
-      }
+    if (deleteError) throw deleteError;
+
+    if (commissionsData.length > 0) {
+      const { error: insertError } = await supabase
+        .from('commissions')
+        .insert(commissionsData);
+
+      if (insertError) throw insertError;
     }
 
     console.log(`✅ ${commissionsData.length} 件の報酬を計算しました`);

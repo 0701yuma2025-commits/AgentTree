@@ -370,10 +370,7 @@ router.post('/calculate',
       console.error('Calculate commissions error:', error.message, error.details || '', error.code || '');
       res.status(500).json({
         success: false,
-        message: '報酬計算に失敗しました',
-        error: error.message || String(error),
-        details: error.details || null,
-        code: error.code || null
+        message: '報酬計算に失敗しました'
       });
     }
   }

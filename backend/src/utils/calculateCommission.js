@@ -213,17 +213,21 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
     // 売上を登録した代理店の報酬レコード（1売上 = 1報酬レコード）
     const commissionRecord = {
       agency_id: agency.id,
-      sale_id: sale.id,  // 売上との紐付けを保持
+      sale_id: sale.id,
       month: month,
       base_amount: commission.base_amount,
-      tier_bonus: 0,  // 階層ボーナスは親代理店のレコードに記録
-      campaign_bonus: 0,  // キャンペーンボーナスは後で計算
-      invoice_deduction: commission.invoice_deduction || 0,  // インボイス控除額を追加
+      tier_bonus: 0,
+      campaign_bonus: 0,
+      invoice_deduction: commission.invoice_deduction || 0,
       final_amount: commission.final_amount,
-      status: 'confirmed',  // 計算時点で確定
+      status: 'confirmed',
       tier_level: agency.tier_level,
       withholding_tax: commission.calculation_details.withholding_tax || 0,
-      // メタデータ（表示用）
+      calculation_details: {
+        ...commission.calculation_details,
+        applied_settings: sale._applied_settings || null
+      },
+      // メタデータ（表示用、DB保存時に除外）
       agency_name: agency.company_name,
       company_type: agency.company_type,
       sale_number: sale.sale_number,

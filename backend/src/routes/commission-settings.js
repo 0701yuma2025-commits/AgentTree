@@ -111,6 +111,16 @@ router.post('/', authMiddleware, async (req, res) => {
       valid_from
     } = req.body;
 
+    // インボイス登録番号のバリデーション（T + 13桁の数字）
+    if (operator_invoice_number) {
+      if (!/^T\d{13}$/.test(operator_invoice_number)) {
+        return res.status(400).json({
+          success: false,
+          message: 'インボイス登録番号の形式が無効です（T + 13桁の数字）'
+        });
+      }
+    }
+
     // 既存の有効な設定を無効化
     await supabase
       .from('commission_settings')
