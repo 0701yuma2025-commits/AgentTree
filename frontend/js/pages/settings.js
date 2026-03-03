@@ -110,15 +110,15 @@ class SettingsPage {
     // 現在の設定を取得して、インボイス番号だけ更新して全体を保存
     const currentSettings = this.commissionSettings || {};
     const data = {
-      tier1_from_tier2_bonus: currentSettings.tier1_from_tier2_bonus || 2.00,
-      tier2_from_tier3_bonus: currentSettings.tier2_from_tier3_bonus || 1.50,
-      tier3_from_tier4_bonus: currentSettings.tier3_from_tier4_bonus || 1.00,
-      minimum_payment_amount: currentSettings.minimum_payment_amount || 10000,
-      payment_cycle: currentSettings.payment_cycle || 'monthly',
-      payment_day: currentSettings.payment_day || 25,
-      closing_day: currentSettings.closing_day || 31,
-      withholding_tax_rate: currentSettings.withholding_tax_rate || 10.21,
-      non_invoice_deduction_rate: currentSettings.non_invoice_deduction_rate || 2.00,
+      tier1_from_tier2_bonus: currentSettings.tier1_from_tier2_bonus || CONFIG.COMMISSION_DEFAULTS.TIER1_FROM_TIER2_BONUS,
+      tier2_from_tier3_bonus: currentSettings.tier2_from_tier3_bonus || CONFIG.COMMISSION_DEFAULTS.TIER2_FROM_TIER3_BONUS,
+      tier3_from_tier4_bonus: currentSettings.tier3_from_tier4_bonus || CONFIG.COMMISSION_DEFAULTS.TIER3_FROM_TIER4_BONUS,
+      minimum_payment_amount: currentSettings.minimum_payment_amount || CONFIG.COMMISSION_DEFAULTS.MINIMUM_PAYMENT_AMOUNT,
+      payment_cycle: currentSettings.payment_cycle || CONFIG.COMMISSION_DEFAULTS.PAYMENT_CYCLE,
+      payment_day: currentSettings.payment_day || CONFIG.COMMISSION_DEFAULTS.PAYMENT_DAY,
+      closing_day: currentSettings.closing_day || CONFIG.COMMISSION_DEFAULTS.CLOSING_DAY,
+      withholding_tax_rate: currentSettings.withholding_tax_rate || CONFIG.COMMISSION_DEFAULTS.WITHHOLDING_TAX_RATE,
+      non_invoice_deduction_rate: currentSettings.non_invoice_deduction_rate || CONFIG.COMMISSION_DEFAULTS.NON_INVOICE_DEDUCTION_RATE,
       operator_invoice_number: invoiceNumber || null
     };
 
@@ -154,21 +154,21 @@ class SettingsPage {
               <div class="form-group">
                 <label for="tier1_bonus">Tier1 ← Tier2 (%)</label>
                 <input type="number" id="tier1_bonus"
-                       value="${this.commissionSettings?.tier1_from_tier2_bonus || 2.00}"
+                       value="${this.commissionSettings?.tier1_from_tier2_bonus || CONFIG.COMMISSION_DEFAULTS.TIER1_FROM_TIER2_BONUS}"
                        min="0" max="100" step="0.01" required>
                 <small>Tier2の売上からTier1への還元率</small>
               </div>
               <div class="form-group">
                 <label for="tier2_bonus">Tier2 ← Tier3 (%)</label>
                 <input type="number" id="tier2_bonus"
-                       value="${this.commissionSettings?.tier2_from_tier3_bonus || 1.50}"
+                       value="${this.commissionSettings?.tier2_from_tier3_bonus || CONFIG.COMMISSION_DEFAULTS.TIER2_FROM_TIER3_BONUS}"
                        min="0" max="100" step="0.01" required>
                 <small>Tier3の売上からTier2への還元率</small>
               </div>
               <div class="form-group">
                 <label for="tier3_bonus">Tier3 ← Tier4 (%)</label>
                 <input type="number" id="tier3_bonus"
-                       value="${this.commissionSettings?.tier3_from_tier4_bonus || 1.00}"
+                       value="${this.commissionSettings?.tier3_from_tier4_bonus || CONFIG.COMMISSION_DEFAULTS.TIER3_FROM_TIER4_BONUS}"
                        min="0" max="100" step="0.01" required>
                 <small>Tier4の売上からTier3への還元率</small>
               </div>
@@ -182,14 +182,14 @@ class SettingsPage {
               <div class="form-group">
                 <label for="minimum_payment">最低支払額 (円)</label>
                 <input type="number" id="minimum_payment"
-                       value="${this.commissionSettings?.minimum_payment_amount || 10000}"
+                       value="${this.commissionSettings?.minimum_payment_amount || CONFIG.COMMISSION_DEFAULTS.MINIMUM_PAYMENT_AMOUNT}"
                        min="0" step="100" required>
                 <small>この金額未満は繰り越し</small>
               </div>
               <div class="form-group">
                 <label for="payment_cycle">支払いサイクル</label>
                 <select id="payment_cycle" required>
-                  <option value="monthly" ${this.commissionSettings?.payment_cycle === 'monthly' ? 'selected' : ''}>月次</option>
+                  <option value="monthly" ${(this.commissionSettings?.payment_cycle || CONFIG.COMMISSION_DEFAULTS.PAYMENT_CYCLE) === 'monthly' ? 'selected' : ''}>月次</option>
                   <option value="weekly" ${this.commissionSettings?.payment_cycle === 'weekly' ? 'selected' : ''}>週次</option>
                   <option value="biweekly" ${this.commissionSettings?.payment_cycle === 'biweekly' ? 'selected' : ''}>隔週</option>
                 </select>
@@ -197,14 +197,14 @@ class SettingsPage {
               <div class="form-group">
                 <label for="payment_day">支払日（日付）</label>
                 <input type="number" id="payment_day"
-                       value="${this.commissionSettings?.payment_day || 25}"
+                       value="${this.commissionSettings?.payment_day || CONFIG.COMMISSION_DEFAULTS.PAYMENT_DAY}"
                        min="1" max="31" required>
                 <small>月次の場合の支払日</small>
               </div>
               <div class="form-group">
                 <label for="closing_day">締め日（日付）</label>
                 <input type="number" id="closing_day"
-                       value="${this.commissionSettings?.closing_day || 31}"
+                       value="${this.commissionSettings?.closing_day || CONFIG.COMMISSION_DEFAULTS.CLOSING_DAY}"
                        min="1" max="31" required>
                 <small>月次の場合の締め日</small>
               </div>
@@ -218,14 +218,14 @@ class SettingsPage {
               <div class="form-group">
                 <label for="withholding_tax">源泉徴収率 (%)</label>
                 <input type="number" id="withholding_tax"
-                       value="${this.commissionSettings?.withholding_tax_rate || 10.21}"
+                       value="${this.commissionSettings?.withholding_tax_rate || CONFIG.COMMISSION_DEFAULTS.WITHHOLDING_TAX_RATE}"
                        min="0" max="100" step="0.01" required>
                 <small>個人事業主の場合に適用</small>
               </div>
               <div class="form-group">
                 <label for="non_invoice_deduction">インボイス未登録控除率 (%)</label>
                 <input type="number" id="non_invoice_deduction"
-                       value="${this.commissionSettings?.non_invoice_deduction_rate || 2.00}"
+                       value="${this.commissionSettings?.non_invoice_deduction_rate || CONFIG.COMMISSION_DEFAULTS.NON_INVOICE_DEDUCTION_RATE}"
                        min="0" max="100" step="0.01" required>
                 <small>インボイス未登録の場合の控除</small>
               </div>
@@ -617,7 +617,7 @@ class SettingsPage {
     // フォーカスを設定
     setTimeout(() => {
       document.getElementById('enable2FAPassword')?.focus();
-    }, 100);
+    }, CONFIG.TIMING.FOCUS_DELAY);
 
     document.getElementById('enable2FAForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -646,7 +646,7 @@ class SettingsPage {
         setTimeout(() => {
           this.closeEnable2FAModal();
           this.load2FAStatus();
-        }, 1000);
+        }, CONFIG.TIMING.MODAL_CLOSE_DELAY);
       } else {
         this.showModalMessage(messageEl, response.message || '2FAの有効化に失敗しました', 'error');
       }
@@ -713,8 +713,8 @@ class SettingsPage {
   async verify2FAEmail() {
     const code = document.getElementById('2faEmailCode').value;
 
-    if (!code || code.length !== 6) {
-      alert('6桁の認証コードを入力してください');
+    if (!code || code.length !== CONFIG.VALIDATION.TWO_FA_CODE_LENGTH) {
+      alert(`${CONFIG.VALIDATION.TWO_FA_CODE_LENGTH}桁の認証コードを入力してください`);
       return;
     }
 
@@ -815,7 +815,7 @@ class SettingsPage {
           document.getElementById('disable2FAStep1').style.display = 'none';
           document.getElementById('disable2FAStep2').style.display = 'block';
           document.getElementById('disable2FACode')?.focus();
-        }, 1000);
+        }, CONFIG.TIMING.MODAL_CLOSE_DELAY);
       } else {
         this.showModalMessage(messageEl, response.message || '認証コードの送信に失敗しました', 'error');
       }
@@ -832,8 +832,8 @@ class SettingsPage {
     const code = document.getElementById('disable2FACode').value;
     const messageEl = document.getElementById('disable2FAMessage2');
 
-    if (!code || code.length !== 6) {
-      this.showModalMessage(messageEl, '6桁の認証コードを入力してください', 'error');
+    if (!code || code.length !== CONFIG.VALIDATION.TWO_FA_CODE_LENGTH) {
+      this.showModalMessage(messageEl, `${CONFIG.VALIDATION.TWO_FA_CODE_LENGTH}桁の認証コードを入力してください`, 'error');
       return;
     }
 
@@ -846,7 +846,7 @@ class SettingsPage {
         setTimeout(() => {
           this.closeDisable2FAModal();
           this.load2FAStatus();
-        }, 1000);
+        }, CONFIG.TIMING.MODAL_CLOSE_DELAY);
       } else {
         this.showModalMessage(messageEl, response.message || '認証コードが正しくありません', 'error');
       }

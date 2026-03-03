@@ -5,7 +5,7 @@
 class AuditLogsPage {
   constructor() {
     this.currentPage = 1;
-    this.limit = 50;
+    this.limit = CONFIG.TABLE.AUDIT_LOG_PAGE_SIZE;
     this.totalPages = 1;
     this.filters = {};
     this.logs = [];

@@ -115,7 +115,7 @@ const FormValidator = {
     if (!value) {
       return `${fieldName}は必須です`;
     }
-    if (value.length < 8) {
+    if (value.length < CONFIG.VALIDATION.PASSWORD_MIN_LENGTH) {
       return `${fieldName}は8文字以上で入力してください`;
     }
     if (!/[a-z]/.test(value)) {

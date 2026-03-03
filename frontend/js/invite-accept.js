@@ -119,7 +119,7 @@ class InviteAccept {
         // 3秒後にログインページへリダイレクト
         setTimeout(() => {
           window.location.href = '/';
-        }, 3000);
+        }, CONFIG.TIMING.SUCCESS_MESSAGE_DURATION);
       }
     } catch (error) {
       this.showMessage(error.message || '登録に失敗しました', 'error');
@@ -133,7 +133,7 @@ class InviteAccept {
     // 8文字以上、英字と数字を含む
     const hasLetter = /[a-zA-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
-    const hasMinLength = password.length >= 8;
+    const hasMinLength = password.length >= CONFIG.VALIDATION.PASSWORD_MIN_LENGTH;
     
     return hasLetter && hasNumber && hasMinLength;
   }
@@ -154,7 +154,7 @@ class InviteAccept {
         // エラーメッセージは5秒後に消去
         setTimeout(() => {
           element.style.display = 'none';
-        }, 5000);
+        }, CONFIG.TIMING.ERROR_MESSAGE_DURATION);
       }
     }
   }

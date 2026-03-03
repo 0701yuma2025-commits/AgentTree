@@ -283,7 +283,7 @@ class App {
         // セキュリティ対策: ページを完全リロードして前ユーザーのデータを確実に削除
         setTimeout(() => {
           window.location.reload();
-        }, 500);
+        }, CONFIG.TIMING.LOGIN_REDIRECT_DELAY);
       }
     } catch (error) {
       this.showMessage('loginMessage', error.message || 'ログインに失敗しました', 'error');
@@ -326,7 +326,7 @@ class App {
       // 認証コード入力にフォーカス
       setTimeout(() => {
         document.getElementById('twoFactorCode')?.focus();
-      }, 100);
+      }, CONFIG.TIMING.FOCUS_DELAY);
     } else {
       document.getElementById('loginForm')?.classList.remove('hidden');
       document.getElementById('twoFactorForm')?.classList.add('hidden');
@@ -340,8 +340,8 @@ class App {
   async handle2FAVerification() {
     const token = document.getElementById('twoFactorCode')?.value;
 
-    if (!token || token.length !== 6) {
-      this.showMessage('twoFactorMessage', '6桁の認証コードを入力してください', 'error');
+    if (!token || token.length !== CONFIG.VALIDATION.TWO_FA_CODE_LENGTH) {
+      this.showMessage('twoFactorMessage', `${CONFIG.VALIDATION.TWO_FA_CODE_LENGTH}桁の認証コードを入力してください`, 'error');
       return;
     }
 
@@ -355,7 +355,7 @@ class App {
         // セキュリティ対策: ページを完全リロード
         setTimeout(() => {
           window.location.reload();
-        }, 500);
+        }, CONFIG.TIMING.LOGIN_REDIRECT_DELAY);
       }
     } catch (error) {
       this.showMessage('twoFactorMessage', error.message || '認証に失敗しました', 'error');
@@ -978,12 +978,12 @@ class App {
    * 日本式通貨フォーマット
    */
   formatCurrency(amount) {
-    if (amount >= 100000000) {
+    if (amount >= CONFIG.CURRENCY.OKU_THRESHOLD) {
       // 1億以上は「億円」
-      return `¥${(amount / 100000000).toFixed(1)}億`;
-    } else if (amount >= 10000) {
+      return `¥${(amount / CONFIG.CURRENCY.OKU_THRESHOLD).toFixed(1)}億`;
+    } else if (amount >= CONFIG.CURRENCY.MAN_THRESHOLD) {
       // 1万以上は「万円」
-      return `¥${(amount / 10000).toFixed(0)}万`;
+      return `¥${(amount / CONFIG.CURRENCY.MAN_THRESHOLD).toFixed(0)}万`;
     } else {
       // 1万未満は「円」
       return `¥${amount.toLocaleString()}`;
@@ -1081,7 +1081,7 @@ class App {
       if (type === 'success') {
         setTimeout(() => {
           element.style.display = 'none';
-        }, 3000);
+        }, CONFIG.TIMING.SUCCESS_MESSAGE_DURATION);
       }
     }
   }

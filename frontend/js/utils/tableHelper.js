@@ -7,7 +7,7 @@ class TableHelper {
     this.data = [];
     this.filteredData = [];
     this.currentPage = 1;
-    this.itemsPerPage = config.itemsPerPage || 25;
+    this.itemsPerPage = config.itemsPerPage || CONFIG.TABLE.DEFAULT_PAGE_SIZE;
     this.sortColumn = config.defaultSortColumn || null;
     this.sortDirection = config.defaultSortDirection || 'asc';
     this.filters = {};

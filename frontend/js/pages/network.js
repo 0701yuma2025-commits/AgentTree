@@ -69,13 +69,7 @@ class NetworkPage {
     const container = document.getElementById('network3d');
     if (!container) return;
 
-    // Tier別の色
-    const tierColors = {
-      1: '#ff4444',  // 赤
-      2: '#4444ff',  // 青
-      3: '#44ff44',  // 緑
-      4: '#ffaa44'   // オレンジ
-    };
+    const tierColors = CONFIG.TIER_COLORS;
 
     // 3D Force Graphの初期化
     this.graph = ForceGraph3D()(container)
@@ -151,15 +145,15 @@ class NetworkPage {
     // 階層構造を縦方向に配置（Tier別にY座標を固定）
     const yForce = this.graph.d3Force('y');
     if (yForce) {
-      yForce.y(node => (node.tier - 1) * 200).strength(1);
+      yForce.y(node => (node.tier - 1) * CONFIG.NETWORK.TIER_Y_SPACING).strength(1);
     }
 
     // グラフの背景色
-    this.graph.backgroundColor('#1a1a2e');
+    this.graph.backgroundColor(CONFIG.NETWORK.BACKGROUND_COLOR);
 
     // ノードの初期位置を設定（階層別）- デフォルト位置として保存
     this.graphData.nodes.forEach(node => {
-      node.defaultFy = (node.tier - 1) * 200;  // デフォルトY座標を保存
+      node.defaultFy = (node.tier - 1) * CONFIG.NETWORK.TIER_Y_SPACING;  // デフォルトY座標を保存
       node.fy = node.defaultFy;  // 初期配置
     });
 
@@ -176,7 +170,7 @@ class NetworkPage {
     // データ読み込み完了後に全体を表示
     setTimeout(() => {
       this.fitCameraToGraph();
-    }, 1000);
+    }, CONFIG.NETWORK.CAMERA_FIT_DELAY);
   }
 
   /**

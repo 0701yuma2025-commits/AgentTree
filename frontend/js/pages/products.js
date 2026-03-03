@@ -37,7 +37,7 @@ class ProductsPage {
           const containerElement = document.querySelector('#productsPage .table-container');
 
           this.productsTableHelper = new TableHelper({
-            itemsPerPage: 25,
+            itemsPerPage: CONFIG.TABLE.DEFAULT_PAGE_SIZE,
             defaultSortColumn: 'name',
             defaultSortDirection: 'asc',
             containerElement: containerElement,
@@ -259,22 +259,22 @@ class ProductsPage {
         <div class="commission-rates-grid">
           <div class="form-group">
             <label for="tier1Rate">Tier 1 報酬率 (%)</label>
-            <input type="number" id="tier1Rate" value="${product?.tier1_commission_rate || 10}" min="0" max="100" step="0.01" ${canEditTier(1) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            <input type="number" id="tier1Rate" value="${product?.tier1_commission_rate || CONFIG.PRODUCT_TIER_DEFAULTS.TIER1}" min="0" max="100" step="0.01" ${canEditTier(1) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
             ${!canEditTier(1) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
           <div class="form-group">
             <label for="tier2Rate">Tier 2 報酬率 (%)</label>
-            <input type="number" id="tier2Rate" value="${product?.tier2_commission_rate || 8}" min="0" max="100" step="0.01" ${canEditTier(2) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            <input type="number" id="tier2Rate" value="${product?.tier2_commission_rate || CONFIG.PRODUCT_TIER_DEFAULTS.TIER2}" min="0" max="100" step="0.01" ${canEditTier(2) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
             ${!canEditTier(2) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
           <div class="form-group">
             <label for="tier3Rate">Tier 3 報酬率 (%)</label>
-            <input type="number" id="tier3Rate" value="${product?.tier3_commission_rate || 6}" min="0" max="100" step="0.01" ${canEditTier(3) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            <input type="number" id="tier3Rate" value="${product?.tier3_commission_rate || CONFIG.PRODUCT_TIER_DEFAULTS.TIER3}" min="0" max="100" step="0.01" ${canEditTier(3) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
             ${!canEditTier(3) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
           <div class="form-group">
             <label for="tier4Rate">Tier 4 報酬率 (%)</label>
-            <input type="number" id="tier4Rate" value="${product?.tier4_commission_rate || 4}" min="0" max="100" step="0.01" ${canEditTier(4) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            <input type="number" id="tier4Rate" value="${product?.tier4_commission_rate || CONFIG.PRODUCT_TIER_DEFAULTS.TIER4}" min="0" max="100" step="0.01" ${canEditTier(4) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
             ${!canEditTier(4) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
         </div>

@@ -118,7 +118,7 @@ const campaignsPage = {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const thirtyDaysLater = new Date(today);
-    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + CONFIG.CAMPAIGN.DEFAULT_DURATION_DAYS);
     const thirtyDaysLaterStr = thirtyDaysLater.toISOString().split('T')[0];
 
     const modalContent = `
@@ -141,14 +141,14 @@ const campaignsPage = {
             <div class="form-group col-md-6">
               <label for="startDate">開始日 <span class="required">*</span></label>
               <input type="date" id="startDate" class="form-control"
-                     min="2020-01-01" max="2099-12-31"
+                     min="${CONFIG.CAMPAIGN.DATE_MIN}" max="${CONFIG.CAMPAIGN.DATE_MAX}"
                      value="${todayStr}"
                      required>
             </div>
             <div class="form-group col-md-6">
               <label for="endDate">終了日 <span class="required">*</span></label>
               <input type="date" id="endDate" class="form-control"
-                     min="2020-01-01" max="2099-12-31"
+                     min="${CONFIG.CAMPAIGN.DATE_MIN}" max="${CONFIG.CAMPAIGN.DATE_MAX}"
                      value="${thirtyDaysLaterStr}"
                      required>
             </div>
@@ -377,14 +377,14 @@ const campaignsPage = {
               <div class="form-group col-md-6">
                 <label for="startDate">開始日 <span class="required">*</span></label>
                 <input type="date" id="startDate" class="form-control"
-                       min="2020-01-01" max="2099-12-31"
+                       min="${CONFIG.CAMPAIGN.DATE_MIN}" max="${CONFIG.CAMPAIGN.DATE_MAX}"
                        value="${startDate}"
                        required>
               </div>
               <div class="form-group col-md-6">
                 <label for="endDate">終了日 <span class="required">*</span></label>
                 <input type="date" id="endDate" class="form-control"
-                       min="2020-01-01" max="2099-12-31"
+                       min="${CONFIG.CAMPAIGN.DATE_MIN}" max="${CONFIG.CAMPAIGN.DATE_MAX}"
                        value="${endDate}"
                        required>
               </div>
