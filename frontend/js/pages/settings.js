@@ -401,6 +401,11 @@ class SettingsPage {
     const newEmail = document.getElementById('newEmail').value;
     const password = document.getElementById('emailPassword').value;
 
+    // 入力バリデーション
+    if (window.FormValidator && !window.FormValidator.validateChangeEmail(newEmail, password)) {
+      return;
+    }
+
     try {
       const response = await apiClient.put('/auth/change-email', {
         new_email: newEmail,
@@ -427,15 +432,8 @@ class SettingsPage {
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
 
-    // パスワード確認
-    if (newPassword !== confirmPassword) {
-      alert('新しいパスワードが一致しません');
-      return;
-    }
-
-    // パスワード強度チェック
-    if (newPassword.length < 8) {
-      alert('パスワードは8文字以上である必要があります');
+    // 入力バリデーション（パスワード強度+一致チェック）
+    if (window.FormValidator && !window.FormValidator.validateChangePassword(currentPassword, newPassword, confirmPassword)) {
       return;
     }
 
@@ -475,6 +473,11 @@ class SettingsPage {
       non_invoice_deduction_rate: parseFloat(document.getElementById('non_invoice_deduction').value),
       operator_invoice_number: this.commissionSettings?.operator_invoice_number || null
     };
+
+    // 入力バリデーション
+    if (window.FormValidator && !window.FormValidator.validateCommissionSettings(data)) {
+      return;
+    }
 
     try {
       const response = await window.commissionSettingsAPI.update(data);

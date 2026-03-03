@@ -739,6 +739,11 @@ class AgenciesDetailPage {
     // 常にメール送信する
     data.send_invitation_email = true;
 
+    // 入力バリデーション
+    if (window.FormValidator && !window.FormValidator.validateCreateAgency(data)) {
+      return;
+    }
+
     try {
       await agenciesAPI.createAgency(data);
       if (isAdmin) {

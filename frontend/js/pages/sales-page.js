@@ -841,6 +841,11 @@ class SalesPage {
       status: document.getElementById('saleStatus')?.value || 'confirmed'
     };
 
+    // 入力バリデーション
+    if (window.FormValidator && !window.FormValidator.validateCreateSale(data)) {
+      return;
+    }
+
     try {
       const response = await apiClient.post('/sales', data);
       if (response.success) {

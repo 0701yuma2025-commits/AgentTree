@@ -333,6 +333,11 @@ class ProductsPage {
       productData.product_code = document.getElementById('productCode').value;
     }
 
+    // 入力バリデーション
+    if (window.FormValidator && !window.FormValidator.validateProduct(productData)) {
+      return;
+    }
+
     try {
       let response;
       if (isEdit) {

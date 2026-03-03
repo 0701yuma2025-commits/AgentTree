@@ -676,6 +676,48 @@ async function processMonthlyPayments() {
 }
 
 /**
+ * 期限切れパスワードリセットトークンのクリーンアップ
+ * 実行タイミング: 毎日 04:00
+ *
+ * agenciesテーブルに残存する期限切れの password_reset_token / password_reset_expiry を NULL に更新する。
+ */
+async function cleanupExpiredResetTokens() {
+  console.log('🧹 期限切れパスワードリセットトークンのクリーンアップを開始します...');
+
+  try {
+    // password_reset_expiry が現在時刻より前のレコードを取得
+    const { data: expiredAgencies, error: fetchError } = await supabase
+      .from('agencies')
+      .select('id')
+      .not('password_reset_token', 'is', null)
+      .lt('password_reset_expiry', new Date().toISOString());
+
+    if (fetchError) throw fetchError;
+
+    if (!expiredAgencies || expiredAgencies.length === 0) {
+      console.log('ℹ️  クリーンアップ対象のトークンがありません');
+      return;
+    }
+
+    const ids = expiredAgencies.map(a => a.id);
+
+    const { error: updateError } = await supabase
+      .from('agencies')
+      .update({
+        password_reset_token: null,
+        password_reset_expiry: null
+      })
+      .in('id', ids);
+
+    if (updateError) throw updateError;
+
+    console.log(`✅ ${ids.length} 件の期限切れリセットトークンをクリーンアップしました`);
+  } catch (error) {
+    console.error('❌ リセットトークンクリーンアップでエラーが発生しました:', error);
+  }
+}
+
+/**
  * スケジューラーを起動
  */
 function startScheduler() {
@@ -718,6 +760,11 @@ function startScheduler() {
     console.log('💾 日次バックアップ処理（未実装）');
   });
 
+  // 毎日 04:00 に期限切れリセットトークンのクリーンアップ
+  cron.schedule('0 4 * * *', async () => {
+    await cleanupExpiredResetTokens();
+  });
+
   console.log('✅ スケジューラーが起動しました');
   console.log('⏰ 月次締め: 毎月末日 23:59');
   console.log('⏰ 報酬計算: 毎月1日 02:00');
@@ -725,6 +772,7 @@ function startScheduler() {
   console.log('⏰ 支払い通知: 毎月20日 09:00');
   console.log('⏰ 支払い実行: 毎月25日 10:00');
   console.log('⏰ バックアップ: 毎日 03:00');
+  console.log('⏰ トークンクリーンアップ: 毎日 04:00');
 }
 
 // このファイルが直接実行された場合
@@ -745,5 +793,6 @@ module.exports = {
   calculateCommissions,
   sweepCarriedForwardCommissions,
   sendPaymentReminders,
-  processMonthlyPayments
+  processMonthlyPayments,
+  cleanupExpiredResetTokens
 };
