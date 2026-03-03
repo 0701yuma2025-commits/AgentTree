@@ -47,7 +47,9 @@ class SalesPage {
               tbody.appendChild(row);
             });
 
-            // イベントデリゲーション
+            // イベントデリゲーション（重複リスナー防止）
+            if (tbody.dataset.listenerAttached) return;
+            tbody.dataset.listenerAttached = 'true';
             tbody.addEventListener('click', (e) => {
               const btn = e.target.closest('[data-action]');
               if (!btn) return;

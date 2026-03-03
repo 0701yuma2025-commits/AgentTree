@@ -180,6 +180,8 @@ class DashboardPage {
     const tabContents = document.querySelectorAll('.org-tab-content');
 
     tabButtons.forEach(button => {
+      if (button.dataset.listenerAttached) return;
+      button.dataset.listenerAttached = 'true';
       button.addEventListener('click', (e) => {
         const targetTab = e.target.dataset.tab;
 

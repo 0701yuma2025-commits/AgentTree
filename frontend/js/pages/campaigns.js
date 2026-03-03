@@ -41,15 +41,18 @@ const campaignsPage = {
       return;
     }
 
-    // イベントデリゲーション
-    tbody.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const action = btn.dataset.action;
-      const id = btn.dataset.id;
-      if (action === 'editCampaign') window.campaignsPage.editCampaign(id);
-      else if (action === 'deleteCampaign') window.campaignsPage.deleteCampaign(id);
-    });
+    // イベントデリゲーション（重複リスナー防止）
+    if (!tbody.dataset.listenerAttached) {
+      tbody.dataset.listenerAttached = 'true';
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'editCampaign') window.campaignsPage.editCampaign(id);
+        else if (action === 'deleteCampaign') window.campaignsPage.deleteCampaign(id);
+      });
+    }
 
     tbody.innerHTML = this.campaigns.map(campaign => {
       const statusBadge = this.getStatusBadge(campaign.status);

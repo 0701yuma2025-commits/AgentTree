@@ -105,12 +105,15 @@ class AuditLogsPage {
       return;
     }
 
-    // イベントデリゲーション
-    tbody.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      if (btn.dataset.action === 'showLogDetail') auditLogsPage.showLogDetail(btn.dataset.id);
-    });
+    // イベントデリゲーション（重複リスナー防止）
+    if (!tbody.dataset.listenerAttached) {
+      tbody.dataset.listenerAttached = 'true';
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        if (btn.dataset.action === 'showLogDetail') auditLogsPage.showLogDetail(btn.dataset.id);
+      });
+    }
 
     tbody.innerHTML = this.logs.map(log => `
       <tr>
