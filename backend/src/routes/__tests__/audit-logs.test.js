@@ -132,14 +132,20 @@ describe('GET /api/audit-logs/stats/summary', () => {
     mockSupabase.lte.mockReturnValue(mockSupabase);
   });
 
-  // NOTE: /:id が /stats/summary より先に定義されているため、
-  // /stats/summary は /:id(id='stats') にマッチする。
-  // これは実際のルート定義順序の問題（本番でも同様）。
-  test('stats/summaryパスは/:idにマッチする（ルート順序の既知問題）', async () => {
-    mockSupabase.single.mockResolvedValueOnce({ data: { id: 'stats', action: 'test' }, error: null });
+  test('管理者 → 統計情報返却', async () => {
+    // totalLogs (head: true, count使用)
+    mockSupabase.then
+      .mockImplementationOnce(r => r({ data: null, error: null, count: 10 }))
+      // actionData
+      .mockImplementationOnce(r => r({ data: [{ action: 'CREATE' }, { action: 'UPDATE' }], error: null }))
+      // resourceData
+      .mockImplementationOnce(r => r({ data: [{ resource_type: 'agency' }], error: null }))
+      // failureLogs (head: true, count使用)
+      .mockImplementationOnce(r => r({ data: null, error: null, count: 1 }));
+
     const res = await request(app).get('/api/audit-logs/stats/summary').set('Authorization', `Bearer ${adminToken()}`);
-    // /:id がマッチするため、stats/summary エンドポイントには到達しない
-    // これはルート定義順序のバグだが、テストで検出した
     expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.totalLogs).toBe(10);
   });
 });

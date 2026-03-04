@@ -39,6 +39,7 @@ jest.mock('../../middleware/auth', () => ({
 
 jest.mock('uuid', () => ({ v4: () => 'test-uuid-1234' }));
 
+const { clearParentChildMapCache } = require('../../utils/agencyHelpers');
 const documentRouter = require('../documents');
 const JWT_SECRET = process.env.JWT_SECRET || 'test-key';
 
@@ -57,6 +58,7 @@ let app;
 beforeAll(() => { app = createApp(); });
 
 beforeEach(() => {
+  clearParentChildMapCache();
   mockSupabase.resetAll();
   mockSupabase.from.mockReturnValue(mockSupabase);
   mockSupabase.select.mockReturnValue(mockSupabase);
@@ -107,8 +109,12 @@ describe('GET /api/documents/:agencyId', () => {
   });
 
   test('他社代理店（傘下でない） → 403', async () => {
-    // ターゲット代理店に親がないケース
-    mockSupabase.single.mockResolvedValueOnce({ data: { parent_agency_id: null }, error: null });
+    // getSubordinateAgencyIds: ag-otherの配下にag-targetは含まれない
+    mockSupabase.then
+      .mockImplementationOnce(r => r({ data: [
+        { id: 'ag-other', parent_agency_id: null },
+        { id: 'ag-target', parent_agency_id: null },
+      ], error: null }));
 
     const res = await request(app).get('/api/documents/ag-target')
       .set('Authorization', `Bearer ${otherAgencyToken()}`);
@@ -118,9 +124,14 @@ describe('GET /api/documents/:agencyId', () => {
   });
 
   test('傘下代理店 → 書類一覧返却', async () => {
-    // ターゲット代理店の親がリクエストユーザーの代理店
-    mockSupabase.single.mockResolvedValueOnce({ data: { parent_agency_id: 'ag-1' }, error: null });
-    mockSupabase.then.mockImplementation(r => r({ data: [], error: null }));
+    // getSubordinateAgencyIds: ag-1の配下にag-childが含まれる
+    mockSupabase.then
+      .mockImplementationOnce(r => r({ data: [
+        { id: 'ag-1', parent_agency_id: null },
+        { id: 'ag-child', parent_agency_id: 'ag-1' },
+      ], error: null }))
+      // ドキュメント一覧取得
+      .mockImplementationOnce(r => r({ data: [], error: null }));
 
     const res = await request(app).get('/api/documents/ag-child')
       .set('Authorization', `Bearer ${agencyToken()}`);

@@ -67,6 +67,7 @@ const authRouter = require('../auth');
 // テスト用アプリ生成
 function createApp() {
   const app = express();
+  app.use(require('cookie-parser')());
   app.use(express.json());
   app.use('/api/auth', authRouter);
   return app;
@@ -128,9 +129,9 @@ function setupLoginSuccess(userProfile = TEST_USER, agency = TEST_AGENCY) {
 
 function createRefreshToken(payload = {}) {
   return jwt.sign(
-    { id: TEST_USER.id, email: TEST_USER.email, role: 'agency', ...payload },
+    { id: TEST_USER.id, email: TEST_USER.email, role: 'agency', type: 'refresh', ...payload },
     JWT_REFRESH_SECRET,
-    { expiresIn: '30d' }
+    { expiresIn: '30d', issuer: 'agenttree', audience: 'agenttree-api' }
   );
 }
 
@@ -193,7 +194,7 @@ describe('POST /api/auth/login', () => {
     expect(res.body.message).toContain('間違っています');
   });
 
-  test('正常ログイン → 200 + token + refreshToken + user', async () => {
+  test('正常ログイン → 200 + httpOnly cookie + user', async () => {
     setupLoginSuccess();
 
     const res = await request(app)
@@ -202,16 +203,16 @@ describe('POST /api/auth/login', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.token).toBeDefined();
-    expect(res.body.refreshToken).toBeDefined();
     expect(res.body.user).toBeDefined();
     expect(res.body.user.email).toBe('test@example.com');
     expect(res.body.user.role).toBe('agency');
 
-    // token が有効なJWTか検証
-    const decoded = jwt.verify(res.body.token, JWT_SECRET);
-    expect(decoded.email).toBe('test@example.com');
-    expect(decoded.role).toBe('agency');
+    // トークンはhttpOnly Cookieで返される
+    const cookies = res.headers['set-cookie'];
+    expect(cookies).toBeDefined();
+    const accessCookie = cookies.find(c => c.startsWith('access_token='));
+    expect(accessCookie).toBeDefined();
+    expect(accessCookie).toContain('HttpOnly');
   });
 
   test('レスポンスに success フィールドが必ず含まれる', async () => {
@@ -279,7 +280,7 @@ describe('POST /api/auth/refresh', () => {
     expect(res.body.success).toBe(false);
   });
 
-  test('有効なリフレッシュトークン → 200 + 新トークン', async () => {
+  test('有効なリフレッシュトークン → 200 + cookie更新', async () => {
     const validRefresh = createRefreshToken();
 
     const res = await request(app)
@@ -288,10 +289,16 @@ describe('POST /api/auth/refresh', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.token).toBeDefined();
 
-    // 新トークンが有効か検証
-    const decoded = jwt.verify(res.body.token, JWT_SECRET);
+    // 新トークンはhttpOnly Cookieで返される
+    const cookies = res.headers['set-cookie'];
+    expect(cookies).toBeDefined();
+    const accessCookie = cookies.find(c => c.startsWith('access_token='));
+    expect(accessCookie).toBeDefined();
+
+    // Cookieからトークンを取得して検証
+    const tokenValue = accessCookie.split(';')[0].split('=')[1];
+    const decoded = jwt.verify(tokenValue, JWT_SECRET, { issuer: 'agenttree', audience: 'agenttree-api' });
     expect(decoded.email).toBe(TEST_USER.email);
     expect(decoded.id).toBe(TEST_USER.id);
   });
@@ -304,7 +311,11 @@ describe('POST /api/auth/refresh', () => {
       .send({ refreshToken: adminRefresh });
 
     expect(res.status).toBe(200);
-    const decoded = jwt.verify(res.body.token, JWT_SECRET);
+
+    const cookies = res.headers['set-cookie'];
+    const accessCookie = cookies.find(c => c.startsWith('access_token='));
+    const tokenValue = accessCookie.split(';')[0].split('=')[1];
+    const decoded = jwt.verify(tokenValue, JWT_SECRET, { issuer: 'agenttree', audience: 'agenttree-api' });
     expect(decoded.role).toBe('admin');
   });
 });
@@ -334,9 +345,9 @@ describe('POST /api/auth/logout', () => {
 
   test('有効なトークンでログアウト → 200', async () => {
     const token = jwt.sign(
-      { id: TEST_USER.id, email: TEST_USER.email, role: 'agency' },
+      { id: TEST_USER.id, email: TEST_USER.email, role: 'agency', type: 'access' },
       JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '1h', issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // authenticateToken がDBからユーザーを検索

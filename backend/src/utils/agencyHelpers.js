@@ -125,4 +125,12 @@ async function getSubordinateAgenciesWithDetails(parentId) {
   return result;
 }
 
-module.exports = { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails };
+/**
+ * キャッシュクリア（テスト用）
+ */
+function clearParentChildMapCache() {
+  _parentChildMapCache = null;
+  _parentChildMapCachedAt = 0;
+}
+
+module.exports = { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails, clearParentChildMapCache };

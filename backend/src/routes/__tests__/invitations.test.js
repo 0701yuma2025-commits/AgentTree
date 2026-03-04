@@ -26,6 +26,7 @@ jest.mock('../../middleware/auth', () => ({
 
 jest.mock('../../middleware/rateLimiter', () => ({
   loginRateLimit: (req, res, next) => next(),
+  sensitiveActionRateLimit: () => (req, res, next) => next(),
 }));
 
 jest.mock('../../utils/emailSender', () => ({ sendEmail: jest.fn().mockResolvedValue(undefined) }));

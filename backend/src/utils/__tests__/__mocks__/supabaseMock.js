@@ -53,15 +53,41 @@ function createSupabaseMock() {
   mock.setReturnError = (error) => { mock._returnError = error; return mock; };
   mock.setReturnCount = (count) => { mock._returnCount = count; return mock; };
 
-  // 全モックをリセット
+  // チェーンメソッド名リスト（resetAll で mockReturnThis を再設定するため）
+  const chainMethods = [
+    'from', 'select', 'insert', 'update', 'delete',
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
+    'in', 'like', 'ilike', 'or', 'contains',
+    'order', 'limit', 'range',
+  ];
+
+  // 全モックをリセット（mockResetで実装・once-queueも完全クリア）
   mock.resetAll = () => {
     mock._returnData = null;
     mock._returnError = null;
     mock._returnCount = null;
     Object.keys(mock).forEach((key) => {
-      if (typeof mock[key] === 'function' && mock[key].mockClear) {
-        mock[key].mockClear();
+      if (typeof mock[key] === 'function' && mock[key].mockReset) {
+        mock[key].mockReset();
       }
+    });
+    // チェーンメソッドのデフォルト実装を再設定（自身を返す）
+    chainMethods.forEach((name) => {
+      mock[name].mockReturnValue(mock);
+    });
+    // ターミナルメソッドのデフォルト実装を再設定
+    mock.single.mockImplementation(function () {
+      return Promise.resolve({ data: mock._returnData, error: mock._returnError });
+    });
+    mock.maybeSingle.mockImplementation(function () {
+      return Promise.resolve({ data: mock._returnData, error: mock._returnError });
+    });
+    mock.then.mockImplementation(function (resolve) {
+      return resolve({
+        data: mock._returnData,
+        error: mock._returnError,
+        count: mock._returnCount,
+      });
     });
     return mock;
   };

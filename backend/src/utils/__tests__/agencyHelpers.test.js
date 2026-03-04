@@ -10,9 +10,10 @@ jest.mock('../../config/supabase', () => ({
   supabase: mockSupabase,
 }));
 
-const { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails } = require('../agencyHelpers');
+const { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails, clearParentChildMapCache } = require('../agencyHelpers');
 
 beforeEach(() => {
+  clearParentChildMapCache();
   mockSupabase.resetAll();
   mockSupabase.from.mockReturnValue(mockSupabase);
   mockSupabase.select.mockReturnValue(mockSupabase);

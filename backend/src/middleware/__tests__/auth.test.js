@@ -23,7 +23,7 @@ const {
 const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key';
 
 function createToken(payload, options = {}) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h', ...options });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h', issuer: 'agenttree', audience: 'agenttree-api', ...options });
 }
 
 function createExpiredToken(payload) {

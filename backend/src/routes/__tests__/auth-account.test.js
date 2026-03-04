@@ -14,6 +14,7 @@ const mockSupabase = createSupabaseMock();
 mockSupabase.auth = {
   signInWithPassword: jest.fn(),
   updateUser: jest.fn(),
+  verifyOtp: jest.fn(),
   resetPasswordForEmail: jest.fn(),
   admin: {
     createUser: jest.fn(),
@@ -203,7 +204,11 @@ describe('POST /api/auth/reset-password', () => {
   });
 
   test('正常リセット', async () => {
-    mockSupabase.auth.updateUser.mockResolvedValue({ error: null });
+    mockSupabase.auth.verifyOtp.mockResolvedValue({
+      data: { user: { id: 'u-1' } },
+      error: null,
+    });
+    mockSupabase.auth.admin.updateUserById.mockResolvedValue({ error: null });
 
     const res = await request(app).post('/api/auth/reset-password')
       .send({ token: 'valid-token', new_password: 'newStrongPass1!' });
