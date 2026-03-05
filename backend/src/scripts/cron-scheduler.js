@@ -721,6 +721,91 @@ async function cleanupExpiredResetTokens() {
 }
 
 /**
+ * 解約済み代理店のデータクリーンアップ
+ * terminated後1年経過した代理店の関連データを削除（代理店レコード自体は保持）
+ * 実行タイミング: 毎月1日 05:00
+ */
+async function cleanupTerminatedAgencies() {
+  logger.info('🗑️ 解約済み代理店のデータクリーンアップを開始します...');
+
+  try {
+    // 1年前の日付
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    // terminated かつ terminated_at が1年以上前の代理店を取得
+    const { data: agencies, error: fetchError } = await supabase
+      .from('agencies')
+      .select('id, company_name, metadata')
+      .eq('status', 'terminated');
+
+    if (fetchError) throw fetchError;
+
+    // terminated_at が1年以上前のもののみ対象
+    const expiredAgencies = (agencies || []).filter(a => {
+      const terminatedAt = a.metadata?.terminated_at;
+      if (!terminatedAt) return false;
+      return new Date(terminatedAt) < oneYearAgo;
+    });
+
+    if (expiredAgencies.length === 0) {
+      logger.info('ℹ️  クリーンアップ対象の解約済み代理店がありません');
+      return;
+    }
+
+    const ids = expiredAgencies.map(a => a.id);
+    logger.info(`🔍 ${ids.length} 件の解約済み代理店（1年以上経過）を検出`);
+
+    // 関連データを削除（代理店レコード自体は監査のため保持）
+    const tables = ['sales', 'commissions', 'payment_records'];
+    for (const table of tables) {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .in('agency_id', ids);
+
+      if (error) {
+        logger.error({ err: error }, `${table}の削除に失敗`);
+      } else {
+        logger.info(`✅ ${table} のデータを削除しました`);
+      }
+    }
+
+    // 代理店レコードの個人情報を匿名化
+    for (const id of ids) {
+      const { error } = await supabase
+        .from('agencies')
+        .update({
+          representative_name: '削除済み',
+          contact_email: null,
+          contact_phone: null,
+          email: null,
+          address: null,
+          postal_code: null,
+          bank_account: null,
+          tax_info: null,
+          birth_date: null,
+          metadata: {
+            data_cleaned_at: new Date().toISOString(),
+            original_status: 'terminated'
+          }
+        })
+        .eq('id', id);
+
+      if (error) {
+        logger.error({ err: error }, `代理店 ${id} の匿名化に失敗`);
+      }
+    }
+
+    logger.info(`✅ ${ids.length} 件の解約済み代理店データをクリーンアップしました`);
+    logger.info(`対象: ${expiredAgencies.map(a => a.company_name).join(', ')}`);
+
+  } catch (error) {
+    logger.error({ err: error }, '❌ 解約済み代理店クリーンアップでエラーが発生しました');
+  }
+}
+
+/**
  * スケジューラーを起動
  */
 function startScheduler() {
@@ -763,10 +848,16 @@ function startScheduler() {
     await cleanupExpiredResetTokens();
   });
 
+  // 毎月1日 05:00 に解約済み代理店のデータクリーンアップ
+  cron.schedule('0 5 1 * *', async () => {
+    await cleanupTerminatedAgencies();
+  });
+
   logger.info('✅ スケジューラーが起動しました');
   logger.info('⏰ 月次締め: 毎月末日 23:59');
   logger.info('⏰ 報酬計算: 毎月1日 02:00');
   logger.info('⏰ 繰越スイープ: 毎月1日 03:00');
+  logger.info('⏰ 解約データ保持: 毎月1日 05:00');
   logger.info('⏰ 支払い通知: 毎月1日 06:00');
   logger.info('⏰ 支払い実行: 毎月25日 10:00');
   logger.info('⏰ バックアップ: 毎日 03:00');
@@ -792,5 +883,6 @@ module.exports = {
   sweepCarriedForwardCommissions,
   sendPaymentReminders,
   processMonthlyPayments,
-  cleanupExpiredResetTokens
+  cleanupExpiredResetTokens,
+  cleanupTerminatedAgencies
 };

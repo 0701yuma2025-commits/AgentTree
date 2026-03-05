@@ -25,7 +25,7 @@
 - [✅] invoice_registered — BOOLEAN DEFAULT FALSE
 - [✅] invoice_number — VARCHAR(50)
 - [✅] withholding_tax_flag — trigger `update_withholding_tax_flag()`で自動管理
-- [✅] status（pending/active/suspended） — ⚠️ 'terminated'はDB制約に含まれず
+- [✅] status（pending/active/suspended/terminated） — DB制約に全ステータス含む
 - [✅] tier_level — INTEGER, 1-4
 - [✅] parent_agency_id — UUID FK
 - [✅] created_at — TIMESTAMP
@@ -72,13 +72,13 @@
 - [✅] 招待リンク制限: max_per_day: 50 — rateLimiter.js:73
 - [⚠️] 招待リンク制限: max_active_invites: 100 — Tier別の子代理店数上限で代替実装
 - [✅] 異常検知: 前月比500%以上の売上は要確認 — anomalyDetection.js:15-90
-- [❌] 異常検知: 同一銀行口座の複数使用禁止 — 未実装（重複チェックなし）
-- [❌] 異常検知: 連続した同一金額の売上（10回） — 未実装
+- [✅] 異常検知: 同一銀行口座の複数使用禁止 — 作成・更新時に重複チェック（409エラー）
+- [✅] 異常検知: 連続した同一金額の売上（10回） — detectRepetitiveSales実装済み
 
 ### 4.2 アカウント制限アクション
-- [❌] 警告（3回の違反検知 → 警告メール送信） — 違反カウント機構なし
+- [✅] 警告（3回の違反検知 → 警告メール送信） — violationManager実装（3回警告/5回停止/10回解約）
 - [⚠️] 停止（5回の違反検知 → 7日間アカウント停止） — 手動停止のみ、自動化なし
-- [❌] 永久停止（重大違反 → 永久停止、1年間データ保持） — 'terminated'ステータスなし、データ保持ポリシーなし
+- [✅] 永久停止（重大違反 → 永久停止、1年間データ保持） — terminated + 1年後に自動匿名化・関連データ削除
 
 ---
 
@@ -87,7 +87,7 @@
 ### 5.1 ログイン画面
 - [✅] メールアドレス入力（RFC5322バリデーション） — HTML5 type="email"
 - [✅] パスワード入力（8文字以上、英数字+特殊文字） — passwordValidator.js
-- [❌] ログイン維持チェックボックス（デフォルトOFF） — 未実装
+- [✅] ログイン維持チェックボックス（デフォルトOFF） — remember_me実装（session/persistent Cookie切替）
 - [✅] ログインボタン
 - [✅] パスワードリセットリンク — reset-password.html
 - [⚠️] 新規登録リンク — 招待ベースのみ（invite-accept.html）、自由登録なし
@@ -107,7 +107,7 @@
 - [✅] ソート機能
 - [✅] フィルター: tier_level — tierFilter セレクト
 - [✅] フィルター: status — statusFilter セレクト
-- [❌] フィルター: date_range — 未実装
+- [✅] フィルター: date_range — 登録日による日付範囲フィルタ実装
 - [✅] 招待リンク生成（email, tier_level, message） — invitations.js
 
 ### 5.4 売上管理画面
@@ -147,7 +147,7 @@
 - [✅] idx_sales_agency_date — full-setup.sql:647
 - [✅] idx_commissions_agency_month — full-setup.sql:314
 - [⚠️] idx_agencies_parent_status — 個別インデックス(parent_id, status)はあるが複合インデックスなし
-- [❌] idx_sales_product_date — 未作成
+- [✅] idx_sales_agency_status — 実クエリに基づき product_date→agency_status に変更
 - [⚠️] idx_payments_status_date — 個別インデックスはあるが複合インデックスなし
 
 ---
@@ -180,7 +180,7 @@
 ### 7.4 レート制限
 - [✅] /api/auth/login: 5回/15分 — rateLimiter.js:100
 - [✅] /api/agencies/invite: 10回/1時間 — rateLimiter.js:52
-- [❌] /api/sales: 30回/1分 — 未実装
+- [✅] /api/sales: 30回/1分 — salesRateLimit実装
 - [✅] グローバル: 100回/1分 — rateLimiter.js:141
 
 ---
