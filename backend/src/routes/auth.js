@@ -37,7 +37,7 @@ router.use('/', require('./auth/two-factor'));
  */
 router.post('/login', loginRateLimit, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, remember_me } = req.body;
 
     // 入力検証
     if (!email || !password) {
@@ -124,6 +124,10 @@ router.post('/login', loginRateLimit, async (req, res) => {
       throw new Error('JWT_SECRET is not configured');
     }
 
+    // remember_me に応じてトークン有効期限を設定
+    const accessTokenExpiry = remember_me ? '30d' : '1d';
+    const refreshTokenExpiry = remember_me ? '30d' : '1d';
+
     const token = jwt.sign(
       {
         id: authData.user.id,
@@ -132,7 +136,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
         type: 'access'
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d', issuer: 'agenttree', audience: 'agenttree-api' }
+      { expiresIn: accessTokenExpiry, issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // リフレッシュトークン生成（環境変数の必須チェック）
@@ -148,7 +152,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
         type: 'refresh'
       },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d', issuer: 'agenttree', audience: 'agenttree-api' }
+      { expiresIn: refreshTokenExpiry, issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
     // 明示的に role を返す
@@ -288,8 +292,9 @@ router.post('/login', loginRateLimit, async (req, res) => {
     }, req, true);
 
     // httpOnly Cookieにトークンを設定（XSS対策）
-    setTokenCookie(res, token);
-    setRefreshTokenCookie(res, refreshToken);
+    const cookieOptions = { rememberMe: !!remember_me };
+    setTokenCookie(res, token, cookieOptions);
+    setRefreshTokenCookie(res, refreshToken, cookieOptions);
 
     // トークンはhttpOnly Cookieのみで管理（レスポンスbodyには含めない）
     res.json({

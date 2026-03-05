@@ -6,17 +6,21 @@ class AuthAPI {
   /**
    * ログイン
    */
-  async login(email, password) {
+  async login(email, password, rememberMe = false) {
     try {
       // バックエンドAPIを使用してログイン（正しいroleを取得するため）
       const response = await apiClient.post('/auth/login', {
         email,
-        password
+        password,
+        remember_me: rememberMe
       });
 
       if (response.success) {
-        // ユーザー情報のみlocalStorageに保存（トークンはhttpOnly Cookieで管理）
-        localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
+        // remember_me: trueならlocalStorage、falseならsessionStorage（ブラウザ閉じたら消える）
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
+        // remember_meの状態も保存（他の箇所で参照するため）
+        localStorage.setItem('agency_system_remember_me', rememberMe ? 'true' : 'false');
         return response;
       }
 
@@ -54,7 +58,8 @@ class AuthAPI {
    * 現在のユーザー取得
    */
   getCurrentUser() {
-    const userStr = localStorage.getItem(CONFIG.STORAGE_KEYS.USER);
+    const userStr = localStorage.getItem(CONFIG.STORAGE_KEYS.USER)
+      || sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER);
     return userStr ? JSON.parse(userStr) : null;
   }
 
@@ -182,8 +187,10 @@ class AuthAPI {
       });
 
       if (response.success) {
-        // ユーザー情報のみlocalStorageに保存（トークンはhttpOnly Cookieで管理）
-        localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
+        // remember_meの状態に応じて保存先を分岐
+        const rememberMe = localStorage.getItem('agency_system_remember_me') === 'true';
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
         return response;
       }
 

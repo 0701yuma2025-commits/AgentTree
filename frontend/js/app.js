@@ -309,7 +309,8 @@ class App {
     try {
       this.showMessage('loginMessage', 'ログイン中...', 'info');
 
-      const response = await authAPI.login(email, password);
+      const rememberMe = document.getElementById('rememberMe')?.checked || false;
+      const response = await authAPI.login(email, password, rememberMe);
 
       if (response.success) {
         // 2FA有効チェック

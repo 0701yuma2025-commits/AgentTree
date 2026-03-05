@@ -7,28 +7,42 @@ const isProduction = () => process.env.NODE_ENV === 'production';
 
 /**
  * アクセストークンをhttpOnly Cookieに設定
+ * @param {Object} res - Express response
+ * @param {String} token - JWT token
+ * @param {Object} options - { rememberMe: boolean }
  */
-function setTokenCookie(res, token) {
-  res.cookie('access_token', token, {
+function setTokenCookie(res, token, options = {}) {
+  // rememberMe: true → 30日, false → セッションCookie（maxAge省略でブラウザ閉じたら消える）
+  const cookieOpts = {
     httpOnly: true,
     secure: isProduction(),
     sameSite: isProduction() ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7日
     path: '/'
-  });
+  };
+  if (options.rememberMe) {
+    cookieOpts.maxAge = 30 * 24 * 60 * 60 * 1000; // 30日
+  }
+  // rememberMe=false の場合、maxAgeを設定しない → セッションCookie
+  res.cookie('access_token', token, cookieOpts);
 }
 
 /**
  * リフレッシュトークンをhttpOnly Cookieに設定
+ * @param {Object} res - Express response
+ * @param {String} refreshToken - refresh JWT token
+ * @param {Object} options - { rememberMe: boolean }
  */
-function setRefreshTokenCookie(res, refreshToken) {
-  res.cookie('refresh_token', refreshToken, {
+function setRefreshTokenCookie(res, refreshToken, options = {}) {
+  const cookieOpts = {
     httpOnly: true,
     secure: isProduction(),
     sameSite: isProduction() ? 'none' : 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30日
-    path: '/api/auth'  // 認証エンドポイントのみで送信
-  });
+    path: '/api/auth'
+  };
+  if (options.rememberMe) {
+    cookieOpts.maxAge = 30 * 24 * 60 * 60 * 1000; // 30日
+  }
+  res.cookie('refresh_token', refreshToken, cookieOpts);
 }
 
 /**
