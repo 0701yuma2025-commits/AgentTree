@@ -646,8 +646,11 @@ ALTER TABLE agencies ADD CONSTRAINT chk_agencies_commission_rate_range CHECK (co
 
 -- 複合インデックス
 CREATE INDEX IF NOT EXISTS idx_sales_agency_date ON sales(agency_id, sale_date DESC);
+CREATE INDEX IF NOT EXISTS idx_sales_agency_status ON sales(agency_id, status);
 CREATE INDEX IF NOT EXISTS idx_commissions_agency_status_month ON commissions(agency_id, status, month);
+CREATE INDEX IF NOT EXISTS idx_commissions_month_status ON commissions(month, status);
 CREATE INDEX IF NOT EXISTS idx_payment_history_agency_date ON payment_history(agency_id, payment_date DESC);
+CREATE INDEX IF NOT EXISTS idx_agencies_parent_status ON agencies(parent_agency_id, status);
 
 -- ===== PART 4: RLSポリシー =====
 
