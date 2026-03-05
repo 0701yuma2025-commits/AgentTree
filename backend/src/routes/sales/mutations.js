@@ -14,6 +14,7 @@ const { sendAnomalyNotification } = require('./anomaly');
 const { recordViolation } = require('../../utils/violationManager');
 const emailService = require('../../services/emailService');
 const { handleDbError } = require('../../utils/errorHelper');
+const { salesRateLimit } = require('../../middleware/rateLimiter');
 const { createModuleLogger } = require('../../config/logger');
 const logger = createModuleLogger('sales-mutations');
 
@@ -113,6 +114,7 @@ async function createCommissionRecords(sale, commissionResult, settings) {
  */
 router.post('/',
   authenticateToken,
+  salesRateLimit,
   [
     body('product_id').isUUID().withMessage('商品IDが不正です'),
     body('quantity').isInt({ min: 1 }).withMessage('数量は1以上必要です'),

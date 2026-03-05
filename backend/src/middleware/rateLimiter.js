@@ -191,10 +191,31 @@ const clearOldRateLimits = () => {
 // 1時間ごとに古いデータをクリア（unrefでプロセス終了をブロックしない）
 setInterval(clearOldRateLimits, 60 * 60 * 1000).unref();
 
+/**
+ * 売上登録レート制限
+ * 1分間に30件まで（代理店ごと）
+ */
+const salesRateLimit = (req, res, next) => {
+  const agencyId = req.user?.agency_id || req.body?.agency_id || req.user?.id;
+  const key = `sales_create_${agencyId}`;
+
+  const allowed = checkRateLimit(key, 30, 60 * 1000);
+
+  if (!allowed) {
+    return res.status(429).json({
+      success: false,
+      message: '売上登録のリクエスト数が上限（30件/分）に達しました。しばらく待ってから再度お試しください。'
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   agencyCreationRateLimit,
   loginRateLimit,
   passwordResetRateLimit,
   generalRateLimit,
-  sensitiveActionRateLimit
+  sensitiveActionRateLimit,
+  salesRateLimit
 };
