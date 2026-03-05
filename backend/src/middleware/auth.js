@@ -147,6 +147,21 @@ const authenticateToken = async (req, res, next) => {
         }
 
         if (agency) {
+          // 停止・解約された代理店はアクセス拒否
+          if (agency.status === 'terminated') {
+            return res.status(403).json({
+              error: true,
+              code: 'ACCOUNT_TERMINATED',
+              message: 'このアカウントは解約されています。管理者にお問い合わせください。'
+            });
+          }
+          if (agency.status === 'suspended') {
+            return res.status(403).json({
+              error: true,
+              code: 'ACCOUNT_SUSPENDED',
+              message: 'このアカウントは停止されています。管理者にお問い合わせください。'
+            });
+          }
           req.user.agency = agency;
           req.user.agency_id = agency.id;  // agency_idも設定
         }

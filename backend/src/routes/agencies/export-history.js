@@ -66,6 +66,7 @@ router.get('/export', authenticateToken, async (req, res) => {
       状態: agency.status === 'active' ? '有効' :
            agency.status === 'pending' ? '承認待ち' :
            agency.status === 'suspended' ? '停止中' :
+           agency.status === 'terminated' ? '解約' :
            agency.status === 'rejected' ? '却下' : agency.status,
       登録日: agency.created_at
     }));

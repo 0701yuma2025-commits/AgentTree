@@ -525,6 +525,41 @@ class EmailService {
   }
 
   /**
+   * 違反警告メール送信
+   */
+  async sendViolationWarningEmail(agency, violationCount, suspendThreshold) {
+    const remaining = suspendThreshold - violationCount;
+    return this.sendMail({
+      to: agency.contact_email,
+      subject: `【警告】違反回数が${violationCount}回に達しました`,
+      html: `
+        <h2>違反警告通知</h2>
+        <p>${agency.company_name} 様</p>
+        <p>異常な売上活動が検知され、違反回数が <strong>${violationCount}回</strong> に達しました。</p>
+        <p>あと <strong>${remaining}回</strong> の違反でアカウントが自動停止されます。</p>
+        <p>心当たりがない場合は、管理者までお問い合わせください。</p>
+      `
+    });
+  }
+
+  /**
+   * 自動解約メール送信
+   */
+  async sendAgencyTerminatedEmail(agency, violationCount) {
+    return this.sendMail({
+      to: agency.contact_email,
+      subject: '【重要】アカウント解約のお知らせ',
+      html: `
+        <h2>アカウント解約通知</h2>
+        <p>${agency.company_name} 様</p>
+        <p>違反回数が <strong>${violationCount}回</strong> に達したため、アカウントが自動解約されました。</p>
+        <p>今後のログインおよび売上登録はできません。</p>
+        <p>異議がある場合は、管理者までお問い合わせください。</p>
+      `
+    });
+  }
+
+  /**
    * 支払い予定日を計算
    */
   getPaymentDate() {

@@ -167,6 +167,21 @@
   color: #333;
 }
 
+.status-badge.suspended {
+  background-color: #fd7e14;
+  color: white;
+}
+
+.status-badge.terminated {
+  background-color: #6c757d;
+  color: white;
+}
+
+.status-badge.rejected {
+  background-color: #dc3545;
+  color: white;
+}
+
 /* モーダルボタン */
 .modal-buttons {
   margin-top: 30px;

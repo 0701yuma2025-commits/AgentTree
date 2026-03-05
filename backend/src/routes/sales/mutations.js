@@ -11,6 +11,7 @@ const { calculateCommissionForSale, calculateCampaignBonusNew, DEFAULT_COMMISSIO
 const { detectAnomalies } = require('../../utils/anomalyDetection');
 const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
+const { recordViolation } = require('../../utils/violationManager');
 const emailService = require('../../services/emailService');
 const { handleDbError } = require('../../utils/errorHelper');
 const { createModuleLogger } = require('../../config/logger');
@@ -235,6 +236,15 @@ router.post('/',
           await sendAnomalyNotification(data, anomalyResult);
         } catch (notifyError) {
           logger.error('異常通知送信エラー:', notifyError.message);
+        }
+
+        // スコア70以上の場合、違反としてカウント
+        if (anomalyResult.anomaly_score >= 70) {
+          try {
+            await recordViolation(data.agency_id, anomalyResult);
+          } catch (violationError) {
+            logger.error('違反記録エラー:', violationError.message);
+          }
         }
       }
 

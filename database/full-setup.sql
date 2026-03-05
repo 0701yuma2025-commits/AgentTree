@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS agencies (
   withholding_tax_flag BOOLEAN DEFAULT false,
   password_reset_token TEXT,
   password_reset_expiry TIMESTAMPTZ,
+  violation_count INTEGER DEFAULT 0,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -640,7 +641,7 @@ ALTER TABLE products ADD CONSTRAINT chk_products_commission_rate_range CHECK (co
 
 ALTER TABLE payment_history ADD CONSTRAINT chk_payment_history_amount_positive CHECK (amount > 0);
 
-ALTER TABLE agencies ADD CONSTRAINT chk_agencies_status_valid CHECK (status IN ('pending', 'active', 'suspended'));
+ALTER TABLE agencies ADD CONSTRAINT chk_agencies_status_valid CHECK (status IN ('pending', 'active', 'suspended', 'terminated'));
 ALTER TABLE agencies ADD CONSTRAINT chk_agencies_commission_rate_range CHECK (commission_rate IS NULL OR (commission_rate >= 0 AND commission_rate <= 100));
 
 -- 複合インデックス

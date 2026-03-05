@@ -112,6 +112,7 @@ class AgenciesPage {
       const statusBadge = agency.status === 'active' ? '<span class="status-badge active">有効</span>' :
                           agency.status === 'pending' ? '<span class="status-badge pending">承認待ち</span>' :
                           agency.status === 'suspended' ? '<span class="status-badge suspended">停止中</span>' :
+                          agency.status === 'terminated' ? '<span class="status-badge terminated">解約</span>' :
                           agency.status === 'rejected' ? '<span class="status-badge rejected">却下</span>' :
                           `<span class="status-badge">${agency.status}</span>`;
 
