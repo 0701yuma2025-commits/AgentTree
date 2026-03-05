@@ -758,11 +758,6 @@ function startScheduler() {
     await processMonthlyPayments();
   });
 
-  // 日次バックアップ（毎日 03:00）
-  cron.schedule('0 3 * * *', async () => {
-    logger.info('💾 日次バックアップ処理（未実装）');
-  });
-
   // 毎日 04:00 に期限切れリセットトークンのクリーンアップ
   cron.schedule('0 4 * * *', async () => {
     await cleanupExpiredResetTokens();
