@@ -51,6 +51,21 @@ class AgenciesPage {
         };
       }
 
+      const dateFrom = document.getElementById('agencyDateFrom');
+      const dateTo = document.getElementById('agencyDateTo');
+      if (dateFrom) {
+        dateFrom.onchange = () => {
+          const filtered = this.applyAgenciesFilters(agencies);
+          this.renderAgenciesTable(filtered);
+        };
+      }
+      if (dateTo) {
+        dateTo.onchange = () => {
+          const filtered = this.applyAgenciesFilters(agencies);
+          this.renderAgenciesTable(filtered);
+        };
+      }
+
     } catch (error) {
       console.error('Load agencies error:', error);
       const tbody = document.getElementById('agenciesTableBody');
@@ -89,6 +104,17 @@ class AgenciesPage {
       );
     }
 
+    // 日付範囲フィルタ
+    const dateFrom = document.getElementById('agencyDateFrom');
+    const dateTo = document.getElementById('agencyDateTo');
+
+    if (dateFrom && dateFrom.value) {
+      filtered = filtered.filter(a => a.created_at && a.created_at.slice(0, 10) >= dateFrom.value);
+    }
+    if (dateTo && dateTo.value) {
+      filtered = filtered.filter(a => a.created_at && a.created_at.slice(0, 10) <= dateTo.value);
+    }
+
     return filtered;
   }
 
@@ -102,7 +128,7 @@ class AgenciesPage {
     tbody.innerHTML = '';
 
     if (!agencies || agencies.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center">代理店データがありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center">代理店データがありません</td></tr>';
       return;
     }
 
@@ -130,13 +156,17 @@ class AgenciesPage {
         }
       }
 
+      const totalSales = agency.total_sales ? `¥${Number(agency.total_sales).toLocaleString()}` : '¥0';
+      const createdAt = agency.created_at ? new Date(agency.created_at).toLocaleDateString('ja-JP') : '-';
+
       row.innerHTML = `
         <td>${escapeHtml(agency.agency_code) || '-'}</td>
         <td>${escapeHtml(agency.company_name) || '-'}</td>
         <td>Tier ${agency.tier_level || '-'}</td>
         <td>${escapeHtml(agency.representative_name) || '-'}</td>
-        <td>${escapeHtml(agency.contact_email) || '-'}</td>
         <td>${statusBadge}</td>
+        <td style="text-align: right;">${totalSales}</td>
+        <td>${createdAt}</td>
         <td>${actionButtons}</td>
       `;
 

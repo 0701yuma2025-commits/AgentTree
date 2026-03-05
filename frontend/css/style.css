@@ -604,6 +604,7 @@ body {
 }
 
 .filter-select,
+.filter-input,
 .date-input,
 .search-input {
   padding: 0.5rem;

@@ -269,7 +269,14 @@
                                 <option value="active">アクティブ</option>
                                 <option value="pending">承認待ち</option>
                                 <option value="suspended">停止中</option>
+                                <option value="terminated">解約</option>
                             </select>
+                        </div>
+                        <div class="filter-row" style="margin-top: 8px;">
+                            <label style="font-size: 13px; color: #666; margin-right: 8px;">登録日:</label>
+                            <input type="date" id="agencyDateFrom" class="filter-input" placeholder="開始日">
+                            <span style="margin: 0 4px; color: #999;">〜</span>
+                            <input type="date" id="agencyDateTo" class="filter-input" placeholder="終了日">
                         </div>
                     </div>
 
@@ -282,6 +289,7 @@
                                     <th class="sortable" data-column="tier_level">階層</th>
                                     <th class="sortable" data-column="representative_name">代表者</th>
                                     <th class="sortable" data-column="status">ステータス</th>
+                                    <th class="sortable" data-column="total_sales">累計売上</th>
                                     <th class="sortable" data-column="created_at">登録日</th>
                                     <th>操作</th>
                                 </tr>

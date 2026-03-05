@@ -45,6 +45,30 @@ async function checkDuplicateBankAccount(bankAccount, excludeAgencyId = null) {
   }) || null;
 }
 
+/**
+ * 代理店一覧に累計売上を付与
+ */
+async function attachTotalSales(agencies) {
+  if (!agencies || agencies.length === 0) return agencies;
+
+  const agencyIds = agencies.map(a => a.id);
+  const { data: sales } = await supabase
+    .from('sales')
+    .select('agency_id, total_amount')
+    .in('agency_id', agencyIds)
+    .eq('status', 'confirmed');
+
+  const salesMap = {};
+  (sales || []).forEach(s => {
+    salesMap[s.agency_id] = (salesMap[s.agency_id] || 0) + parseFloat(s.total_amount);
+  });
+
+  return agencies.map(a => ({
+    ...a,
+    total_sales: salesMap[a.id] || 0
+  }));
+}
+
 // サブルーターマウント
 router.use('/', require('./agencies/status'));
 router.use('/', require('./agencies/export-history'));
@@ -123,8 +147,14 @@ router.get('/', authenticateToken, async (req, res) => {
         }
       }
 
+      // 累計売上を一括取得して付与
+      data = await attachTotalSales(data);
+
       return res.json(paginatedResponse(data, count || 0, { page, limit }));
     }
+
+    // 累計売上を一括取得して付与
+    data = await attachTotalSales(data);
 
     res.json({
       success: true,
