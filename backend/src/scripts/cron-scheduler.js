@@ -397,7 +397,7 @@ async function sweepCarriedForwardCommissions() {
 
 /**
  * 支払い通知メール送信
- * 実行タイミング: 毎月20日 09:00
+ * 実行タイミング: 毎月1日 06:00（報酬計算完了後）
  */
 async function sendPaymentReminders() {
   logger.info('📧 支払い通知メールを送信します...');
@@ -748,8 +748,8 @@ function startScheduler() {
     await sweepCarriedForwardCommissions();
   });
 
-  // 毎月20日 09:00 に支払い通知メール
-  cron.schedule('0 9 20 * *', async () => {
+  // 毎月1日 06:00 に支払い通知メール（報酬計算完了後）
+  cron.schedule('0 6 1 * *', async () => {
     await sendPaymentReminders();
   });
 
@@ -767,7 +767,7 @@ function startScheduler() {
   logger.info('⏰ 月次締め: 毎月末日 23:59');
   logger.info('⏰ 報酬計算: 毎月1日 02:00');
   logger.info('⏰ 繰越スイープ: 毎月1日 03:00');
-  logger.info('⏰ 支払い通知: 毎月20日 09:00');
+  logger.info('⏰ 支払い通知: 毎月1日 06:00');
   logger.info('⏰ 支払い実行: 毎月25日 10:00');
   logger.info('⏰ バックアップ: 毎日 03:00');
   logger.info('⏰ トークンクリーンアップ: 毎日 04:00');
