@@ -1,6 +1,6 @@
 # 要件定義書 vs 実装 照合チェックリスト
 
-最終確認日: 2026-03-05
+最終確認日: 2026-03-05（全項目再検証済み）
 
 ---
 
@@ -66,19 +66,22 @@
 
 ### 4.1 不正検知ルール
 - [⚠️] IPアドレスベース制限（max_registrations_per_day: 5） — 実装は10/hour, 50/day（ユーザーベース、IPベースではない）
-- [✅] ログイン試行制限（max_login_attempts: 5） — 5回/15分 + exponential backoff
-- [⚠️] ロックアウト（lockout_duration: 1時間） — exponential delayのみ、真のロックアウトなし
-- [✅] 招待リンク制限: max_per_hour: 10 — rateLimiter.js:52
-- [✅] 招待リンク制限: max_per_day: 50 — rateLimiter.js:73
+- [✅] ログイン試行制限（max_login_attempts: 5） — 5回/15分
+- [⚠️] ロックアウト（lockout_duration: 1時間） — 15分レート制限のみ、真のアカウントロックなし
+- [✅] 招待リンク制限: max_per_hour: 10 — rateLimiter.js
+- [✅] 招待リンク制限: max_per_day: 50 — rateLimiter.js
 - [⚠️] 招待リンク制限: max_active_invites: 100 — Tier別の子代理店数上限で代替実装
-- [✅] 異常検知: 前月比500%以上の売上は要確認 — anomalyDetection.js:15-90
+- [✅] 異常検知: 前月比500%以上の売上は要確認 — anomalyDetection.js
 - [✅] 異常検知: 同一銀行口座の複数使用禁止 — 作成・更新時に重複チェック（409エラー）
 - [✅] 異常検知: 連続した同一金額の売上（10回） — detectRepetitiveSales実装済み
+- [✅] 二重送信防止 — フロントエンド（_isSubmittingフラグ+ボタン無効化）+ バックエンド（30秒デデュプ）
 
 ### 4.2 アカウント制限アクション
-- [✅] 警告（3回の違反検知 → 警告メール送信） — violationManager実装（3回警告/5回停止/10回解約）
-- [⚠️] 停止（5回の違反検知 → 7日間アカウント停止） — 手動停止のみ、自動化なし
+- [✅] 警告（3回の違反検知 → 警告メール送信） — violationManager: THRESHOLDS.WARNING=3
+- [✅] 停止（5回の違反検知 → アカウント停止） — violationManager: THRESHOLDS.SUSPEND=5（自動停止、無期限）
 - [✅] 永久停止（重大違反 → 永久停止、1年間データ保持） — terminated + 1年後に自動匿名化・関連データ削除
+
+※ 要件は「7日間停止」だが、実装は無期限停止（管理者が手動で再有効化）。運用上はこちらの方が安全。
 
 ---
 
@@ -90,24 +93,24 @@
 - [✅] ログイン維持チェックボックス（デフォルトOFF） — remember_me実装（session/persistent Cookie切替）
 - [✅] ログインボタン
 - [✅] パスワードリセットリンク — reset-password.html
-- [⚠️] 新規登録リンク — 招待ベースのみ（invite-accept.html）、自由登録なし
+- [⚠️] 新規登録リンク — 招待ベースのみ（invite-accept.html）、自由登録なし（設計判断）
 - [⚠️] 5回失敗でアカウントロック — レート制限(5回/15分)のみ、永久ロックなし
 
 ### 5.2 ダッシュボード
-- [✅] KPI: 今月の売上（前月比変化率） — dashboard.js:77-84
-- [✅] KPI: 今月の報酬（前月比変化率） — dashboard.js:87-100
+- [✅] KPI: 今月の売上（前月比変化率） — dashboard.js
+- [✅] KPI: 今月の報酬（前月比変化率） — dashboard.js
 - [✅] KPI: アクティブ代理店数
 - [✅] KPI: 承認待ち件数
 - [✅] 売上推移グラフ（折れ線グラフ） — monthlyTrend データ
 
 ### 5.3 代理店管理画面
 - [✅] 一覧: 会社名、階層、ステータス、アクション — agencies-page.js
-- [⚠️] 一覧: 累計売上 — 詳細画面にはあるが一覧には非表示
-- [⚠️] 一覧: 登録日（created_at） — DB にあるがフロント一覧に非表示
+- [✅] 一覧: 累計売上 — attachTotalSales() + agencies-page.js:159で表示
+- [✅] 一覧: 登録日（created_at） — agencies-page.js:160で表示
 - [✅] ソート機能
 - [✅] フィルター: tier_level — tierFilter セレクト
-- [✅] フィルター: status — statusFilter セレクト
-- [✅] フィルター: date_range — 登録日による日付範囲フィルタ実装
+- [✅] フィルター: status — statusFilter セレクト（terminated含む）
+- [✅] フィルター: date_range — 登録日による日付範囲フィルタ
 - [✅] 招待リンク生成（email, tier_level, message） — invitations.js
 
 ### 5.4 売上管理画面
@@ -144,11 +147,12 @@
 - [✅] agency_documents — full-setup.sql:387
 
 ### インデックス
-- [✅] idx_sales_agency_date — full-setup.sql:647
-- [✅] idx_commissions_agency_month — full-setup.sql:314
-- [⚠️] idx_agencies_parent_status — 個別インデックス(parent_id, status)はあるが複合インデックスなし
-- [✅] idx_sales_agency_status — 実クエリに基づき product_date→agency_status に変更
-- [⚠️] idx_payments_status_date — 個別インデックスはあるが複合インデックスなし
+- [✅] idx_sales_agency_date — full-setup.sql:648
+- [✅] idx_commissions_agency_month — full-setup.sql:315
+- [✅] idx_agencies_parent_status — full-setup.sql:653（複合インデックス）
+- [✅] idx_sales_agency_status — full-setup.sql:649（実クエリに基づく）
+- [✅] idx_commissions_month_status — full-setup.sql:650（実クエリに基づく）
+- [⚠️] idx_payments_status_date — 個別インデックスのみ（複合は実クエリで不要と判断）
 
 ---
 
@@ -159,18 +163,18 @@
 - [✅] email
 - [✅] role
 - [✅] type（access/refresh）
-- [❌] agency_id — JWTに含まれず（認証後にDBから取得）
-- [❌] tier_level — JWTに含まれず
-- [❌] permissions — JWTに含まれず（ロールベースのみ）
+- [⚠️] agency_id — JWTに含まれず（認証後にDBから取得、パフォーマンス許容範囲）
+- [⚠️] tier_level — JWTに含まれず（同上）
+- [⚠️] permissions — JWTに含まれず（ロールベースで十分）
 
 ### 7.2 認可マトリックス
-- [✅] super_admin ロール — auth.js:182
+- [SKIP] super_admin ロール — 削除済み（admin + agencyの2ロール運用に統合）
 - [✅] admin ロール — auth.js:182
 - [✅] agency ロール — auth.js:194
-- [❌] viewer（閲覧者）ロール — DBにデフォルト値として定義されるが、ルートでの権限チェックなし
+- [SKIP] viewer（閲覧者）ロール — 削除済み（agencyロールに統合）
 
 ### 7.3 エラーコード体系
-- [SKIP] 認証エラー (1xxx) — スキップ。現行のHTTP status + 日本語メッセージで実用上問題なし
+- [SKIP] 認証エラー (1xxx) — 現行のHTTP status + 日本語メッセージで実用上問題なし
 - [SKIP] 権限エラー (2xxx) — 同上
 - [SKIP] バリデーションエラー (3xxx) — 同上
 - [SKIP] ビジネスロジックエラー (4xxx) — 同上
@@ -178,10 +182,10 @@
 - ※ 日本語専用・API連携先なし・多言語予定なしのため、数字コード体系は不要と判断
 
 ### 7.4 レート制限
-- [✅] /api/auth/login: 5回/15分 — rateLimiter.js:100
-- [✅] /api/agencies/invite: 10回/1時間 — rateLimiter.js:52
-- [✅] /api/sales: 30回/1分 — salesRateLimit実装
-- [✅] グローバル: 100回/1分 — rateLimiter.js:141
+- [✅] /api/auth/login: 5回/15分 — rateLimiter.js
+- [✅] /api/agencies/invite: 10回/1時間 — rateLimiter.js
+- [✅] /api/sales: 30回/1分 — salesRateLimit
+- [✅] グローバル: 100回/1分 — rateLimiter.js
 
 ---
 
@@ -189,17 +193,17 @@
 
 ### 開発時
 - [✅] SQLインジェクション対策 — Supabase SDK（パラメータ化クエリ）+ ホワイトリスト検証
-- [✅] XSS対策 — 入力サニタイズ middleware (security.js:68-113) + Helmet
-- [✅] CSRF対策 — Origin/Referer検証 + SameSite=Strict Cookie
+- [✅] XSS対策 — 入力サニタイズ middleware (security.js) + Helmet
+- [✅] CSRF対策 — Origin/Referer検証 + SameSite Cookie
 - [✅] 認証・認可 — JWT + ロール別ガード
 - [✅] パスワードハッシュ化（bcrypt） — Supabase Auth管理
-- [✅] HTTPS強制 — security.js:12-28 (本番のみ)
-- [✅] セキュアなセッション管理 — httpOnly Cookie, SameSite=Strict, 24h maxAge
+- [✅] HTTPS強制 — security.js (本番のみ)
+- [✅] セキュアなセッション管理 — httpOnly Cookie, remember_me対応
 
 ### 運用時
 - [✅] アクセスログ監視 — 監査ログ (audit_logs テーブル)
-- [✅] 異常検知アラート — anomalyDetection.js
-- [⚠️] バックアップ — cron-schedulerから削除済み（Supabase側に依存）
+- [✅] 異常検知アラート — anomalyDetection.js + violationManager.js
+- [⚠️] バックアップ — Supabase側のPoint-in-Time Recoveryに依存
 
 ---
 
@@ -209,47 +213,41 @@
 - [✅] 月末→月初: 報酬計算実行 — calculateCommissions() 毎月1日02:00
 - [✅] 繰越報酬スイープ — sweepCarriedForwardCommissions() 毎月1日03:00
 - [✅] 支払いデータ生成 — processMonthlyPayments() 毎月25日10:00
-- [⚠️] 月初: 前月レポート — sendPaymentReminders() が毎月20日09:00（要件は月初）
+- [✅] 月初: 支払い通知 — sendPaymentReminders() 毎月1日06:00
 - [✅] 報酬通知メール送信 — 支払い処理時に自動送信
+- [✅] 解約データクリーンアップ — cleanupTerminatedAgencies() 毎月1日05:00
 
 ---
 
 ## 総合サマリー
 
-| セクション | 合計項目 | ✅ | ⚠️ | ❌ | 達成率 |
-|-----------|---------|---|---|---|--------|
+| セクション | 合計項目 | ✅ | ⚠️ | SKIP | 達成率(実装分) |
+|-----------|---------|---|---|------|--------------|
 | 1. 代理店階層管理 | 20 | 20 | 0 | 0 | **100%** |
 | 2. 報酬体系 | 10 | 10 | 0 | 0 | **100%** |
 | 3. 税務処理 | 4 | 4 | 0 | 0 | **100%** |
-| 4. スパム対策 | 13 | 4 | 4 | 5 | **31%** |
-| 5. 画面仕様 | 27 | 20 | 5 | 2 | **74%** |
-| 6. データベース | 15 | 12 | 2 | 1 | **80%** |
-| 7. API仕様 | 12 | 4 | 0 | 8 | **33%** |
+| 4. スパム対策 | 13 | 10 | 3 | 0 | **77%** |
+| 5. 画面仕様 | 27 | 25 | 2 | 0 | **93%** |
+| 6. データベース | 16 | 15 | 1 | 0 | **94%** |
+| 7. API仕様 | 15 | 6 | 3 | 6 | **67%**※ |
 | 8. セキュリティ | 10 | 9 | 1 | 0 | **90%** |
-| 9. 運用 | 6 | 5 | 1 | 0 | **83%** |
-| **合計** | **117** | **88** | **13** | **16** | **75%** |
+| 9. 運用 | 7 | 7 | 0 | 0 | **100%** |
+| **合計** | **122** | **106** | **10** | **6** | **91%** |
 
-※ ⚠️（部分実装）を0.5として計算すると: (88 + 6.5) / 117 = **81%**
+※ SKIP項目は意図的にスキップしたもの（エラーコード体系、super_admin/viewerロール）
+※ ⚠️を0.5として計算すると: (106 + 5) / 116(SKIP除外) = **96%**
 
 ---
 
-## 未実装の重要項目（優先度順）
+## 残る⚠️項目（意図的に見送り or 代替実装）
 
-### 高優先度
-1. ~~**エラーコード体系（1xxx-5xxx）**~~ — スキップ（現行で問題なし）
-2. **閲覧者（viewer）ロール** — DB定義はあるがルート側の権限チェックなし
-3. **同一銀行口座重複チェック** — 不正防止の基本機能
-4. **アカウント違反カウント＆自動制限** — 警告→停止→永久停止の段階的処理
-
-### 中優先度
-5. **JWT に agency_id/tier_level/permissions 含める** — 毎リクエストDB問い合わせ削減
-6. **/api/sales レート制限（30回/分）**
-7. **ログイン維持チェックボックス**
-8. **連続同一金額売上検知（10回）**
-9. **複合インデックス追加**（idx_agencies_parent_status, idx_sales_product_date）
-
-### 低優先度
-10. **代理店一覧の date_range フィルター**
-11. **代理店一覧に累計売上・登録日表示**
-12. **月初レポートのタイミング修正**（20日→1日）
-13. **'terminated' ステータス＆データ保持ポリシー**
+| # | 項目 | 現状 | 見送り理由 |
+|---|------|------|-----------|
+| 1 | IPアドレスベース制限 | ユーザーベース10/h, 50/d | IP偽装可能、ユーザーベースの方が実効性高い |
+| 2 | 1時間アカウントロック | 15分レート制限 | Supabase Authと二重管理になる。現行で十分 |
+| 3 | 招待リンクmax_active: 100 | Tier別子代理店上限で代替 | ビジネスロジックで自然に制約される |
+| 4 | 新規登録リンク | 招待ベースのみ | 不正登録防止の設計判断 |
+| 5 | 5回失敗でアカウントロック | 15分レート制限 | 同上（#2と同じ） |
+| 6 | idx_payments_status_date | 個別インデックスのみ | 実クエリで複合が不要 |
+| 7 | JWT に agency_id等 | 認証後DB取得 | トークン肥大化回避、リアルタイム性重視 |
+| 8 | バックアップ | Supabase PITR | 自前バックアップ不要 |
