@@ -17,6 +17,34 @@ const { handleDbError } = require('../utils/errorHelper');
 const { createModuleLogger } = require('../config/logger');
 const logger = createModuleLogger('agencies');
 
+/**
+ * 銀行口座の重複チェック
+ * @param {Object} bankAccount - 銀行口座情報
+ * @param {String} excludeAgencyId - 除外する代理店ID（更新時）
+ * @returns {Object|null} 重複する代理店があればそのデータ
+ */
+async function checkDuplicateBankAccount(bankAccount, excludeAgencyId = null) {
+  if (!bankAccount || !bankAccount.account_number || !bankAccount.bank_name) return null;
+
+  const { data: agencies } = await supabase
+    .from('agencies')
+    .select('id, company_name, bank_account')
+    .neq('status', 'suspended')
+    .not('bank_account', 'is', null);
+
+  if (!agencies) return null;
+
+  return agencies.find(a => {
+    if (excludeAgencyId && a.id === excludeAgencyId) return false;
+    const ba = a.bank_account;
+    return ba &&
+      ba.bank_name === bankAccount.bank_name &&
+      ba.branch_name === bankAccount.branch_name &&
+      ba.account_number === bankAccount.account_number &&
+      ba.account_type === bankAccount.account_type;
+  }) || null;
+}
+
 // サブルーターマウント
 router.use('/', require('./agencies/status'));
 router.use('/', require('./agencies/export-history'));
@@ -268,6 +296,13 @@ router.post('/',
       }
 
       if (req.body.bank_account) {
+        const duplicate = await checkDuplicateBankAccount(req.body.bank_account);
+        if (duplicate) {
+          return res.status(409).json({
+            success: false,
+            message: `この銀行口座は既に他の代理店（${duplicate.company_name}）で使用されています`
+          });
+        }
         insertData.bank_account = req.body.bank_account;
       }
 
@@ -468,6 +503,17 @@ router.put('/:id',
           }
         }
       });
+
+      // 銀行口座の重複チェック
+      if (filteredUpdates.bank_account) {
+        const duplicate = await checkDuplicateBankAccount(filteredUpdates.bank_account, id);
+        if (duplicate) {
+          return res.status(409).json({
+            success: false,
+            message: `この銀行口座は既に他の代理店（${duplicate.company_name}）で使用されています`
+          });
+        }
+      }
 
       const { data, error } = await supabase
         .from('agencies')
