@@ -199,6 +199,63 @@ async function detectAbnormalAmount(sale, maxAmount = 10000000) {
 }
 
 /**
+ * 同一金額の連続売上を検知
+ * @param {Object} sale - 新規売上データ
+ * @param {Number} threshold - 連続回数の閾値（デフォルト10回）
+ * @returns {Object} 検知結果
+ */
+async function detectRepetitiveSales(sale, threshold = 10) {
+  try {
+    // 同一代理店の直近の売上を取得（新しい順）
+    const { data: recentSales, error } = await supabase
+      .from('sales')
+      .select('total_amount')
+      .eq('agency_id', sale.agency_id)
+      .neq('id', sale.id || 'new')
+      .order('created_at', { ascending: false })
+      .limit(threshold);
+
+    if (error) throw error;
+
+    if (!recentSales || recentSales.length < threshold - 1) {
+      return {
+        detected: false,
+        reason: '履歴データ不足',
+        consecutive_count: 0
+      };
+    }
+
+    // 新規売上と同じ金額が連続しているかチェック
+    const newAmount = parseFloat(sale.total_amount);
+    let consecutiveCount = 1; // 新規売上自身をカウント
+    for (const s of recentSales) {
+      if (parseFloat(s.total_amount) === newAmount) {
+        consecutiveCount++;
+      } else {
+        break;
+      }
+    }
+
+    const isAnomaly = consecutiveCount >= threshold;
+
+    return {
+      detected: isAnomaly,
+      reason: isAnomaly ? `同一金額（¥${newAmount.toLocaleString()}）が${consecutiveCount}回連続` : null,
+      consecutive_count: consecutiveCount,
+      amount: newAmount,
+      threshold
+    };
+
+  } catch (error) {
+    logger.error({ err: error }, '連続同一金額検知エラー');
+    return {
+      detected: false,
+      error: '検知処理中にエラーが発生しました'
+    };
+  }
+}
+
+/**
  * 複合的な異常検知
  * @param {Object} sale - 売上データ
  * @returns {Object} 総合検知結果
@@ -207,18 +264,21 @@ async function detectAnomalies(sale) {
   const results = {
     spike: await detectSalesSpike(sale),
     rapid_entry: await detectRapidSalesEntry(sale.agency_id),
-    abnormal_amount: await detectAbnormalAmount(sale)
+    abnormal_amount: await detectAbnormalAmount(sale),
+    repetitive: await detectRepetitiveSales(sale)
   };
 
   // いずれかの異常が検知された場合
   const hasAnomaly = results.spike.detected ||
                      results.rapid_entry.detected ||
-                     results.abnormal_amount.detected;
+                     results.abnormal_amount.detected ||
+                     results.repetitive.detected;
 
   const anomalyReasons = [];
   if (results.spike.detected) anomalyReasons.push(results.spike.reason);
   if (results.rapid_entry.detected) anomalyReasons.push(results.rapid_entry.reason);
   if (results.abnormal_amount.detected) anomalyReasons.push(results.abnormal_amount.reason);
+  if (results.repetitive.detected) anomalyReasons.push(results.repetitive.reason);
 
   return {
     has_anomaly: hasAnomaly,
@@ -247,9 +307,15 @@ function calculateAnomalyScore(results) {
     score += Math.min(30, overageRatio * 15);
   }
 
-  // 異常金額（最大30点）
+  // 異常金額（最大25点）
   if (results.abnormal_amount.detected && results.abnormal_amount.z_score) {
-    score += Math.min(30, results.abnormal_amount.z_score * 5);
+    score += Math.min(25, results.abnormal_amount.z_score * 5);
+  }
+
+  // 同一金額連続（最大20点）
+  if (results.repetitive && results.repetitive.detected && results.repetitive.consecutive_count) {
+    const overageRatio = results.repetitive.consecutive_count / results.repetitive.threshold;
+    score += Math.min(20, overageRatio * 10);
   }
 
   return Math.min(100, Math.round(score));
@@ -259,6 +325,7 @@ module.exports = {
   detectSalesSpike,
   detectRapidSalesEntry,
   detectAbnormalAmount,
+  detectRepetitiveSales,
   detectAnomalies,
   calculateAnomalyScore
 };

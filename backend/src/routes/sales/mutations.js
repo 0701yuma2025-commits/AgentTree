@@ -166,6 +166,24 @@ router.post('/',
 
       const total_amount = product.price * quantity;
 
+      // 短時間内の重複売上チェック（30秒以内の同一内容を拒否）
+      const { data: recentDuplicate } = await supabase
+        .from('sales')
+        .select('id')
+        .eq('agency_id', agency_id)
+        .eq('product_id', product_id)
+        .eq('quantity', quantity)
+        .eq('customer_name', customer_name)
+        .gte('created_at', new Date(Date.now() - 30 * 1000).toISOString())
+        .limit(1);
+
+      if (recentDuplicate && recentDuplicate.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: '同一内容の売上が直前に登録されています。重複登録を防止しました。'
+        });
+      }
+
       // 売上番号生成（統一形式を使用）
       const sale_number = await generateSaleNumber();
 

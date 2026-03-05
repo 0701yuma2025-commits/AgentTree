@@ -61,6 +61,7 @@ describe('calculateAnomalyScore', () => {
       spike: { detected: true, growth_rate: 10000 },
       rapid_entry: { detected: true, count: 200, threshold: 50 },
       abnormal_amount: { detected: true, z_score: 10 },
+      repetitive: { detected: true, consecutive_count: 20, threshold: 10 },
     };
     expect(calculateAnomalyScore(results)).toBe(100);
   });

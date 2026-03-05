@@ -490,6 +490,9 @@ class SalesPage {
       // フォーム送信イベント
       document.getElementById('editSaleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (this._isSubmitting) return;
+
+        const saveBtn = e.target.querySelector('button[type="submit"]');
 
         const updateData = {
           customer_name: document.getElementById('customerName').value,
@@ -507,6 +510,9 @@ class SalesPage {
           updateData.notes = document.getElementById('notes').value;
         }
 
+        this._isSubmitting = true;
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '\u4FDD\u5B58\u4E2D...'; }
+
         try {
           const result = await apiClient.put(`/sales/${saleId}`, updateData);
           if (result.success) {
@@ -519,6 +525,9 @@ class SalesPage {
         } catch (error) {
           console.error('Update sale error:', error);
           showToast('\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ' + (error.message || ''), 'error');
+        } finally {
+          this._isSubmitting = false;
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '\u4FDD\u5B58'; }
         }
       });
 
@@ -830,6 +839,9 @@ class SalesPage {
    * 売上作成
    */
   async createSale() {
+    if (this._isSubmitting) return;
+
+    const submitBtn = document.querySelector('#createSaleForm button[type="submit"]');
     const productSelect = document.getElementById('saleProduct');
     const selectedOption = productSelect.options[productSelect.selectedIndex];
     const price = selectedOption ? parseFloat(selectedOption.dataset.price) || 0 : 0;
@@ -852,6 +864,9 @@ class SalesPage {
       return;
     }
 
+    this._isSubmitting = true;
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '\u767B\u9332\u4E2D...'; }
+
     try {
       const response = await apiClient.post('/sales', data);
       if (response.success) {
@@ -865,6 +880,9 @@ class SalesPage {
       }
     } catch (error) {
       showToast('\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F', 'info');
+    } finally {
+      this._isSubmitting = false;
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u767B\u9332'; }
     }
   }
 }
