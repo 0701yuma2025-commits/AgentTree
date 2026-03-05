@@ -21,7 +21,7 @@ jest.mock('../../middleware/auth', () => ({
     } catch (e) { return res.status(401).json({ success: false }); }
   },
   requireAdmin: (req, res, next) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: '管理者権限が必要です' });
     }
     next();

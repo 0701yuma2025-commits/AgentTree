@@ -223,16 +223,6 @@ describe('requireAdmin', () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  test('super_admin → next() 許可', () => {
-    const req = { user: { role: 'super_admin' } };
-    const res = makeMockRes();
-    const next = makeMockNext();
-
-    requireAdmin(req, res, next);
-
-    expect(next).toHaveBeenCalled();
-  });
-
   test('agency → 403 拒否', () => {
     const req = { user: { role: 'agency' } };
     const res = makeMockRes();

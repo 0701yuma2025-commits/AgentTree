@@ -33,7 +33,7 @@ router.get('/:id/history', authenticateToken, async (req, res) => {
     }
 
     // 代理店ユーザーは自社または下位代理店の売上のみ閲覧可能
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    const isAdmin = req.user.role === 'admin';
     if (!isAdmin && req.user.role === 'agency') {
       const allowedAgencyIds = await getSubordinateAgencyIds(req.user.agency.id);
       if (!allowedAgencyIds.includes(sale.agency_id)) {

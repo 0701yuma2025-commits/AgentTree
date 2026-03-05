@@ -439,7 +439,7 @@ class App {
     const user = authAPI.getCurrentUser();
     if (user) {
       // ロールを日本語表示
-      const roleText = (user.role === 'admin' || user.role === 'super_admin') ? '管理者' :
+      const roleText = user.role === 'admin' ? '管理者' :
                        user.role === 'agency' ? '代理店' : user.role;
       document.getElementById('userInfo').textContent = `${user.full_name || user.email} (${roleText})`;
     }

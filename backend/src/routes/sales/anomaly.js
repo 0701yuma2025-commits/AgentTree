@@ -19,7 +19,7 @@ async function sendAnomalyNotification(sale, anomalyResult) {
   const { data: admins } = await supabase
     .from('users')
     .select('email, full_name')
-    .in('role', ['admin', 'super_admin']);
+    .eq('role', 'admin');
 
   if (!admins || admins.length === 0) return;
 
@@ -103,7 +103,7 @@ async function sendAnomalyNotification(sale, anomalyResult) {
         anomaly_result: anomalyResult
       },
       priority: 'high',
-      target_roles: ['admin', 'super_admin']
+      target_roles: ['admin']
     });
 }
 
@@ -114,7 +114,7 @@ async function sendAnomalyNotification(sale, anomalyResult) {
 router.get('/anomalies', authenticateToken, async (req, res) => {
   try {
     // 管理者権限チェック
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'
@@ -175,7 +175,7 @@ router.get('/anomalies', authenticateToken, async (req, res) => {
 router.put('/:id/review', authenticateToken, async (req, res) => {
   try {
     // 管理者権限チェック
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'

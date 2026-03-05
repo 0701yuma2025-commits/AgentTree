@@ -92,7 +92,7 @@ class DocumentsManager {
     }
 
     const user = JSON.parse(localStorage.getItem('agency_system_user') || '{}');
-    const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+    const isAdmin = user.role === 'admin';
     listContainer.innerHTML = `
       <table class="data-table">
         <thead>

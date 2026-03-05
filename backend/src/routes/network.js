@@ -17,7 +17,7 @@ const logger = createModuleLogger('network');
 router.get('/agencies', authenticateToken, async (req, res) => {
   try {
     const user = req.user;
-    const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+    const isAdmin = user.role === 'admin';
     const userAgencyId = user.agency?.id;
 
     // 管理者は全代理店、代理店ユーザーは自分以下の階層のみ取得

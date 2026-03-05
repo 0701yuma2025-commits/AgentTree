@@ -46,11 +46,27 @@ async function updateRoles() {
       });
     }
 
-    // 3. その他のロールも代理店に更新（admin, super_admin, agency以外）
+    // 3. super_adminをadminに統合
+    const { data: superAdminUsers, error: superAdminError } = await supabase
+      .from('users')
+      .update({ role: 'admin' })
+      .eq('role', 'super_admin')
+      .select();
+
+    if (superAdminError) {
+      console.error('super_admin統合エラー:', superAdminError);
+    } else if (superAdminUsers?.length > 0) {
+      console.log(`super_adminからadminに統合: ${superAdminUsers.length}件`);
+      superAdminUsers.forEach(user => {
+        console.log(`  - ${user.email} → admin`);
+      });
+    }
+
+    // 4. その他のロールも代理店に更新（admin, agency以外）
     const { data: otherUsers, error: otherError } = await supabase
       .from('users')
       .update({ role: 'agency' })
-      .not('role', 'in', '(admin,super_admin,agency)')
+      .not('role', 'in', '(admin,agency)')
       .select();
 
     if (otherError) {
@@ -62,7 +78,7 @@ async function updateRoles() {
       });
     }
 
-    // 4. 更新結果を確認
+    // 5. 更新結果を確認
     const { data: allUsers, error: fetchError } = await supabase
       .from('users')
       .select('email, role')
@@ -73,7 +89,7 @@ async function updateRoles() {
       console.error('ユーザー取得エラー:', fetchError);
     } else {
       console.log('\n現在のユーザー一覧:');
-      const adminList = allUsers.filter(u => u.role === 'admin' || u.role === 'super_admin');
+      const adminList = allUsers.filter(u => u.role === 'admin');
       const agencyList = allUsers.filter(u => u.role === 'agency');
 
       console.log('管理者:');

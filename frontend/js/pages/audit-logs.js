@@ -447,7 +447,6 @@ class AuditLogsPage {
    */
   getRoleName(role) {
     const names = {
-      'super_admin': 'スーパー管理者',
       'admin': '管理者',
       'agency': '代理店',
       'user': '一般ユーザー'

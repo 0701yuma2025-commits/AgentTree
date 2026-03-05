@@ -179,7 +179,7 @@ const authenticateToken = async (req, res, next) => {
  * 管理者権限チェックミドルウェア
  */
 const requireAdmin = (req, res, next) => {
-  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+  if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({
       error: true,
       message: 'この操作には管理者権限が必要です'

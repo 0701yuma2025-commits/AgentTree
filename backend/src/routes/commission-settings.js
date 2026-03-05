@@ -59,7 +59,7 @@ router.get('/current', authMiddleware, async (req, res) => {
 router.get('/history', authMiddleware, async (req, res) => {
   try {
     // 管理者権限チェック
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '報酬設定履歴を閲覧する権限がありません'
@@ -92,7 +92,7 @@ router.get('/history', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     // 管理者権限チェック
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '報酬設定を更新する権限がありません'

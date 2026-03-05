@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const user = req.user;
 
     // 管理者のみアクセス可能
-    if (user.role !== 'admin' && user.role !== 'super_admin') {
+    if (user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'
@@ -122,7 +122,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const user = req.user;
 
     // 管理者のみアクセス可能
-    if (user.role !== 'admin' && user.role !== 'super_admin') {
+    if (user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'
@@ -169,7 +169,7 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     const user = req.user;
 
     // 管理者のみアクセス可能
-    if (user.role !== 'admin' && user.role !== 'super_admin') {
+    if (user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'
@@ -258,7 +258,7 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
     const user = req.user;
 
     // 管理者のみアクセス可能
-    if (user.role !== 'admin' && user.role !== 'super_admin') {
+    if (user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'

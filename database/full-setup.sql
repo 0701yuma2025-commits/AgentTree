@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   full_name VARCHAR(255),
   phone VARCHAR(20),
-  role VARCHAR(50) NOT NULL DEFAULT 'viewer',
+  role VARCHAR(50) NOT NULL DEFAULT 'agency',
   is_active BOOLEAN DEFAULT true,
   last_login_at TIMESTAMP WITH TIME ZONE,
   two_factor_secret VARCHAR(255) NULL,
@@ -708,9 +708,9 @@ CREATE POLICY document_recipients_delete_own ON document_recipients FOR DELETE
 
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY audit_logs_select_policy ON audit_logs FOR SELECT
-  USING (EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role IN ('admin', 'super_admin')));
+  USING (EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'));
 CREATE POLICY audit_logs_delete_policy ON audit_logs FOR DELETE
-  USING (EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'super_admin'));
+  USING (EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin'));
 
 -- ===== PART 5: 2FA確認用ビュー =====
 CREATE OR REPLACE VIEW v_2fa_migration_status AS

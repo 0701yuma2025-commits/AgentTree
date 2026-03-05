@@ -221,7 +221,7 @@ class ProductsPage {
     // ユーザー情報取得
     const userStr = localStorage.getItem('agency_system_user');
     const user = userStr ? JSON.parse(userStr) : null;
-    const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+    const isAdmin = user && user.role === 'admin';
     const agencyTier = user && user.role === 'agency' && user.agency ? user.agency.tier_level : null;
 
     // 階層に応じた編集可否を判定

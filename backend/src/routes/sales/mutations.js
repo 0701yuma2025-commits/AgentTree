@@ -489,7 +489,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     // ステータスベースの権限チェック
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    const isAdmin = req.user.role === 'admin';
     const isAgency = req.user.role === 'agency';
 
     // 代理店は自社の売上のみ編集可能
@@ -782,7 +782,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
 
     // 権限チェック（管理者のみ削除可能）
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '売上情報を削除する権限がありません'

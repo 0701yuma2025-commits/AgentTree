@@ -38,7 +38,7 @@ router.get('/:agencyId', authenticateToken, async (req, res) => {
     let hasAccess = false;
 
     // 管理者は全て見れる
-    if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+    if (req.user.role === 'admin') {
       hasAccess = true;
     }
     // 自分の代理店

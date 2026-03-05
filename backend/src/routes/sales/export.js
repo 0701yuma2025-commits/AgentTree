@@ -189,7 +189,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
 router.get('/organization-summary', authenticateToken, async (req, res) => {
   try {
     // 管理者は全体を見れる
-    if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+    if (req.user.role === 'admin') {
       // 全代理店の売上を取得
       const { data: allSales, error: salesError } = await supabase
         .from('sales')

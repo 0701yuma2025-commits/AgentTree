@@ -196,7 +196,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     Object.entries(commissionFields).forEach(([requestField, dbField]) => {
       if (req.body[requestField] !== undefined) {
         // 管理者は全て編集可能
-        if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+        if (req.user.role === 'admin') {
           updateData[dbField] = req.body[requestField];
         }
         // 代理店の場合、階層に応じて制限

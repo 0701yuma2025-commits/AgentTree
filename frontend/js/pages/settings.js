@@ -10,7 +10,7 @@ class SettingsPage {
   async init() {
     // 管理者の場合のみ報酬率設定を表示
     const user = authAPI.getCurrentUser();
-    const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+    const isAdmin = user && user.role === 'admin';
 
     if (isAdmin) {
       await this.loadCommissionRates();

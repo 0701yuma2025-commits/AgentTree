@@ -67,7 +67,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     if (commission_id) {
       query = query.eq('id', commission_id);
       // 代理店ユーザーは自分の代理店のデータのみ
-      if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      if (req.user.role !== 'admin') {
         query = query.eq('agency_id', req.user.agency?.id);
       }
     } else {
@@ -246,7 +246,7 @@ router.post('/receipt', authenticateToken, async (req, res) => {
       .eq('id', payment_id);
 
     // 代理店ユーザーは自分の代理店のデータのみ
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       paymentQuery = paymentQuery.eq('agency_id', req.user.agency?.id);
     }
 
@@ -338,7 +338,7 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
       .eq('id', sale_id);
 
     // 代理店ユーザーは自分の代理店のデータのみ
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       saleQuery = saleQuery.eq('agency_id', req.user.agency?.id);
     }
 
@@ -441,7 +441,7 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
       .eq('id', sale_id);
 
     // 代理店ユーザーは自分の代理店のデータのみ
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       saleQuery2 = saleQuery2.eq('agency_id', req.user.agency?.id);
     }
 
@@ -618,7 +618,7 @@ router.post('/receipt-monthly', authenticateToken, async (req, res) => {
 
     // 代理店IDを決定（管理者の場合はリクエストから、代理店ユーザーは自分の代理店）
     let agencyId;
-    if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+    if (req.user.role === 'admin') {
       // 管理者の場合はリクエストで指定された代理店ID
       agencyId = agency_id;
     } else {

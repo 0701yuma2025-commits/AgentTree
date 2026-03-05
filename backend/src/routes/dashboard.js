@@ -19,7 +19,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const stats = {};
 
     // 管理者の場合は全体の統計、代理店の場合は自社の統計
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    const isAdmin = req.user.role === 'admin';
     const agencyId = req.user.agency?.id;
 
     // 1. 代理店数の取得
@@ -298,7 +298,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 router.get('/charts', authenticateToken, async (req, res) => {
   try {
     const { period = '6months' } = req.query;
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    const isAdmin = req.user.role === 'admin';
     const agencyId = req.user.agency?.id;
 
     // 期間計算

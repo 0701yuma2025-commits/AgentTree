@@ -252,7 +252,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
  * POST /api/notifications/test
  */
 router.post('/test', authenticateToken, (req, res, next) => {
-  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+  if (req.user.role !== 'admin') {
     return res.status(403).json({ success: false, message: '管理者権限が必要です' });
   }
   next();
@@ -310,7 +310,7 @@ router.post('/test', authenticateToken, (req, res, next) => {
 router.post('/broadcast', authenticateToken, async (req, res) => {
   try {
     // 管理者権限チェック
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '権限がありません'
