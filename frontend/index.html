@@ -3,10 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多段階営業代理店管理システム</title>
+    <title>AgentTree - 営業代理店管理</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/pages/dashboard.css">
+    <link rel="stylesheet" href="css/pages/tables.css">
+    <link rel="stylesheet" href="css/pages/features.css">
+    <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/modal.css">
-    <!-- Supabase CDN は未使用のため除去 (API通信は全てバックエンド経由) -->
+    <script>
+      // Apply saved theme before render to prevent flash
+      (function(){
+        const t = localStorage.getItem('agenttree_theme');
+        if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+      })();
+    </script>
 </head>
 <body>
     <!-- スキップリンク（キーボードユーザー向け） -->
@@ -16,7 +29,8 @@
     <div id="loginScreen" class="screen">
         <div class="login-container">
             <div class="login-header">
-                <h1>営業代理店管理システム</h1>
+                <div class="login-brand-mark">AT</div>
+                <h1>AgentTree</h1>
                 <p>Multi-tier Sales Agency Management</p>
             </div>
 
@@ -80,6 +94,10 @@
             </div>
             <div class="header-right">
                 <span id="userInfo" class="user-info"></span>
+                <button id="themeToggle" class="theme-toggle" aria-label="テーマ切替" onclick="toggleTheme()">
+                    <span class="theme-icon-dark">&#9790;</span>
+                    <span class="theme-icon-light">&#9728;</span>
+                </button>
                 <button id="logoutBtn" class="btn btn-secondary">ログアウト</button>
             </div>
         </header>
@@ -87,38 +105,53 @@
         <div class="app-container">
             <!-- サイドバー -->
             <aside id="sidebar" class="sidebar" role="complementary">
+                <div class="sidebar-brand">
+                    <span class="brand-mark">AT</span>
+                    <span class="brand-text">AgentTree</span>
+                </div>
                 <nav aria-label="メインナビゲーション">
                     <a href="#" class="nav-item active" data-page="dashboard">
+                        <span class="nav-icon">&#9632;</span>
                         <span class="label">ダッシュボード</span>
                     </a>
                     <a href="#" class="nav-item" data-page="agencies">
+                        <span class="nav-icon">&#9670;</span>
                         <span class="label">代理店管理</span>
                     </a>
                     <a href="#" class="nav-item" data-page="sales">
+                        <span class="nav-icon">&#9650;</span>
                         <span class="label">売上管理</span>
                     </a>
                     <a href="#" class="nav-item" data-page="commissions">
+                        <span class="nav-icon">&#9733;</span>
                         <span class="label">報酬管理</span>
                     </a>
                     <a href="#" class="nav-item" data-page="invoices">
+                        <span class="nav-icon">&#9744;</span>
                         <span class="label">請求書管理</span>
                     </a>
                     <a href="#" class="nav-item" data-page="products">
+                        <span class="nav-icon">&#9679;</span>
                         <span class="label">商品管理</span>
                     </a>
                     <a href="#" class="nav-item admin-only hidden" data-page="campaigns">
+                        <span class="nav-icon">&#9883;</span>
                         <span class="label">キャンペーン管理</span>
                     </a>
                     <a href="#" class="nav-item" data-page="network">
+                        <span class="nav-icon">&#9678;</span>
                         <span class="label">ネットワーク</span>
                     </a>
                     <a href="#" class="nav-item admin-only hidden" data-page="auditLogs">
+                        <span class="nav-icon">&#9638;</span>
                         <span class="label">監査ログ</span>
                     </a>
                     <a href="#" class="nav-item admin-only hidden" data-page="commissionSettings">
+                        <span class="nav-icon">&#9881;</span>
                         <span class="label">報酬設定</span>
                     </a>
                     <a href="#" class="nav-item" data-page="settings">
+                        <span class="nav-icon">&#9881;</span>
                         <span class="label">設定</span>
                     </a>
                 </nav>
@@ -923,5 +956,18 @@
     <script src="js/pages/agencies-page.js"></script>
     <script src="js/pages/sales-page.js"></script>
     <script src="js/app.js"></script>
+    <script>
+      function toggleTheme() {
+        const html = document.documentElement;
+        const isLight = html.getAttribute('data-theme') === 'light';
+        if (isLight) {
+          html.removeAttribute('data-theme');
+          localStorage.removeItem('agenttree_theme');
+        } else {
+          html.setAttribute('data-theme', 'light');
+          localStorage.setItem('agenttree_theme', 'light');
+        }
+      }
+    </script>
 </body>
 </html>

@@ -1,0 +1,360 @@
+/* ========================================
+ * Tables
+ * ======================================== */
+.table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.data-table th {
+  background: var(--surface-3);
+  font-weight: 600;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.data-table tbody tr {
+  transition: background var(--duration);
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.data-table td {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  color: var(--text-1);
+}
+
+.data-table td.text-overflow:hover {
+  overflow: visible;
+  background: var(--surface-3);
+  z-index: 10;
+  box-shadow: var(--shadow-md);
+  padding-right: 20px;
+}
+
+/* Sort headers */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 22px;
+  transition: color var(--duration);
+}
+
+th.sortable:hover {
+  color: var(--accent);
+  background: var(--surface-4);
+}
+
+th.sortable::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  margin-left: 4px;
+  font-size: 9px;
+  text-align: center;
+  color: var(--text-3);
+}
+
+th.sorted-asc::after {
+  content: '\25B2';
+  color: var(--accent);
+}
+
+th.sorted-desc::after {
+  content: '\25BC';
+  color: var(--accent);
+}
+
+/* ========================================
+ * Filters
+ * ======================================== */
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  align-items: center;
+}
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-select,
+.filter-input,
+.date-input,
+.search-input {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  background: var(--surface-2);
+  color: var(--text-1);
+  transition: border-color var(--duration), box-shadow var(--duration);
+}
+
+.filter-select:focus,
+.filter-input:focus,
+.date-input:focus,
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.search-input {
+  flex: 1;
+  max-width: 300px;
+  min-width: 200px;
+}
+
+/* Filter Panel (Audit logs) */
+.filter-panel {
+  background: var(--surface-2);
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filter-group.search-group {
+  flex: 2;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+/* ========================================
+ * Badges
+ * ======================================== */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 100px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.badge-success, .badge-active {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.badge-info, .badge-primary {
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--info);
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
+.badge-warning, .badge-pending {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--warning);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+.badge-danger, .badge-rejected {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--error);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.badge-secondary {
+  background: var(--surface-3);
+  color: var(--text-2);
+  border-color: var(--border);
+}
+
+.badge-light {
+  background: var(--surface-3);
+  color: var(--text-2);
+  border-color: var(--border);
+}
+
+.badge-suspended {
+  background: rgba(251, 146, 60, 0.12);
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.2);
+}
+
+/* ========================================
+ * Status Badges
+ * ======================================== */
+.status {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--warning);
+}
+
+.status-active {
+  background: rgba(52, 211, 153, 0.1);
+  color: var(--success);
+}
+
+.status-approved {
+  background: rgba(96, 165, 250, 0.1);
+  color: var(--info);
+}
+
+.status-paid {
+  background: rgba(129, 140, 248, 0.1);
+  color: #818cf8;
+}
+
+.status-cancelled {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--error);
+}
+
+.status-warning {
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--warning);
+}
+
+.status-inactive {
+  background: var(--surface-3);
+  color: var(--text-3);
+}
+
+/* ========================================
+ * Pagination
+ * ======================================== */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-info {
+  color: var(--text-2);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.btn-pagination {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-1);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  transition: all var(--duration);
+  min-width: 34px;
+  text-align: center;
+}
+
+.btn-pagination:hover:not([disabled]) {
+  background: var(--accent);
+  color: var(--surface-0);
+  border-color: var(--accent);
+}
+
+.btn-pagination.active {
+  background: var(--accent);
+  color: var(--surface-0);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-pagination[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  padding: 0 6px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.pagination-perpage select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+}
+
+/* Old-style pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem 0;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+}

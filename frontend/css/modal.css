@@ -1,24 +1,31 @@
 /**
- * モーダル用スタイル
+ * AgentTree Modal Styles - "Obsidian Finance"
  */
 
-/* モーダル背景 */
+/* Modal Backdrop */
 .modal {
   display: flex;
   position: fixed;
-  z-index: 1000;
+  z-index: 2000;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.2s;
+  animation: modal-backdrop-in 0.25s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-/* 2FAモーダル用オーバーレイ */
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 2FA Modal Overlay */
 .modal-overlay {
   display: flex;
   position: fixed;
@@ -26,40 +33,58 @@
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.2s;
+  animation: modal-backdrop-in 0.25s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  z-index: 2000;
 }
 
-/* 2FAモーダル用ダイアログ */
+/* 2FA Modal Dialog */
 .modal-dialog {
   width: 90%;
   max-width: 500px;
-  animation: slideUp 0.3s;
+  animation: modal-slide-in 0.35s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .modal.hidden {
   display: none;
 }
 
-/* モーダルコンテンツ */
+/* Modal Content */
 .modal-content {
-  background-color: #ffffff;
-  border-radius: 8px;
+  background-color: var(--surface-1, #111118);
+  border-radius: var(--radius-lg, 16px);
   width: 90%;
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  animation: slideUp 0.3s;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--border, rgba(255, 255, 255, 0.06)),
+    0 0 60px rgba(0, 212, 170, 0.04);
+  animation: modal-slide-in 0.35s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
   position: relative;
 }
 
-/* 2FAモーダル用ヘッダー */
+@keyframes modal-slide-in {
+  from {
+    transform: translateY(16px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 2FA Modal Header */
 .modal-header {
-  padding: 20px 25px;
-  border-bottom: 1px solid #dee2e6;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -67,80 +92,101 @@
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.25rem;
-  color: #333;
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-0, #f0f0f5);
+  letter-spacing: -0.01em;
 }
 
-/* 2FAモーダル用ボディ */
+/* 2FA Modal Body */
 .modal-body {
-  padding: 25px;
+  padding: 1.5rem;
 }
 
-/* 閉じるボタン */
+/* Close Button */
 .modal-close {
-  color: #aaa;
-  background: none;
-  border: none;
-  font-size: 28px;
-  font-weight: bold;
+  color: var(--text-3, #55556a);
+  background: var(--surface-3, #22222e);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  font-size: 1.2rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s;
   padding: 0;
   line-height: 1;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 6px);
 }
 
 .modal-close:hover,
 .modal-close:focus {
-  color: #000;
+  color: var(--error, #f87171);
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
 }
 
-/* モーダルボディ */
+/* Modal Body (#modalBody) */
 #modalBody {
-  padding: 20px 30px 30px;
+  padding: 1.5rem 1.75rem 1.75rem;
 }
 
-/* 代理店詳細スタイル */
+/* Agency Detail Styles */
 .agency-detail h2 {
   margin-top: 0;
-  margin-bottom: 30px;
-  color: #333;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+  color: var(--text-0, #f0f0f5);
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-weight: 700;
+  font-size: 1.25rem;
+  border-bottom: 2px solid var(--accent, #00d4aa);
+  padding-bottom: 0.75rem;
+  letter-spacing: -0.01em;
 }
 
 .agency-detail h3 {
-  margin-top: 25px;
-  margin-bottom: 15px;
-  color: #555;
-  font-size: 1.1em;
-  border-left: 4px solid #007bff;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-1, #c8c8d4);
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-left: 3px solid var(--accent, #00d4aa);
   padding-left: 10px;
+  letter-spacing: 0;
 }
 
 .detail-section {
-  margin-bottom: 25px;
+  margin-bottom: 1.5rem;
 }
 
 .detail-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #fff;
+  background-color: var(--surface-1, #111118);
 }
 
 .detail-table th {
   text-align: left;
-  padding: 10px 15px;
-  background-color: #f8f9fa;
-  color: #666;
-  font-weight: normal;
+  padding: 0.6rem 0.85rem;
+  background-color: var(--surface-3, #22222e);
+  color: var(--text-2, #8888a0);
+  font-weight: 500;
   width: 35%;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .detail-table td {
-  padding: 10px 15px;
-  color: #333;
-  border-bottom: 1px solid #dee2e6;
+  padding: 0.6rem 0.85rem;
+  color: var(--text-0, #f0f0f5);
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
 }
 
 .detail-table tr:last-child th,
@@ -148,127 +194,127 @@
   border-bottom: none;
 }
 
-/* ステータスバッジ */
+/* Status Badges */
 .status-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  font-weight: 500;
+  padding: 0.2rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .status-badge.active {
-  background-color: #28a745;
-  color: white;
+  background-color: rgba(52, 211, 153, 0.12);
+  color: var(--success, #34d399);
+  border: 1px solid rgba(52, 211, 153, 0.2);
 }
 
 .status-badge.pending {
-  background-color: #ffc107;
-  color: #333;
+  background-color: rgba(251, 191, 36, 0.12);
+  color: var(--warning, #fbbf24);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .status-badge.suspended {
-  background-color: #fd7e14;
-  color: white;
+  background-color: rgba(251, 146, 60, 0.12);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.2);
 }
 
 .status-badge.terminated {
-  background-color: #6c757d;
-  color: white;
+  background-color: var(--surface-3, #22222e);
+  color: var(--text-3, #55556a);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
 }
 
 .status-badge.rejected {
-  background-color: #dc3545;
-  color: white;
+  background-color: rgba(248, 113, 113, 0.12);
+  color: var(--error, #f87171);
+  border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
-/* モーダルボタン */
+/* Modal Buttons */
 .modal-buttons {
-  margin-top: 30px;
+  margin-top: 1.75rem;
   text-align: center;
-  padding-top: 20px;
-  border-top: 1px solid #dee2e6;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 .modal-buttons .btn {
-  margin: 0 5px;
+  min-width: 100px;
 }
 
-/* アニメーション */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* 編集フォーム用スタイル */
+/* Edit Form Styles */
 .agency-edit h2 {
   margin-top: 0;
-  margin-bottom: 30px;
-  color: #333;
-  border-bottom: 2px solid #28a745;
-  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+  color: var(--text-0, #f0f0f5);
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-weight: 700;
+  font-size: 1.25rem;
+  border-bottom: 2px solid var(--success, #34d399);
+  padding-bottom: 0.75rem;
 }
 
 .form-section {
-  margin-bottom: 25px;
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background-color: #fafafa;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-md, 10px);
+  background-color: var(--surface-2, #1a1a24);
 }
 
 .form-section h3 {
   margin-top: 0;
-  margin-bottom: 15px;
-  color: #555;
-  font-size: 1.1em;
-  border-left: 4px solid #28a745;
+  margin-bottom: 1rem;
+  color: var(--text-1, #c8c8d4);
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-left: 3px solid var(--success, #34d399);
   padding-left: 10px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
-  color: #666;
+  margin-bottom: 0.35rem;
+  color: var(--text-2, #8888a0);
   font-weight: 500;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.85rem;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  background: var(--surface-2, #1a1a24);
+  color: var(--text-0, #f0f0f5);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #28a745;
-  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+  border-color: var(--accent, #00d4aa);
+  box-shadow: 0 0 0 3px var(--accent-glow, rgba(0, 212, 170, 0.15));
 }
 
 .form-group textarea {
@@ -279,96 +325,55 @@
 .form-group small {
   display: block;
   margin-top: 5px;
-  font-size: 0.85em;
-  color: #6c757d;
+  font-size: 0.78rem;
+  color: var(--text-3, #55556a);
 }
 
-.form-group small.text-muted {
-  color: #6c757d;
-}
+/* Button styles inherited from style.css - no duplicates needed */
 
-/* ボタンスタイル */
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #0056b3;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background-color: #545b62;
-}
-
-.btn-warning {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.btn-warning:hover {
-  background-color: #e0a800;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-/* 宛先選択モーダル */
+/* Recipient Modal */
 .recipient-modal {
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .recipient-modal h3 {
   margin-top: 0;
-  margin-bottom: 20px;
-  color: #333;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 10px;
+  margin-bottom: 1.25rem;
+  color: var(--text-0, #f0f0f5);
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-weight: 600;
+  font-size: 1.05rem;
+  border-bottom: 2px solid var(--accent, #00d4aa);
+  padding-bottom: 0.6rem;
 }
 
 .recipient-selection {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .template-section {
-  margin-bottom: 20px;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background-color: var(--surface-2, #1a1a24);
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
 }
 
 .template-section label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #555;
+  color: var(--text-2, #8888a0);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .recipient-form {
-  padding: 20px;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  padding: 1.25rem;
+  background-color: var(--surface-1, #111118);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-sm, 6px);
 }
 
 .form-row {
@@ -378,50 +383,38 @@
   margin-bottom: 15px;
 }
 
-.form-control {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
+/* .form-control inherited from style.css */
 
 .required {
-  color: #dc3545;
+  color: var(--error, #f87171);
   font-weight: bold;
 }
 
 .modal-actions {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #dee2e6;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
 
-/* レスポンシブ対応 */
+/* Responsive */
 @media (max-width: 768px) {
   .modal-content {
     width: 95%;
     margin: 10px;
+    border-radius: var(--radius-md, 10px);
   }
 
   #modalBody {
-    padding: 15px;
+    padding: 1rem;
   }
 
   .detail-table th,
   .detail-table td {
-    padding: 8px 10px;
-    font-size: 0.9em;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.82rem;
   }
 
   .detail-table th {
@@ -431,11 +424,14 @@
   .form-group input,
   .form-group select,
   .form-group textarea {
-    font-size: 16px; /* iOSでズームを防ぐ */
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  .modal-buttons {
+    flex-direction: column;
   }
 
   .modal-buttons .btn {
-    margin: 5px 0;
     width: 100%;
   }
 
