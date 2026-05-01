@@ -14,7 +14,7 @@ async function initCommissionSettings() {
   const user = JSON.parse(localStorage.getItem('agency_system_user') || '{}');
   if (user.role !== 'admin') {
     showErrorMessage('報酬設定を管理する権限がありません');
-    navigateTo('dashboard');
+    window.app.navigateToPage('dashboard');
     return;
   }
 
