@@ -8,6 +8,7 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken: authMiddleware, requireAdmin } = require('../middleware/auth');
 const { generateProductCode } = require('../utils/generateCode');
 const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
+const { auditLogMiddleware } = require('../middleware/auditLog');
 const { createModuleLogger } = require('../config/logger');
 const logger = createModuleLogger('products');
 
@@ -75,7 +76,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 /**
  * 商品登録（管理者と代理店）
  */
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, auditLogMiddleware('create', 'product'), async (req, res) => {
   try {
     const {
       product_name,
@@ -154,7 +155,7 @@ router.post('/', authMiddleware, async (req, res) => {
 /**
  * 商品更新（管理者と代理店、階層に応じた報酬率編集権限）
  */
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, auditLogMiddleware('update', 'product'), async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = {};
@@ -259,7 +260,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 /**
  * 商品削除（論理削除、管理者と代理店）
  */
-router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
+router.delete('/:id', authMiddleware, requireAdmin, auditLogMiddleware('delete', 'product'), async (req, res) => {
   try {
     const { id } = req.params;
 

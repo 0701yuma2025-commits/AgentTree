@@ -412,6 +412,7 @@ class AuditLogsPage {
       'user': 'ユーザー',
       'product': '商品',
       'campaign': 'キャンペーン',
+      'commission_settings': '報酬設定',
       'authentication': '認証',
       'system_setting': 'システム設定'
     };

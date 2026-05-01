@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { safeErrorMessage, handleDbError } = require('../utils/errorHelper');
+const { auditLogMiddleware } = require('../middleware/auditLog');
 const { createModuleLogger } = require('../config/logger');
 const logger = createModuleLogger('campaigns');
 
@@ -157,6 +158,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/',
   authenticateToken,
   requireAdmin,
+  auditLogMiddleware('create', 'campaign'),
   [
     body('name').notEmpty().withMessage('キャンペーン名は必須です'),
     body('start_date').isISO8601().withMessage('開始日が不正です'),
@@ -247,6 +249,7 @@ router.post('/',
 router.put('/:id',
   authenticateToken,
   requireAdmin,
+  auditLogMiddleware('update', 'campaign'),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -366,6 +369,7 @@ router.put('/:id',
 router.delete('/:id',
   authenticateToken,
   requireAdmin,
+  auditLogMiddleware('delete', 'campaign'),
   async (req, res) => {
     try {
       const { id } = req.params;

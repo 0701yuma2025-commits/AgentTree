@@ -7,6 +7,7 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken: authMiddleware } = require('../middleware/auth');
 const { safeErrorMessage } = require('../utils/errorHelper');
+const { auditLogMiddleware } = require('../middleware/auditLog');
 const { createModuleLogger } = require('../config/logger');
 const logger = createModuleLogger('commission-settings');
 
@@ -89,7 +90,7 @@ router.get('/history', authMiddleware, async (req, res) => {
 /**
  * 報酬設定を更新（管理者のみ）
  */
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, auditLogMiddleware('update', 'commission_settings'), async (req, res) => {
   try {
     // 管理者権限チェック
     if (req.user.role !== 'admin') {

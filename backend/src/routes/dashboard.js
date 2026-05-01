@@ -157,11 +157,27 @@ router.get('/stats', authenticateToken, async (req, res) => {
     }
 
     // 5. 月別売上推移（過去6ヶ月）
+    // salesData は直近2ヶ月のみ取得しているため、過去6ヶ月分は別クエリで取得
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const trendStartDate = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-01`;
+
+    let trendQuery = supabase
+      .from('sales')
+      .select('total_amount, sale_date, agency_id')
+      .eq('status', 'confirmed')
+      .gte('sale_date', trendStartDate);
+
+    if (!isAdmin && agencyIds) {
+      trendQuery = trendQuery.in('agency_id', agencyIds);
+    }
+
+    const { data: trendData } = await trendQuery;
+
     const monthlyData = [];
     for (let i = 5; i >= 0; i--) {
       const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
-      const monthSales = salesData?.filter(s => s.sale_date.startsWith(monthStr)) || [];
+      const monthSales = trendData?.filter(s => s.sale_date && s.sale_date.startsWith(monthStr)) || [];
       const monthAmount = monthSales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0);
 
       monthlyData.push({

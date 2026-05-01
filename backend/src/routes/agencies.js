@@ -13,6 +13,7 @@ const { agencyCreationRateLimit } = require('../middleware/rateLimiter');
 const { validateAge, validateDateFormat } = require('../utils/ageValidator');
 const { getSubordinateAgencyIds, getSubordinateAgenciesWithDetails } = require('../utils/agencyHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { auditLogMiddleware } = require('../middleware/auditLog');
 const { handleDbError } = require('../utils/errorHelper');
 const { createModuleLogger } = require('../config/logger');
 const logger = createModuleLogger('agencies');
@@ -176,6 +177,7 @@ router.get('/', authenticateToken, async (req, res) => {
 router.post('/',
   authenticateToken,
   agencyCreationRateLimit,  // レート制限を追加
+  auditLogMiddleware('create', 'agency'),
   [
     body('company_name').notEmpty().withMessage('会社名は必須です'),
     body('company_type').isIn(['法人', '個人']).withMessage('会社種別が不正です'),
@@ -476,6 +478,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  */
 router.put('/:id',
   authenticateToken,
+  auditLogMiddleware('update', 'agency'),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -575,6 +578,7 @@ router.put('/:id',
 router.delete('/:id',
   authenticateToken,
   requireAdmin,
+  auditLogMiddleware('delete', 'agency'),
   async (req, res) => {
     try {
       const { id } = req.params;

@@ -15,6 +15,7 @@ const { recordViolation } = require('../../utils/violationManager');
 const emailService = require('../../services/emailService');
 const { handleDbError } = require('../../utils/errorHelper');
 const { salesRateLimit } = require('../../middleware/rateLimiter');
+const { auditLogMiddleware } = require('../../middleware/auditLog');
 const { createModuleLogger } = require('../../config/logger');
 const logger = createModuleLogger('sales-mutations');
 
@@ -115,6 +116,7 @@ async function createCommissionRecords(sale, commissionResult, settings) {
 router.post('/',
   authenticateToken,
   salesRateLimit,
+  auditLogMiddleware('create', 'sale'),
   [
     body('product_id').isUUID().withMessage('商品IDが不正です'),
     body('quantity').isInt({ min: 1 }).withMessage('数量は1以上必要です'),
@@ -471,7 +473,7 @@ router.post('/',
  * PUT /api/sales/:id
  * 売上情報更新
  */
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, auditLogMiddleware('update', 'sale'), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -807,7 +809,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
  * 売上情報削除（物理削除）
  * ※関連する報酬レコードもCASCADE削除されます
  */
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, auditLogMiddleware('delete', 'sale'), async (req, res) => {
   try {
     const { id } = req.params;
 
