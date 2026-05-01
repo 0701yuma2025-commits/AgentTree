@@ -252,8 +252,7 @@ class InvoicesPage {
         document.getElementById('invoicesTable').classList.remove('hidden');
 
         // ユーザー情報を取得して管理者かどうかを判定
-        const userStr = localStorage.getItem('agency_system_user');
-        const user = userStr ? JSON.parse(userStr) : null;
+        const user = authAPI.getCurrentUser();
         const isAdmin = user && user.role === 'admin';
 
         // テーブルヘッダーのアクション列を制御
@@ -288,8 +287,7 @@ class InvoicesPage {
         const row = document.createElement('tr');
 
         // ユーザー情報を取得して管理者かどうかを判定
-        const userStr = localStorage.getItem('agency_system_user');
-        const user = userStr ? JSON.parse(userStr) : null;
+        const user = authAPI.getCurrentUser();
         const isAdmin = user && user.role === 'admin';
 
         // 管理者の場合はアクションボタンを非表示

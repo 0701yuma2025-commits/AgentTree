@@ -171,8 +171,7 @@ class SalesPage {
     const ownerFilter = document.getElementById('salesOwnerFilter')?.value || 'all';
 
     // 現在のユーザーのagency_idを取得
-    const userStr = localStorage.getItem('agency_system_user');
-    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const currentUser = authAPI.getCurrentUser();
     const currentAgencyId = currentUser?.agency_id;
 
     this.salesTableHelper.setFilters({

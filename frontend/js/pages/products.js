@@ -219,8 +219,7 @@ class ProductsPage {
     }
 
     // ユーザー情報取得
-    const userStr = localStorage.getItem('agency_system_user');
-    const user = userStr ? JSON.parse(userStr) : null;
+    const user = authAPI.getCurrentUser();
     const isAdmin = user && user.role === 'admin';
     const agencyTier = user && user.role === 'agency' && user.agency ? user.agency.tier_level : null;
 

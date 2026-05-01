@@ -65,16 +65,14 @@ class App {
     this.dashboardPage = new DashboardPage(this);
     this.agenciesPage = new AgenciesPage(this);
     this.salesPage = new SalesPage(this);
-    // ローカルストレージからユーザー情報を取得
-    const userStr = localStorage.getItem('agency_system_user');
-    if (userStr) {
-      try {
-        this.user = JSON.parse(userStr);
-      } catch (e) {
-        console.error('ユーザー情報の復元に失敗しました。再ログインしてください。');
-        localStorage.removeItem('agency_system_user');
-        localStorage.removeItem('agency_system_token');
-      }
+    // ストレージからユーザー情報を取得（local/session両対応）
+    try {
+      this.user = authAPI.getCurrentUser();
+    } catch (e) {
+      console.error('ユーザー情報の復元に失敗しました。再ログインしてください。');
+      localStorage.removeItem('agency_system_user');
+      sessionStorage.removeItem('agency_system_user');
+      localStorage.removeItem('agency_system_token');
     }
     this.init();
   }

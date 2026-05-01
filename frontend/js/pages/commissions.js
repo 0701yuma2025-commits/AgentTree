@@ -400,8 +400,7 @@ class CommissionsPage {
       case 'confirmed':
       case 'approved':  // approvedもconfirmedと同様に扱う
         // ユーザー情報を取得（フェイルセーフ付き）
-        const userStr = localStorage.getItem('agency_system_user');
-        const user = userStr ? JSON.parse(userStr) : null;
+        const user = authAPI.getCurrentUser();
 
         if (user && user.role === 'admin') {
           // 管理者のみ: 支払い実行ボタン

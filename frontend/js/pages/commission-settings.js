@@ -11,7 +11,7 @@ let settingsHistory = [];
  */
 async function initCommissionSettings() {
   // 管理者権限チェック
-  const user = JSON.parse(localStorage.getItem('agency_system_user') || '{}');
+  const user = authAPI.getCurrentUser() || {};
   if (user.role !== 'admin') {
     showErrorMessage('報酬設定を管理する権限がありません');
     window.app.navigateToPage('dashboard');
