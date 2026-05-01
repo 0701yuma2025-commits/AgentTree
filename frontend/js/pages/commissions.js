@@ -314,17 +314,18 @@ class CommissionsPage {
     }
 
     // イベントデリゲーション（重複リスナー防止）
-    if (tbody.dataset.listenerAttached) return;
-    tbody.dataset.listenerAttached = 'true';
-    tbody.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-action]');
-      if (!el) return;
-      e.preventDefault();
-      const action = el.dataset.action;
-      if (action === 'viewSaleDetail') window.commissionsPageInstance.viewSaleDetail(el.dataset.id);
-      else if (action === 'markAsPaid') window.commissionsPageInstance.markAsPaid(el.dataset.id);
-      else if (action === 'downloadReceipt') window.commissionsPageInstance.downloadReceipt(el.dataset.month, el.dataset.agencyId);
-    });
+    if (!tbody.dataset.listenerAttached) {
+      tbody.dataset.listenerAttached = 'true';
+      tbody.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        e.preventDefault();
+        const action = el.dataset.action;
+        if (action === 'viewSaleDetail') window.commissionsPageInstance.viewSaleDetail(el.dataset.id);
+        else if (action === 'markAsPaid') window.commissionsPageInstance.markAsPaid(el.dataset.id);
+        else if (action === 'downloadReceipt') window.commissionsPageInstance.downloadReceipt(el.dataset.month, el.dataset.agencyId);
+      });
+    }
 
     commissions.forEach(commission => {
       const row = document.createElement('tr');

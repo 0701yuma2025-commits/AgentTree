@@ -168,16 +168,17 @@ class ProductsPage {
     }
 
     // イベントデリゲーション（重複リスナー防止）
-    if (tbody.dataset.listenerAttached) return;
-    tbody.dataset.listenerAttached = 'true';
-    tbody.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const action = btn.dataset.action;
-      const id = btn.dataset.id;
-      if (action === 'showProductModal') window.productsPage.showProductModal(id);
-      else if (action === 'deleteProduct') window.productsPage.deleteProduct(id);
-    });
+    if (!tbody.dataset.listenerAttached) {
+      tbody.dataset.listenerAttached = 'true';
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'showProductModal') window.productsPage.showProductModal(id);
+        else if (action === 'deleteProduct') window.productsPage.deleteProduct(id);
+      });
+    }
 
     products.forEach(product => {
       const row = document.createElement('tr');
