@@ -6,18 +6,44 @@ class DashboardPage {
     this.app = app;
     this.currentOrgSales = null;
     this.previousOrgSales = null;
+    this.refreshTimer = null;
+    this.AUTO_REFRESH_MS = 30000; // リアルタイム更新間隔（30秒）
   }
 
   async init() {
     await this.loadDashboard();
+    this.startAutoRefresh();
+  }
+
+  /**
+   * 自動更新を開始（リアルタイム可視化）
+   * タブが非表示の間は更新をスキップして無駄なリクエストを避ける
+   */
+  startAutoRefresh() {
+    this.stopAutoRefresh(); // 多重起動を防止
+    this.refreshTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      // silent=true: ローディングオーバーレイを出さず裏で静かに更新
+      this.loadDashboard(true);
+    }, this.AUTO_REFRESH_MS);
+  }
+
+  /**
+   * 自動更新を停止（ページ離脱時に呼ぶ。タイマー放置によるリーク防止）
+   */
+  stopAutoRefresh() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
   }
 
   /**
    * ダッシュボード読み込み
    */
-  async loadDashboard() {
+  async loadDashboard(silent = false) {
     const container = document.getElementById('dashboardPage');
-    if (container) container.classList.add('loading-overlay');
+    if (container && !silent) container.classList.add('loading-overlay');
     try {
       // ダッシュボードデータ取得
       // ダッシュボード統計データ取得
@@ -95,7 +121,7 @@ class DashboardPage {
     } catch (error) {
       errorLog('Load dashboard error:', error);
     } finally {
-      if (container) container.classList.remove('loading-overlay');
+      if (container && !silent) container.classList.remove('loading-overlay');
     }
   }
 

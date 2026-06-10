@@ -126,6 +126,11 @@ function displayCurrentSettings(settings) {
         <div class="setting-label">Tier3 → Tier4ボーナス</div>
         <div class="setting-value">${parseFloat(settings.tier3_from_tier4_bonus || 1.00).toFixed(2)}%</div>
       </div>
+
+      <div class="setting-item">
+        <div class="setting-label">Tier4 → Tier5ボーナス</div>
+        <div class="setting-value">${parseFloat(settings.tier4_from_tier5_bonus || 0.50).toFixed(2)}%</div>
+      </div>
     </div>
 
     <div class="settings-grid mt-3">
@@ -160,6 +165,7 @@ function populateEditForm(settings) {
   document.getElementById('edit-tier1-bonus').value = parseFloat(settings.tier1_from_tier2_bonus || 2.00).toFixed(2);
   document.getElementById('edit-tier2-bonus').value = parseFloat(settings.tier2_from_tier3_bonus || 1.50).toFixed(2);
   document.getElementById('edit-tier3-bonus').value = parseFloat(settings.tier3_from_tier4_bonus || 1.00).toFixed(2);
+  document.getElementById('edit-tier4-bonus').value = parseFloat(settings.tier4_from_tier5_bonus || 0.50).toFixed(2);
 
   document.getElementById('edit-withholding-rate').value = parseFloat(settings.withholding_tax_rate || 10.21).toFixed(2);
   document.getElementById('edit-invoice-deduction').value = parseFloat(settings.non_invoice_deduction_rate || 2.00).toFixed(2);
@@ -201,6 +207,7 @@ function displaySettingsHistory(history) {
       <td>${parseFloat(setting.tier1_from_tier2_bonus).toFixed(2)}%</td>
       <td>${parseFloat(setting.tier2_from_tier3_bonus).toFixed(2)}%</td>
       <td>${parseFloat(setting.tier3_from_tier4_bonus).toFixed(2)}%</td>
+      <td>${parseFloat(setting.tier4_from_tier5_bonus || 0.50).toFixed(2)}%</td>
       <td>${parseFloat(setting.withholding_tax_rate).toFixed(2)}%</td>
       <td>
         <span class="badge badge-${setting.is_active ? 'success' : 'secondary'}">
@@ -270,6 +277,7 @@ async function handleUpdateSettings(e) {
     tier1_from_tier2_bonus: parseFloat(document.getElementById('edit-tier1-bonus').value),
     tier2_from_tier3_bonus: parseFloat(document.getElementById('edit-tier2-bonus').value),
     tier3_from_tier4_bonus: parseFloat(document.getElementById('edit-tier3-bonus').value),
+    tier4_from_tier5_bonus: parseFloat(document.getElementById('edit-tier4-bonus').value),
     withholding_tax_rate: parseFloat(document.getElementById('edit-withholding-rate').value),
     non_invoice_deduction_rate: parseFloat(document.getElementById('edit-invoice-deduction').value)
   };

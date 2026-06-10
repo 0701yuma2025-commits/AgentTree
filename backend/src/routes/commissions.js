@@ -298,6 +298,7 @@ router.post('/calculate',
         tier1_from_tier2_bonus: 2.00,
         tier2_from_tier3_bonus: 1.50,
         tier3_from_tier4_bonus: 1.00,
+        tier4_from_tier5_bonus: 0.50,
         minimum_payment_amount: 10000,
         withholding_tax_rate: 10.21,
         non_invoice_deduction_rate: 2.00

@@ -183,7 +183,7 @@ router.post('/',
     body('company_type').isIn(['法人', '個人']).withMessage('会社種別が不正です'),
     body('representative_name').notEmpty().withMessage('代表者名は必須です'),
     body('contact_email').isEmail().withMessage('有効なメールアドレスを入力してください'),
-    body('tier_level').isInt({ min: 1, max: 4 }).withMessage('階層レベルは1-4で指定してください')
+    body('tier_level').isInt({ min: 1, max: 5 }).withMessage('階層レベルは1-5で指定してください')
   ],
   async (req, res) => {
     try {
@@ -268,7 +268,8 @@ router.post('/',
           1: 100,  // Tier1が作れるTier2: 最大100社
           2: 50,   // Tier2が作れるTier3: 各50社まで
           3: 30,   // Tier3が作れるTier4: 各30社まで
-          4: 0     // Tier4: 子代理店作成不可
+          4: 20,   // Tier4が作れるTier5: 各20社まで
+          5: 0     // Tier5: 子代理店作成不可（最下層）
         };
 
         const parentTier = parentAgency.tier_level;
@@ -292,11 +293,11 @@ router.post('/',
           }
         }
 
-        // Tier4は子代理店を作成できない
-        if (parentTier === 4) {
+        // Tier5は子代理店を作成できない（最下層）
+        if (parentTier === 5) {
           return res.status(400).json({
             success: false,
-            message: 'Tier4の代理店は子代理店を作成できません'
+            message: 'Tier5の代理店は子代理店を作成できません'
           });
         }
       }

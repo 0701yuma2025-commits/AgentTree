@@ -461,6 +461,11 @@ class App {
    * ページ遷移
    */
   navigateToPage(pageName) {
+    // ダッシュボードから離れる場合は自動更新タイマーを停止（リーク防止）
+    if (this.currentPage === 'dashboard' && pageName !== 'dashboard') {
+      this.dashboardPage?.stopAutoRefresh();
+    }
+
     // 現在のページを非表示
     document.getElementById(`${this.currentPage}Page`)?.classList.add('hidden');
 

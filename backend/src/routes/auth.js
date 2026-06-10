@@ -189,12 +189,12 @@ router.post('/login', loginRateLimit, async (req, res) => {
             .single();
 
           if (parentAgency) {
-            // Tier4の下には代理店を作成できない
-            if (parentAgency.tier_level >= 4) {
+            // Tier5の下には代理店を作成できない
+            if (parentAgency.tier_level >= 5) {
               await logLogin({ email }, req, false);
               return res.status(400).json({
                 success: false,
-                message: 'これ以上階層を作成できません。最大Tier4までです。'
+                message: 'これ以上階層を作成できません。最大Tier5までです。'
               });
             }
 

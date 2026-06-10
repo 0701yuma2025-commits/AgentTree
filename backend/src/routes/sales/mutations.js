@@ -52,6 +52,7 @@ async function createCommissionRecords(sale, commissionResult, settings) {
     tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
     tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
     tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
+    tier4_from_tier5_bonus: settings.tier4_from_tier5_bonus,
     minimum_payment_amount: settings.minimum_payment_amount,
     withholding_tax_rate: settings.withholding_tax_rate,
     non_invoice_deduction_rate: settings.non_invoice_deduction_rate
@@ -314,7 +315,7 @@ router.post('/',
               bonus_value: c.bonus_rate !== null ? c.bonus_rate : c.bonus_amount,
               target_products: c.conditions?.target_products || null,
               target_agencies: c.conditions?.target_agencies || null,
-              target_tiers: c.target_tier_levels || [1, 2, 3, 4],
+              target_tiers: c.target_tier_levels || [1, 2, 3, 4, 5],
               max_bonus_per_agency: c.conditions?.max_bonus_per_agency || null
             }));
             campaignBonusResult = calculateCampaignBonusNew(data, agencyData, product, normalizedCampaigns);
@@ -333,6 +334,7 @@ router.post('/',
               tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
               tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
               tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
+              tier4_from_tier5_bonus: settings.tier4_from_tier5_bonus,
               minimum_payment_amount: settings.minimum_payment_amount,
               withholding_tax_rate: settings.withholding_tax_rate,
               non_invoice_deduction_rate: settings.non_invoice_deduction_rate
@@ -379,6 +381,7 @@ router.post('/',
                     tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
                     tier2_from_tier3_bonus: settings.tier2_from_tier3_bonus,
                     tier3_from_tier4_bonus: settings.tier3_from_tier4_bonus,
+                    tier4_from_tier5_bonus: settings.tier4_from_tier5_bonus,
                     minimum_payment_amount: settings.minimum_payment_amount,
                     withholding_tax_rate: settings.withholding_tax_rate,
                     non_invoice_deduction_rate: settings.non_invoice_deduction_rate

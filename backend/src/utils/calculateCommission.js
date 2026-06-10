@@ -11,7 +11,8 @@ const DEFAULT_TIER_RATES = {
   1: 10.00,
   2: 8.00,
   3: 6.00,
-  4: 4.00
+  4: 4.00,
+  5: 2.00
 };
 
 /**
@@ -23,7 +24,8 @@ const DEFAULT_HIERARCHY_BONUS_RATES = {
   1: 2.0,  // Tier1がTier2の売上から得る
   2: 1.5,  // Tier2がTier3の売上から得る
   3: 1.0,  // Tier3がTier4の売上から得る
-  4: 0     // Tier4は階層ボーナスなし
+  4: 0.5,  // Tier4がTier5の売上から得る
+  5: 0     // Tier5は階層ボーナスなし（最下層）
 };
 
 /**
@@ -34,6 +36,7 @@ const DEFAULT_COMMISSION_SETTINGS = {
   tier1_from_tier2_bonus: DEFAULT_HIERARCHY_BONUS_RATES[1],
   tier2_from_tier3_bonus: DEFAULT_HIERARCHY_BONUS_RATES[2],
   tier3_from_tier4_bonus: DEFAULT_HIERARCHY_BONUS_RATES[3],
+  tier4_from_tier5_bonus: DEFAULT_HIERARCHY_BONUS_RATES[4],
   minimum_payment_amount: 10000,
   withholding_tax_rate: 10.21,
   non_invoice_deduction_rate: 2.00
@@ -93,6 +96,8 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
             bonusRate = parseFloat(commissionSettings.tier2_from_tier3_bonus);
           } else if (parentAgency.tier_level === 3 && commissionSettings.tier3_from_tier4_bonus !== undefined) {
             bonusRate = parseFloat(commissionSettings.tier3_from_tier4_bonus);
+          } else if (parentAgency.tier_level === 4 && commissionSettings.tier4_from_tier5_bonus !== undefined) {
+            bonusRate = parseFloat(commissionSettings.tier4_from_tier5_bonus);
           }
         }
 

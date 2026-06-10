@@ -113,6 +113,7 @@ class SettingsPage {
       tier1_from_tier2_bonus: currentSettings.tier1_from_tier2_bonus || CONFIG.COMMISSION_DEFAULTS.TIER1_FROM_TIER2_BONUS,
       tier2_from_tier3_bonus: currentSettings.tier2_from_tier3_bonus || CONFIG.COMMISSION_DEFAULTS.TIER2_FROM_TIER3_BONUS,
       tier3_from_tier4_bonus: currentSettings.tier3_from_tier4_bonus || CONFIG.COMMISSION_DEFAULTS.TIER3_FROM_TIER4_BONUS,
+      tier4_from_tier5_bonus: currentSettings.tier4_from_tier5_bonus || CONFIG.COMMISSION_DEFAULTS.TIER4_FROM_TIER5_BONUS,
       minimum_payment_amount: currentSettings.minimum_payment_amount || CONFIG.COMMISSION_DEFAULTS.MINIMUM_PAYMENT_AMOUNT,
       payment_cycle: currentSettings.payment_cycle || CONFIG.COMMISSION_DEFAULTS.PAYMENT_CYCLE,
       payment_day: currentSettings.payment_day || CONFIG.COMMISSION_DEFAULTS.PAYMENT_DAY,
@@ -171,6 +172,13 @@ class SettingsPage {
                        value="${this.commissionSettings?.tier3_from_tier4_bonus || CONFIG.COMMISSION_DEFAULTS.TIER3_FROM_TIER4_BONUS}"
                        min="0" max="100" step="0.01" required>
                 <small>Tier4の売上からTier3への還元率</small>
+              </div>
+              <div class="form-group">
+                <label for="tier4_bonus">Tier4 ← Tier5 (%)</label>
+                <input type="number" id="tier4_bonus"
+                       value="${this.commissionSettings?.tier4_from_tier5_bonus || CONFIG.COMMISSION_DEFAULTS.TIER4_FROM_TIER5_BONUS}"
+                       min="0" max="100" step="0.01" required>
+                <small>Tier5の売上からTier4への還元率</small>
               </div>
             </div>
           </div>
@@ -465,6 +473,7 @@ class SettingsPage {
       tier1_from_tier2_bonus: parseFloat(document.getElementById('tier1_bonus').value),
       tier2_from_tier3_bonus: parseFloat(document.getElementById('tier2_bonus').value),
       tier3_from_tier4_bonus: parseFloat(document.getElementById('tier3_bonus').value),
+      tier4_from_tier5_bonus: parseFloat(document.getElementById('tier4_bonus').value),
       minimum_payment_amount: parseFloat(document.getElementById('minimum_payment').value),
       payment_cycle: document.getElementById('payment_cycle').value,
       payment_day: parseInt(document.getElementById('payment_day').value),

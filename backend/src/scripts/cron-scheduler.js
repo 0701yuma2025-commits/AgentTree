@@ -124,7 +124,7 @@ async function calculateCommissions() {
       .select(`
         *,
         agency:agencies(id, tier_level, parent_agency_id, company_type, invoice_registered),
-        product:products(tier1_commission_rate, tier2_commission_rate, tier3_commission_rate, tier4_commission_rate)
+        product:products(tier1_commission_rate, tier2_commission_rate, tier3_commission_rate, tier4_commission_rate, tier5_commission_rate)
       `)
       .eq('status', 'confirmed')
       .gte('sale_date', `${targetMonth}-01`)

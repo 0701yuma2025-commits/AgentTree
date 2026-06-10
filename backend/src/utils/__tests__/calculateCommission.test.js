@@ -575,10 +575,10 @@ describe('エッジケース・境界値', () => {
 
 describe('定数エクスポート', () => {
   test('DEFAULT_TIER_RATES が正しい値', () => {
-    expect(DEFAULT_TIER_RATES).toEqual({ 1: 10, 2: 8, 3: 6, 4: 4 });
+    expect(DEFAULT_TIER_RATES).toEqual({ 1: 10, 2: 8, 3: 6, 4: 4, 5: 2 });
   });
 
   test('DEFAULT_HIERARCHY_BONUS_RATES が正しい値', () => {
-    expect(DEFAULT_HIERARCHY_BONUS_RATES).toEqual({ 1: 2, 2: 1.5, 3: 1, 4: 0 });
+    expect(DEFAULT_HIERARCHY_BONUS_RATES).toEqual({ 1: 2, 2: 1.5, 3: 1, 4: 0.5, 5: 0 });
   });
 });

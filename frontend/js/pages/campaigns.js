@@ -438,7 +438,7 @@ const campaignsPage = {
             <div class="form-group">
               <label>対象Tier</label>
               <div class="form-check-group">
-                ${[1, 2, 3, 4].map(tier => `
+                ${[1, 2, 3, 4, 5].map(tier => `
                   <label class="form-check-inline">
                     <input type="checkbox" name="targetTiers" value="${tier}"
                            ${campaign.target_tiers && campaign.target_tiers.includes(tier) ? 'checked' : ''}>

@@ -85,6 +85,7 @@ router.post('/', authMiddleware, auditLogMiddleware('create', 'product'), async 
       commission_rate_tier2,
       commission_rate_tier3,
       commission_rate_tier4,
+      commission_rate_tier5,
       description
     } = req.body;
 
@@ -114,6 +115,7 @@ router.post('/', authMiddleware, auditLogMiddleware('create', 'product'), async 
       tier2_commission_rate: commission_rate_tier2 || 8.00,
       tier3_commission_rate: commission_rate_tier3 || 6.00,
       tier4_commission_rate: commission_rate_tier4 || 4.00,
+      tier5_commission_rate: commission_rate_tier5 || 2.00,
       description: description || null
     };
 
@@ -191,7 +193,8 @@ router.put('/:id', authMiddleware, auditLogMiddleware('update', 'product'), asyn
       'commission_rate_tier1': 'tier1_commission_rate',
       'commission_rate_tier2': 'tier2_commission_rate',
       'commission_rate_tier3': 'tier3_commission_rate',
-      'commission_rate_tier4': 'tier4_commission_rate'
+      'commission_rate_tier4': 'tier4_commission_rate',
+      'commission_rate_tier5': 'tier5_commission_rate'
     };
 
     Object.entries(commissionFields).forEach(([requestField, dbField]) => {
@@ -212,12 +215,16 @@ router.put('/:id', authMiddleware, auditLogMiddleware('update', 'product'), asyn
           else if (agencyTier === 2 && tierNumber !== 1) {
             updateData[dbField] = req.body[requestField];
           }
-          // Tier3: Tier3とTier4のみ編集可能
+          // Tier3: Tier3以下（Tier3,4,5）編集可能
           else if (agencyTier === 3 && tierNumber >= 3) {
             updateData[dbField] = req.body[requestField];
           }
-          // Tier4: Tier4のみ編集可能
-          else if (agencyTier === 4 && tierNumber === 4) {
+          // Tier4: Tier4以下（Tier4,5）編集可能
+          else if (agencyTier === 4 && tierNumber >= 4) {
+            updateData[dbField] = req.body[requestField];
+          }
+          // Tier5: Tier5のみ編集可能
+          else if (agencyTier === 5 && tierNumber === 5) {
             updateData[dbField] = req.body[requestField];
           }
         }

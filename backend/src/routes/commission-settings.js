@@ -37,6 +37,7 @@ router.get('/current', authMiddleware, async (req, res) => {
       tier1_from_tier2_bonus: 2.00,
       tier2_from_tier3_bonus: 1.50,
       tier3_from_tier4_bonus: 1.00,
+      tier4_from_tier5_bonus: 0.50,
       withholding_tax_rate: 10.21,
       non_invoice_deduction_rate: 2.00
     };
@@ -108,6 +109,7 @@ router.post('/', authMiddleware, auditLogMiddleware('update', 'commission_settin
       tier1_from_tier2_bonus,
       tier2_from_tier3_bonus,
       tier3_from_tier4_bonus,
+      tier4_from_tier5_bonus,
       withholding_tax_rate,
       non_invoice_deduction_rate,
       operator_invoice_number,
@@ -138,6 +140,7 @@ router.post('/', authMiddleware, auditLogMiddleware('update', 'commission_settin
       { val: tier1_from_tier2_bonus, name: 'Tier1→Tier2ボーナス率' },
       { val: tier2_from_tier3_bonus, name: 'Tier2→Tier3ボーナス率' },
       { val: tier3_from_tier4_bonus, name: 'Tier3→Tier4ボーナス率' },
+      { val: tier4_from_tier5_bonus, name: 'Tier4→Tier5ボーナス率' },
       { val: withholding_tax_rate, name: '源泉徴収率' },
       { val: non_invoice_deduction_rate, name: 'インボイス未登録控除率' }
     ];
@@ -169,6 +172,7 @@ router.post('/', authMiddleware, auditLogMiddleware('update', 'commission_settin
         tier1_from_tier2_bonus: tier1_from_tier2_bonus || 2.00,
         tier2_from_tier3_bonus: tier2_from_tier3_bonus || 1.50,
         tier3_from_tier4_bonus: tier3_from_tier4_bonus || 1.00,
+        tier4_from_tier5_bonus: tier4_from_tier5_bonus || 0.50,
         withholding_tax_rate: withholding_tax_rate || 10.21,
         non_invoice_deduction_rate: non_invoice_deduction_rate || 2.00,
         operator_invoice_number: operator_invoice_number || null,

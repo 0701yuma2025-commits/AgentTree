@@ -275,7 +275,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         tier1: { total: 0, active: 0 },
         tier2: { total: 0, active: 0 },
         tier3: { total: 0, active: 0 },
-        tier4: { total: 0, active: 0 }
+        tier4: { total: 0, active: 0 },
+        tier5: { total: 0, active: 0 }
       };
 
       if (tierData) {

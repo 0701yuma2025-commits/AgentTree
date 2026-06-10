@@ -212,6 +212,7 @@ const FormValidator = {
     errors.push(this.checkNumber(data.commission_rate_tier2, 'Tier2報酬率', { min: 0, max: 100 }));
     errors.push(this.checkNumber(data.commission_rate_tier3, 'Tier3報酬率', { min: 0, max: 100 }));
     errors.push(this.checkNumber(data.commission_rate_tier4, 'Tier4報酬率', { min: 0, max: 100 }));
+    errors.push(this.checkNumber(data.commission_rate_tier5, 'Tier5報酬率', { min: 0, max: 100 }));
     return this.showErrors(errors.filter(Boolean));
   },
 
@@ -223,6 +224,7 @@ const FormValidator = {
     errors.push(this.checkNumber(data.tier1_from_tier2_bonus, 'Tier1ボーナス率', { min: 0, max: 100 }));
     errors.push(this.checkNumber(data.tier2_from_tier3_bonus, 'Tier2ボーナス率', { min: 0, max: 100 }));
     errors.push(this.checkNumber(data.tier3_from_tier4_bonus, 'Tier3ボーナス率', { min: 0, max: 100 }));
+    errors.push(this.checkNumber(data.tier4_from_tier5_bonus, 'Tier4ボーナス率', { min: 0, max: 100 }));
     errors.push(this.checkNumber(data.minimum_payment_amount, '最低支払額', { min: 0, max: 999999999 }));
     errors.push(this.checkNumber(data.payment_day, '支払日', { min: 1, max: 31 }));
     errors.push(this.checkNumber(data.closing_day, '締め日', { min: 1, max: 31 }));

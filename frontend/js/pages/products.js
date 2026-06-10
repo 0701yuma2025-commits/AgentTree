@@ -105,7 +105,8 @@ class ProductsPage {
           tier1_rate: product.tier1_commission_rate || 0,
           tier2_rate: product.tier2_commission_rate || 0,
           tier3_rate: product.tier3_commission_rate || 0,
-          tier4_rate: product.tier4_commission_rate || 0
+          tier4_rate: product.tier4_commission_rate || 0,
+          tier5_rate: product.tier5_commission_rate || 0
         }));
 
         this.productsTableHelper.setData(normalizedData);
@@ -159,7 +160,7 @@ class ProductsPage {
     if (!products || products.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="9" style="text-align: center; padding: 20px;">
+          <td colspan="10" style="text-align: center; padding: 20px;">
             商品データがありません
           </td>
         </tr>
@@ -193,6 +194,7 @@ class ProductsPage {
         <td>${(product.tier2_commission_rate || 0)}%</td>
         <td>${(product.tier3_commission_rate || 0)}%</td>
         <td>${(product.tier4_commission_rate || 0)}%</td>
+        <td>${(product.tier5_commission_rate || 0)}%</td>
         <td><span class="status ${statusClass}">${statusText}</span></td>
         <td>
           <button class="btn btn-small btn-secondary" data-action="showProductModal" data-id="${escapeHtml(product.id)}">編集</button>
@@ -231,8 +233,9 @@ class ProductsPage {
 
       if (agencyTier === 1) return true; // Tier1は全階層編集可能
       if (agencyTier === 2) return tierNum !== 1; // Tier2はTier1以外編集可能
-      if (agencyTier === 3) return tierNum >= 3; // Tier3はTier3,4のみ編集可能
-      if (agencyTier === 4) return tierNum === 4; // Tier4はTier4のみ編集可能
+      if (agencyTier === 3) return tierNum >= 3; // Tier3はTier3,4,5編集可能
+      if (agencyTier === 4) return tierNum >= 4; // Tier4はTier4,5編集可能
+      if (agencyTier === 5) return tierNum === 5; // Tier5はTier5のみ編集可能
       return false;
     };
 
@@ -283,6 +286,11 @@ class ProductsPage {
             <input type="number" id="tier4Rate" value="${product?.tier4_commission_rate || CONFIG.PRODUCT_TIER_DEFAULTS.TIER4}" min="0" max="100" step="0.01" ${canEditTier(4) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
             ${!canEditTier(4) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
           </div>
+          <div class="form-group">
+            <label for="tier5Rate">Tier 5 報酬率 (%)</label>
+            <input type="number" id="tier5Rate" value="${product?.tier5_commission_rate || CONFIG.PRODUCT_TIER_DEFAULTS.TIER5}" min="0" max="100" step="0.01" ${canEditTier(5) ? '' : 'readonly style="background-color: #f5f5f5;"'}>
+            ${!canEditTier(5) ? '<small style="color: #999;">編集権限がありません</small>' : ''}
+          </div>
         </div>
 
         <div class="form-group">
@@ -331,6 +339,7 @@ class ProductsPage {
       commission_rate_tier2: parseFloat(document.getElementById('tier2Rate').value),
       commission_rate_tier3: parseFloat(document.getElementById('tier3Rate').value),
       commission_rate_tier4: parseFloat(document.getElementById('tier4Rate').value),
+      commission_rate_tier5: parseFloat(document.getElementById('tier5Rate').value),
       is_active: document.getElementById('isActive').checked
     };
 

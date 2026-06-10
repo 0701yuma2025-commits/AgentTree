@@ -34,6 +34,7 @@ const CONFIG = {
     TIER1_FROM_TIER2_BONUS: 2.00,
     TIER2_FROM_TIER3_BONUS: 1.50,
     TIER3_FROM_TIER4_BONUS: 1.00,
+    TIER4_FROM_TIER5_BONUS: 0.50,
     MINIMUM_PAYMENT_AMOUNT: 10000,
     PAYMENT_CYCLE: 'monthly',
     PAYMENT_DAY: 25,
@@ -47,7 +48,8 @@ const CONFIG = {
     TIER1: 10,
     TIER2: 8,
     TIER3: 6,
-    TIER4: 4
+    TIER4: 4,
+    TIER5: 2
   },
 
   // キャンペーン設定
@@ -105,7 +107,8 @@ const CONFIG = {
     1: '#ff4444',  // 赤
     2: '#4444ff',  // 青
     3: '#44ff44',  // 緑
-    4: '#ffaa44'   // オレンジ
+    4: '#ffaa44',  // オレンジ
+    5: '#aa44ff'   // 紫
   },
 
   NETWORK: {

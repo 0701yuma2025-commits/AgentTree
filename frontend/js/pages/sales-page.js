@@ -707,6 +707,7 @@ class SalesPage {
                 data-tier2-rate="${product.tier2_commission_rate || 8}"
                 data-tier3-rate="${product.tier3_commission_rate || 6}"
                 data-tier4-rate="${product.tier4_commission_rate || 4}"
+                data-tier5-rate="${product.tier5_commission_rate || 2}"
                 data-category="${product.category || ''}"
                 >${product.name} - \u00A5${product.price.toLocaleString()}${product.category ? ` (${product.category})` : ''}</option>`
             ).join('')}

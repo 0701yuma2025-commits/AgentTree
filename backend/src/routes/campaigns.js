@@ -51,7 +51,7 @@ router.get('/', authenticateToken, async (req, res) => {
       bonus_value: campaign.bonus_rate !== null ? campaign.bonus_rate : campaign.bonus_amount,
       target_products: campaign.conditions?.target_products || null,
       target_agencies: campaign.conditions?.target_agencies || null,
-      target_tiers: campaign.target_tier_levels || [1, 2, 3, 4],
+      target_tiers: campaign.target_tier_levels || [1, 2, 3, 4, 5],
       status: getCampaignStatus(campaign)
     })) || [];
 
@@ -133,7 +133,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       bonus_value: data.bonus_rate !== null ? data.bonus_rate : data.bonus_amount,
       target_products: data.conditions?.target_products || null,
       target_agencies: data.conditions?.target_agencies || null,
-      target_tiers: data.target_tier_levels || [1, 2, 3, 4],
+      target_tiers: data.target_tier_levels || [1, 2, 3, 4, 5],
       status: getCampaignStatus(data),
       stats
     };
@@ -206,7 +206,7 @@ router.post('/',
         end_date,
         bonus_rate: bonus_type === 'percentage' ? bonus_value : null,
         bonus_amount: bonus_type === 'fixed' ? bonus_value : null,
-        target_tier_levels: target_tiers || [1, 2, 3, 4], // デフォルトは全Tier
+        target_tier_levels: target_tiers || [1, 2, 3, 4, 5], // デフォルトは全Tier
         conditions: {
           ...(conditions || {}),
           bonus_type: bonus_type, // conditionsに型を保存

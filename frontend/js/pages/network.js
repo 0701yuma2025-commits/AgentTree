@@ -345,12 +345,12 @@ class NetworkPage {
    * Tier別フィルター
    */
   filterByTier() {
-    const tiers = [1, 2, 3, 4];
+    const tiers = [1, 2, 3, 4, 5];
 
     // 現在のフィルターの次のTierに切り替え
     if (this.currentTierFilter === null) {
       this.currentTierFilter = 1;
-    } else if (this.currentTierFilter < 4) {
+    } else if (this.currentTierFilter < 5) {
       this.currentTierFilter++;
     } else {
       this.currentTierFilter = null;  // 全表示に戻る

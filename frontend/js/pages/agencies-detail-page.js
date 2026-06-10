@@ -544,11 +544,16 @@ class AgenciesDetailPage {
       '新規代理店登録（下位代理店の追加）';
 
     const noticeText = !isAdmin && userAgency ?
+      (userAgency.tier_level >= 5 ?
+      `<div class="info-message">
+        <i class="fas fa-exclamation-circle"></i>
+        Tier5は最下層のため、これ以上下位代理店を作成できません。
+      </div>` :
       `<div class="info-message">
         <i class="fas fa-info-circle"></i>
         あなたの下位代理店（Tier ${userAgency.tier_level + 1}）として登録されます。
         管理者による承認が必要です。
-      </div>` : '';
+      </div>`) : '';
 
 
     const modalContent = `
@@ -581,9 +586,12 @@ class AgenciesDetailPage {
             <option value="2">Tier 2</option>
             <option value="3">Tier 3</option>
             <option value="4">Tier 4</option>
-            ` : userAgency ? `
+            <option value="5">Tier 5</option>
+            ` : userAgency ? (userAgency.tier_level >= 5 ? `
+            <option value="" disabled selected>これ以上下位代理店は作成できません（最大Tier5）</option>
+            ` : `
             <option value="${userAgency.tier_level + 1}" selected>Tier ${userAgency.tier_level + 1}</option>
-            ` : ''}
+            `) : ''}
           </select>
         </div>
         <div class="form-group" id="parentAgencyGroup" style="display: ${isAdmin ? 'none' : 'block'};">
