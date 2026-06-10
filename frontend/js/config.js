@@ -5,9 +5,11 @@
 
 const CONFIG = {
   // APIベースURL（環境に応じて自動切替）
+  // 本番は同一オリジンの相対パス（/api をRenderのrewriteでバックエンドへプロキシ）。
+  // これによりCookieがファーストパーティ化し、Safari等の第三者Cookieブロックを回避する。
   API_BASE_URL: window.location.hostname === 'localhost'
     ? 'http://localhost:3001/api'
-    : 'https://agenttree.onrender.com/api',
+    : '/api',
 
   // ローカルストレージキー
   STORAGE_KEYS: {

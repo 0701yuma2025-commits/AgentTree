@@ -84,11 +84,9 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // origin が無いリクエスト（サーバー間通信等）は本番では拒否
+    // Originヘッダ無し（同一オリジンGET / Renderのrewriteプロキシ経由 / サーバー間）は許可。
+    // 状態変更リクエストのCSRFは後段のOrigin/Referer検証ミドルウェアで別途防御している。
     if (!origin) {
-      if (process.env.NODE_ENV === 'production') {
-        return callback(new Error('Origin header required'));
-      }
       return callback(null, true);
     }
 
