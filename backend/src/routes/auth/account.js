@@ -197,7 +197,7 @@ router.post('/reset-password-request', passwordResetRateLimit, async (req, res) 
 
     // Supabaseのパスワードリセット機能を使用
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`
+      redirectTo: `${process.env.FRONTEND_URL || 'https://agenttree-frontend.onrender.com'}/reset-password`
     });
 
     if (error) {

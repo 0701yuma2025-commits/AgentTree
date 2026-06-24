@@ -287,7 +287,7 @@ class EmailService {
               ${invitation_code}
             </div>
             <p>登録はこちらから:</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/register?code=${invitation_code}" class="button">代理店登録を開始</a>
+            <a href="${process.env.FRONTEND_URL || 'https://agenttree-frontend.onrender.com'}/register?code=${invitation_code}" class="button">代理店登録を開始</a>
             <p><small>この招待は7日間有効です。</small></p>
           </div>
           <div class="footer">
@@ -306,7 +306,7 @@ class EmailService {
    */
   async sendPasswordResetEmail(email, resetToken) {
     const subject = 'パスワードリセットのお知らせ';
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://agenttree-frontend.onrender.com'}/reset-password?token=${resetToken}`;
 
     const html = `
       <!DOCTYPE html>
@@ -405,7 +405,7 @@ class EmailService {
    */
   async sendAgencyApprovedEmail(agencyData) {
     const { company_name, contact_email, agency_code, passwordResetToken } = agencyData;
-    const passwordSetupUrl = `${process.env.FRONTEND_URL || 'http://localhost:8000'}/#/set-password?token=${passwordResetToken}`;
+    const passwordSetupUrl = `${process.env.FRONTEND_URL || 'https://agenttree-frontend.onrender.com'}/#/set-password?token=${passwordResetToken}`;
 
     const subject = '代理店申請承認のお知らせ - パスワード設定のお願い';
     const html = `
