@@ -118,7 +118,8 @@ const passwordResetRateLimit = (req, res, next) => {
   const email = req.body.email;
   const key = `password_reset_${ip}_${email}`;
 
-  const allowed = checkRateLimit(key, 3, 60 * 60 * 1000);
+  // TODO(一時対応 2026-06-24): kumamoto依頼でパスワードリセット制限を一時解除中。要復帰（本来は3回/時間）。
+  const allowed = checkRateLimit(key, 100000, 60 * 60 * 1000);
 
   if (!allowed) {
     return res.status(429).json({
