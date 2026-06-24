@@ -26,22 +26,19 @@ beforeEach(() => {
 });
 
 // ═══════════════════════════════════════════════
-// トークン管理
+// セッション管理（httpOnly Cookie方式）
 // ═══════════════════════════════════════════════
-describe('ApiClient トークン管理', () => {
-  test('setToken → getTokenで取得可能', () => {
-    apiClient.setToken('test-token-123');
-    expect(apiClient.getToken()).toBe('test-token-123');
-  });
+describe('ApiClient セッション管理', () => {
+  test('clearSession → localStorageからユーザー情報を削除', () => {
+    global.localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify({ id: '1', email: 'test@example.com' }));
+    global.localStorage.setItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN, 'old-token');
+    global.localStorage.setItem(CONFIG.STORAGE_KEYS.TOKEN, 'legacy-token');
 
-  test('removeToken → getToken=null', () => {
-    apiClient.setToken('to-be-removed');
-    apiClient.removeToken();
-    expect(apiClient.getToken()).toBeNull();
-  });
+    apiClient.clearSession();
 
-  test('トークン未設定 → getToken=null', () => {
-    expect(apiClient.getToken()).toBeNull();
+    expect(global.localStorage.getItem(CONFIG.STORAGE_KEYS.USER)).toBeNull();
+    expect(global.localStorage.getItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN)).toBeNull();
+    expect(global.localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN)).toBeNull();
   });
 });
 
@@ -119,11 +116,10 @@ describe('ApiClient HTTPメソッド', () => {
 });
 
 // ═══════════════════════════════════════════════
-// 認証ヘッダー
+// Cookie認証（httpOnly Cookie方式）
 // ═══════════════════════════════════════════════
-describe('ApiClient 認証ヘッダー', () => {
-  test('トークンあり → Authorizationヘッダー付与', async () => {
-    apiClient.setToken('my-jwt-token');
+describe('ApiClient Cookie認証', () => {
+  test('リクエストにcredentials:includeが設定される', async () => {
     global.fetch.mockResolvedValue({
       ok: true,
       status: 200,
@@ -133,17 +129,17 @@ describe('ApiClient 認証ヘッダー', () => {
     await apiClient.get('/protected');
 
     const [, options] = global.fetch.mock.calls[0];
-    expect(options.headers['Authorization']).toBe('Bearer my-jwt-token');
+    expect(options.credentials).toBe('include');
   });
 
-  test('トークンなし → Authorizationヘッダーなし', async () => {
+  test('Authorizationヘッダーは付与されない', async () => {
     global.fetch.mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ success: true }),
     });
 
-    await apiClient.get('/public');
+    await apiClient.get('/protected');
 
     const [, options] = global.fetch.mock.calls[0];
     expect(options.headers['Authorization']).toBeUndefined();
@@ -176,8 +172,8 @@ describe('ApiClient エラーハンドリング', () => {
     });
   });
 
-  test('TOKEN_EXPIRED → トークン削除', async () => {
-    apiClient.setToken('expired-token');
+  test('TOKEN_EXPIRED → セッションクリア&リダイレクト', async () => {
+    global.localStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify({ id: '1' }));
     global.fetch.mockResolvedValue({
       ok: false,
       status: 401,
@@ -186,8 +182,9 @@ describe('ApiClient エラーハンドリング', () => {
 
     await apiClient.get('/protected');
 
-    // トークンが削除されていること
-    expect(apiClient.getToken()).toBeNull();
+    expect(global.localStorage.getItem(CONFIG.STORAGE_KEYS.USER)).toBeNull();
+    expect(global.alert).toHaveBeenCalledWith('セッションの有効期限が切れました。再度ログインしてください。');
+    expect(mockWindow.location.href).toBe('/');
   });
 
   test('403権限エラー → success:false返却', async () => {
