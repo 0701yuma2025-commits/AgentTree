@@ -549,6 +549,66 @@ router.put('/:id',
         }
       }
 
+      // メール変更時は、ログイン用メール(auth.users)とusersミラーも同期する（1代理店1ユーザー方式）。
+      // これを行わないと agencies.contact_email だけ変わりログイン/リセットが旧メールのまま残る。
+      if (filteredUpdates.contact_email !== undefined) {
+        const newEmail = filteredUpdates.contact_email;
+
+        // 現在の代理店情報（旧ログインメール・連結ユーザー）を取得
+        const { data: current } = await supabase
+          .from('agencies')
+          .select('email, contact_email, user_id')
+          .eq('id', id)
+          .single();
+
+        // ログイン用メールは agencies.email を正とする（作成時 email=contact_email で揃える方式）
+        const oldLoginEmail = current?.email || current?.contact_email;
+
+        // 連結ユーザーを特定：user_id優先、無ければ旧ログインメールで users を照合
+        let linkedUserId = current?.user_id || null;
+        if (!linkedUserId && oldLoginEmail) {
+          const { data: u } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', oldLoginEmail)
+            .maybeSingle();
+          linkedUserId = u?.id || null;
+        }
+
+        // ログイン用メールが実際に変わる場合のみ auth.users を更新
+        if (linkedUserId && newEmail && newEmail !== oldLoginEmail) {
+          const { error: authErr } = await supabase.auth.admin.updateUserById(linkedUserId, {
+            email: newEmail,
+            email_confirm: true
+          });
+
+          if (authErr) {
+            logger.error('Agency email sync (auth.users) error:', authErr.message);
+            return res.status(400).json({
+              success: false,
+              message: /already|exist/i.test(authErr.message)
+                ? 'このメールアドレスは既に使用されています'
+                : 'ログイン用メールアドレスの更新に失敗しました'
+            });
+          }
+
+          // usersミラーも更新
+          const { error: mirrorErr } = await supabase
+            .from('users')
+            .update({ email: newEmail, updated_at: new Date().toISOString() })
+            .eq('id', linkedUserId);
+          if (mirrorErr) {
+            logger.error('Agency email sync (users mirror) error:', mirrorErr.message);
+          }
+        }
+
+        // agencies.email も contact_email に揃える（user_idが空なら補完してドリフトを解消）
+        filteredUpdates.email = newEmail;
+        if (!current?.user_id && linkedUserId) {
+          filteredUpdates.user_id = linkedUserId;
+        }
+      }
+
       const { data, error } = await supabase
         .from('agencies')
         .update(filteredUpdates)
