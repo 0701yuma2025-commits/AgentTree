@@ -111,15 +111,16 @@ const loginRateLimit = (req, res, next) => {
 
 /**
  * パスワードリセットレート制限
- * 1時間で3回まで
+ * 1時間で5回まで（IPと email/token の組み合わせ単位）
  */
 const passwordResetRateLimit = (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
-  const email = req.body.email;
-  const key = `password_reset_${ip}_${email}`;
+  // 識別子: email(リセット要求) / token(リセット実行) を使い、無い場合のみIP単位にフォールバック。
+  // 旧実装は req.body.email が無いendpointで key が "..._undefined" に潰れIP単位で共有されていた。
+  const identifier = req.body.email || req.body.token || 'ip-only';
+  const key = `password_reset_${ip}_${identifier}`;
 
-  // TODO(一時対応 2026-06-24): kumamoto依頼でパスワードリセット制限を一時解除中。要復帰（本来は3回/時間）。
-  const allowed = checkRateLimit(key, 100000, 60 * 60 * 1000);
+  const allowed = checkRateLimit(key, 5, 60 * 60 * 1000);
 
   if (!allowed) {
     return res.status(429).json({

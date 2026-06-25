@@ -4,7 +4,6 @@
 
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
@@ -53,9 +52,13 @@ router.put('/change-email', passwordResetRateLimit, authenticateToken, async (re
       });
     }
 
-    // パスワード確認
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
+    // パスワード確認（Supabase Authで検証。password_hashは'managed_by_supabase'固定のためbcrypt照合は使えない）
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password
+    });
+
+    if (signInError) {
       return res.status(401).json({
         success: false,
         message: 'パスワードが正しくありません'
@@ -77,7 +80,17 @@ router.put('/change-email', passwordResetRateLimit, authenticateToken, async (re
       });
     }
 
-    // メールアドレスを更新
+    // ログイン・リセットの正である auth.users を更新（確認メールは送らず即時反映）
+    const { error: authUpdateError } = await supabase.auth.admin.updateUserById(userId, {
+      email: new_email,
+      email_confirm: true
+    });
+
+    if (authUpdateError) {
+      throw authUpdateError;
+    }
+
+    // public.users ミラーも同期
     const { error: updateError } = await supabase
       .from('users')
       .update({
