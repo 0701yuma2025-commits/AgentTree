@@ -10,6 +10,7 @@ const { authenticateToken } = require('../../middleware/auth');
 const { validatePassword } = require('../../utils/passwordValidator');
 const { passwordResetRateLimit } = require('../../middleware/rateLimiter');
 const { generateAgencyCode } = require('../../utils/generateCode');
+const emailService = require('../../services/emailService');
 const { createModuleLogger } = require('../../config/logger');
 const logger = createModuleLogger('account');
 
@@ -208,13 +209,23 @@ router.post('/reset-password-request', passwordResetRateLimit, async (req, res) 
       });
     }
 
-    // Supabaseのパスワードリセット機能を使用
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.FRONTEND_URL || 'https://agenttree-frontend.onrender.com'}/reset-password`
+    // Supabaseの組み込みメールは上限が低く到達も不安定なため使わない。
+    // generateLinkでリカバリートークンのみ生成し（メール送信なし）、Resend経由で送信する。
+    const redirectTo = `${process.env.FRONTEND_URL || 'https://agenttree-frontend.onrender.com'}/reset-password`;
+    const { data: linkData, error } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo }
     });
 
     if (error) {
-      logger.error('Password reset request error:', error.message);
+      // ユーザー不在等はここでエラーになる。アカウント列挙を防ぐためログのみに留める。
+      logger.error('Password reset link generation error:', error.message);
+    } else if (linkData?.properties?.hashed_token) {
+      // 生成したトークンをResendで送信（レスポンスをブロックしないようcatchで握る）
+      emailService
+        .sendPasswordResetEmail(email, linkData.properties.hashed_token)
+        .catch(err => logger.error('Password reset email send error:', err.message));
     }
 
     // セキュリティのため、メールアドレスが存在するかどうかに関わらず同じメッセージを返す
