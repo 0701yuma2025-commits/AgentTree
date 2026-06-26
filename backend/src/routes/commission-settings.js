@@ -150,6 +150,20 @@ router.post('/', authMiddleware, auditLogMiddleware('update', 'commission_settin
       }
     }
 
+    // 適用開始日のバリデーション（過去日を拒否：本日以降のみ）。
+    // 過去日を許すと過去売上の報酬計算を遡及的に書き換えられるため禁止。
+    if (valid_from !== undefined && valid_from !== null && valid_from !== '') {
+      const validFromDate = new Date(valid_from);
+      if (isNaN(validFromDate.getTime())) {
+        return res.status(400).json({ success: false, message: '適用開始日の形式が無効です' });
+      }
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      if (validFromDate < startOfToday) {
+        return res.status(400).json({ success: false, message: '適用開始日は本日以降の日付を指定してください' });
+      }
+    }
+
     // 既存の有効な設定を無効化
     await supabase
       .from('commission_settings')
