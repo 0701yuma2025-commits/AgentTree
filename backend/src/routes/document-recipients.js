@@ -285,16 +285,21 @@ router.post('/:id/use', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // まず現在の値を取得
+    // まず現在の値と所有者を取得
     const { data: current, error: fetchError } = await supabase
       .from('document_recipients')
-      .select('use_count')
+      .select('use_count, user_id')
       .eq('id', id)
       .single();
 
-    if (fetchError) {
-      logger.error('使用回数取得エラー:', fetchError.message);
-      return res.status(500).json({ success: false, message: '使用回数の更新に失敗しました' });
+    if (fetchError || !current) {
+      return res.status(404).json({ success: false, message: '宛先テンプレートが見つかりません' });
+    }
+
+    // 所有チェック（GET/PUT/DELETEと同様：自分のテンプレ or 共有(user_id null)のみ）。
+    // 他ユーザーのテンプレへの使用回数更新（IDOR）を防止。
+    if (current.user_id && current.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'この宛先テンプレートを使用する権限がありません' });
     }
 
     // 使用回数をインクリメント、最終使用日時を更新
