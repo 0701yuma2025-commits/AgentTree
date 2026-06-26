@@ -37,7 +37,9 @@ class InviteAccept {
    */
   async validateToken() {
     try {
-      const response = await apiClient.get(`/invitations/validate?token=${this.inviteToken}`);
+      // バックエンドのルートは /invitations/validate/:token（パスパラメータ）。
+      // 旧コードは ?token= のクエリで呼んでおりルート未一致(404)で常に失敗していた。
+      const response = await apiClient.get(`/invitations/validate/${encodeURIComponent(this.inviteToken)}`);
       
       if (response.success && response.data) {
         this.inviteData = response.data;
