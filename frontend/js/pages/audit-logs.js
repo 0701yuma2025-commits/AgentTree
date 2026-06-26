@@ -288,7 +288,7 @@ class AuditLogsPage {
           <table class="detail-table">
             <tr>
               <th>ID</th>
-              <td>${log.id}</td>
+              <td>${this.escapeHtml(log.id)}</td>
             </tr>
             <tr>
               <th>タイムスタンプ</th>
@@ -322,7 +322,7 @@ class AuditLogsPage {
             </tr>
             <tr>
               <th>リソースID</th>
-              <td>${log.resource_id || '-'}</td>
+              <td>${this.escapeHtml(log.resource_id || '-')}</td>
             </tr>
             <tr>
               <th>説明</th>
