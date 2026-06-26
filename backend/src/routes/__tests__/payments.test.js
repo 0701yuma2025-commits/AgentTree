@@ -223,6 +223,8 @@ describe('POST /api/payments/confirm', () => {
       { id: 'c-1', agency_id: 'ag-1', final_amount: 15000, status: 'paid' },
       { id: 'c-2', agency_id: 'ag-1', final_amount: 20000, status: 'paid' },
     ];
+    // 冪等性チェック: 既存のcompleted payment_records（なし）
+    mockSupabase.then.mockImplementationOnce(resolve => resolve({ data: [], error: null }));
     // update().select()
     mockSupabase.then.mockImplementationOnce(resolve => resolve({ data: updatedCommissions, error: null }));
     // payment_records insert
@@ -242,6 +244,8 @@ describe('POST /api/payments/confirm', () => {
 
   test('payment_records挿入失敗 → warning付き200', async () => {
     const updatedCommissions = [{ id: 'c-1', agency_id: 'ag-1', final_amount: 10000, status: 'paid' }];
+    // 冪等性チェック: 既存のcompleted payment_records（なし）
+    mockSupabase.then.mockImplementationOnce(resolve => resolve({ data: [], error: null }));
     mockSupabase.then.mockImplementationOnce(resolve => resolve({ data: updatedCommissions, error: null }));
     mockSupabase.then.mockImplementationOnce(resolve => resolve({ error: { message: 'insert error' } }));
 
@@ -254,6 +258,21 @@ describe('POST /api/payments/confirm', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.warning).toBeDefined();
     expect(res.body.warning).toContain('支払い履歴の記録に失敗');
+  });
+
+  test('二重実行 → 既支払いをスキップしpayment_records重複を防止', async () => {
+    // この月の対象代理店は既に completed の支払い履歴を持つ
+    mockSupabase.then.mockImplementationOnce(resolve => resolve({ data: [{ agency_id: 'ag-1' }], error: null }));
+
+    const res = await request(app)
+      .post('/api/payments/confirm')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .send({ month: '2026-03', payment_date: '2026-03-25', agency_ids: ['ag-1'] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.updated_count).toBe(0);
+    expect(res.body.skipped_already_paid).toBe(1);
   });
 
   test('代理店ユーザー → 403', async () => {
