@@ -74,9 +74,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 /**
- * 商品登録（管理者と代理店）
+ * 商品登録（管理者のみ）
  */
-router.post('/', authMiddleware, auditLogMiddleware('create', 'product'), async (req, res) => {
+router.post('/', authMiddleware, requireAdmin, auditLogMiddleware('create', 'product'), async (req, res) => {
   try {
     const {
       product_name,
@@ -155,9 +155,9 @@ router.post('/', authMiddleware, auditLogMiddleware('create', 'product'), async 
 });
 
 /**
- * 商品更新（管理者と代理店、階層に応じた報酬率編集権限）
+ * 商品更新（管理者のみ）
  */
-router.put('/:id', authMiddleware, auditLogMiddleware('update', 'product'), async (req, res) => {
+router.put('/:id', authMiddleware, requireAdmin, auditLogMiddleware('update', 'product'), async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = {};
