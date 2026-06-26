@@ -36,6 +36,9 @@ if (missingRecommended.length > 0) {
 // Expressアプリケーション初期化
 const app = express();
 
+// Render等のリバースプロキシ背後で実クライアントIPを得る（プロキシ1段）
+app.set('trust proxy', 1);
+
 // ヘルスチェック（CORS・セキュリティミドルウェアの前に配置）
 app.get('/health', async (req, res) => {
   try {
