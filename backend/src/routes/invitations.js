@@ -79,6 +79,23 @@ router.post('/',
 
       const { agency_id, email } = req.body;
 
+      // 招待者の代理店ID（inviter_agency_id）を決定
+      // 代理店ユーザーはボディの agency_id を信用せず、自分の代理店IDに固定する（IDOR対策・fail-closed）
+      // 管理者はボディで任意の代理店を代理指定できる（既存挙動を尊重）
+      let inviterAgencyId;
+      if (req.user.role === 'agency') {
+        if (!req.user.agency?.id) {
+          return res.status(403).json({
+            success: false,
+            message: '代理店情報が確認できないため招待を作成できません'
+          });
+        }
+        inviterAgencyId = req.user.agency.id;
+      } else {
+        // admin 等：ボディ指定をそのまま使用（未指定時の挙動も維持）
+        inviterAgencyId = agency_id;
+      }
+
       // 招待者の代理店情報を取得（親代理店として使用）
       let parentAgencyId = null;
       if (req.user.role === 'agency' && req.user.agency) {
@@ -88,7 +105,7 @@ router.post('/',
       // 招待作成（Supabase Function経由）
       const { data, error } = await supabase
         .rpc('create_invitation', {
-          p_agency_id: agency_id,
+          p_agency_id: inviterAgencyId,
           p_email: email,
           p_created_by: req.user.id,
           p_parent_agency_id: parentAgencyId  // 親代理店IDを追加
