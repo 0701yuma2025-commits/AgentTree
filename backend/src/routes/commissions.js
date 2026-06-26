@@ -336,27 +336,65 @@ router.post('/calculate',
         calculation_details: commission.calculation_details || {}
       }));
 
-      // RPC関数を使わず、直接DELETE+INSERTで実行
-      logger.info(`Deleting existing commissions for month: ${month}`);
-      const { error: deleteError } = await supabase
+      // 確定済み(approved/paid)報酬は再計算・置換の対象外。
+      // 既存の確定済みレコードのキー(sale_id|agency_id)を取得し、再挿入対象から除外して確定値を保護する。
+      const { data: finalizedRows, error: finalizedError } = await supabase
         .from('commissions')
-        .delete()
-        .eq('month', month);
+        .select('sale_id, agency_id')
+        .eq('month', month)
+        .in('status', ['approved', 'paid']);
 
-      if (deleteError) {
-        logger.error('Delete error:', JSON.stringify(deleteError));
-        throw deleteError;
+      if (finalizedError) {
+        logger.error('Finalized commissions lookup error:', JSON.stringify(finalizedError));
+        throw finalizedError;
       }
 
-      logger.info(`Inserting ${commissionsForDB.length} commission records`);
-      if (commissionsForDB.length > 0) {
-        const { error: insertError } = await supabase
-          .from('commissions')
-          .insert(commissionsForDB);
+      const protectedKeys = new Set(
+        (finalizedRows || []).map(r => `${r.sale_id}|${r.agency_id}`)
+      );
+      const rowsToInsert = commissionsForDB.filter(
+        r => !protectedKeys.has(`${r.sale_id}|${r.agency_id}`)
+      );
 
-        if (insertError) {
-          logger.error('Insert error:', JSON.stringify(insertError));
-          throw insertError;
+      // 原子的に再計算: 非確定行のDELETEと新規行のINSERTを単一トランザクションのRPCで実行。
+      // INSERT失敗時にその月の報酬が全消失するのを防ぐ。
+      logger.info(`Recalculating commissions for month: ${month} (insert ${rowsToInsert.length}, protected ${protectedKeys.size})`);
+      const { error: rpcError } = await supabase
+        .rpc('recalculate_commissions', { p_month: month, p_rows: rowsToInsert });
+
+      if (rpcError) {
+        const rpcMissing = rpcError.code === 'PGRST202' ||
+          /could not find the function|does not exist/i.test(rpcError.message || '');
+
+        if (!rpcMissing) {
+          logger.error('recalculate_commissions RPC error:', JSON.stringify(rpcError));
+          throw rpcError;
+        }
+
+        // RPC未適用環境向けフォールバック（非トランザクションだが確定済みは保護）。
+        // SQL(007_recalculate_commissions_rpc.sql)適用後は上のRPCで原子的に実行される。
+        logger.warn('recalculate_commissions RPC not found; falling back to non-transactional delete+insert');
+        const { error: deleteError } = await supabase
+          .from('commissions')
+          .delete()
+          .eq('month', month)
+          .neq('status', 'approved')
+          .neq('status', 'paid');
+
+        if (deleteError) {
+          logger.error('Delete error:', JSON.stringify(deleteError));
+          throw deleteError;
+        }
+
+        if (rowsToInsert.length > 0) {
+          const { error: insertError } = await supabase
+            .from('commissions')
+            .insert(rowsToInsert);
+
+          if (insertError) {
+            logger.error('Insert error:', JSON.stringify(insertError));
+            throw insertError;
+          }
         }
       }
 
