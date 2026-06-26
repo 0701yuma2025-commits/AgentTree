@@ -12,7 +12,6 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { loginRateLimit } = require('../middleware/rateLimiter');
 const { logLogin, logLogout } = require('../middleware/auditLog');
-const { generateAgencyCode } = require('../utils/generateCode');
 const { generate6DigitCode } = require('./auth/two-factor');
 const { setTokenCookie, setRefreshTokenCookie, clearAuthCookies } = require('../utils/cookieHelper');
 const { createModuleLogger } = require('../config/logger');
@@ -84,40 +83,20 @@ router.post('/login', loginRateLimit, async (req, res) => {
     }
 
     if (profileError || !userProfile) {
-      // ユーザーがない場合は作成
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: email,
-          password_hash: 'managed_by_supabase',
-          role: 'agency',
-          full_name: authData.user.user_metadata?.full_name || email.split('@')[0],
-          is_active: true,
-          last_login_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        logger.error('Create user error:', createError.message);
-        // エラーでもログインは許可（Supabase認証は成功しているため）
-        userProfile = {
-          id: authData.user.id,
-          email: email,
-          role: 'agency',
-          full_name: email.split('@')[0]
-        };
-      } else {
-        userProfile = newUser;
-      }
-    } else {
-      // 最終ログイン時刻を更新
-      await supabase
-        .from('users')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('id', userProfile.id);
+      // プロファイルが存在しない = 正規の招待/承認フローを経ていない。
+      // ログイン時の自動作成は承認バイパスになるため行わず、明示的に拒否する。
+      await logLogin({ email }, req, false);
+      return res.status(403).json({
+        success: false,
+        message: 'このアカウントはまだ登録が完了していません。管理者にお問い合わせください。'
+      });
     }
+
+    // 最終ログイン時刻を更新
+    await supabase
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', userProfile.id);
 
     // JWTトークン生成（環境変数の必須チェック）
     if (!process.env.JWT_SECRET) {
@@ -161,73 +140,24 @@ router.post('/login', loginRateLimit, async (req, res) => {
     // 代理店情報を格納する変数
     let userAgency = null;
 
-    // 代理店ユーザーの場合、代理店が存在しない場合は作成
+    // 既存の代理店情報を取得する（ログイン時の自動作成は承認バイパスになるため行わない）。
+    // 認可キーは user_id を優先し、旧データ(user_id未設定)は email でフォールバック。
     if (finalRole === 'agency' || finalRole === 'admin') {
-      const { data: existingAgency } = await supabase
+      const { data: agencyByUserId } = await supabase
         .from('agencies')
         .select('*')
-        .eq('email', email)
-        .single();
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
 
-      if (!existingAgency) {
-        // 招待情報から親代理店を取得
-        const { data: invitation } = await supabase
-          .from('invitations')
-          .select('parent_agency_id')
-          .eq('email', email)
-          .single();
+      userAgency = agencyByUserId || null;
 
-        // 親代理店のtier_levelを取得
-        let tierLevel = 1;  // デフォルトはTier1
-        let parentAgencyId = null;
-
-        if (invitation?.parent_agency_id) {
-          const { data: parentAgency } = await supabase
-            .from('agencies')
-            .select('tier_level')
-            .eq('id', invitation.parent_agency_id)
-            .single();
-
-          if (parentAgency) {
-            // Tier5の下には代理店を作成できない
-            if (parentAgency.tier_level >= 5) {
-              await logLogin({ email }, req, false);
-              return res.status(400).json({
-                success: false,
-                message: 'これ以上階層を作成できません。最大Tier5までです。'
-              });
-            }
-
-            tierLevel = parentAgency.tier_level + 1;
-            parentAgencyId = invitation.parent_agency_id;
-          }
-        }
-
-        // 新規代理店を作成
-        const agencyCode = await generateAgencyCode();
-
-        const { data: newAgency, error: agencyError } = await supabase
+      if (!userAgency) {
+        const { data: agencyByEmail } = await supabase
           .from('agencies')
-          .insert({
-            agency_code: agencyCode,
-            company_name: userProfile.full_name || email.split('@')[0] + '代理店',
-            company_type: '個人',
-            representative_name: userProfile.full_name || email.split('@')[0],
-            contact_email: email,
-            email: email,  // 1代理店1ユーザー用のemailフィールド
-            tier_level: tierLevel,
-            parent_agency_id: parentAgencyId,
-            status: 'active'
-          })
-          .select()
-          .single();
-
-        if (!agencyError && newAgency) {
-          // Agency auto-created
-          userAgency = newAgency;
-        }
-      } else {
-        userAgency = existingAgency;
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
+        userAgency = agencyByEmail || null;
       }
     }
 
