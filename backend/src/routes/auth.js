@@ -128,6 +128,8 @@ router.post('/login', loginRateLimit, async (req, res) => {
         id: authData.user.id,
         email: email,
         role: userProfile.role || 'agency',
+        // refresh時にアクセストークンの有効期限を元セッションの remember_me に揃えるためフラグを保持
+        remember_me: !!remember_me,
         type: 'refresh'
       },
       process.env.JWT_REFRESH_SECRET,
@@ -318,19 +320,94 @@ router.post('/refresh', async (req, res) => {
       throw new Error('JWT_SECRET is not configured');
     }
 
+    const userId = decoded.id || decoded.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'リフレッシュトークンが無効です'
+      });
+    }
+
+    // 最新のロール・状態をDBから取得（JWTのroleは信頼しない）。
+    // 降格(admin→agency)やアカウント無効化を反映し、古い権限・有効期限を焼き直さない。
+    // 取得不能なら fail-closed（再発行しない）。
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !userProfile) {
+      return res.status(401).json({
+        success: false,
+        code: 'USER_NOT_FOUND',
+        message: 'アカウントが無効です。再度ログインしてください。'
+      });
+    }
+
+    // 明示的に無効化されたアカウントは拒否（is_active未設定の旧データは許可）
+    if (userProfile.is_active === false) {
+      return res.status(403).json({
+        success: false,
+        code: 'ACCOUNT_DISABLED',
+        message: 'このアカウントは無効化されています。'
+      });
+    }
+
+    const role = userProfile.role || 'agency';
+    const email = userProfile.email || decoded.email;
+
+    // 代理店ユーザーは停止/解約状態を再チェック（user_id優先→emailフォールバック）
+    if (role === 'agency') {
+      let agency = null;
+      const { data: agencyByUserId } = await supabase
+        .from('agencies')
+        .select('status')
+        .eq('user_id', userId)
+        .maybeSingle();
+      agency = agencyByUserId || null;
+      if (!agency && email) {
+        const { data: agencyByEmail } = await supabase
+          .from('agencies')
+          .select('status')
+          .eq('email', email)
+          .maybeSingle();
+        agency = agencyByEmail || null;
+      }
+      if (agency && agency.status === 'terminated') {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_TERMINATED',
+          message: 'このアカウントは解約されています。'
+        });
+      }
+      if (agency && agency.status === 'suspended') {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_SUSPENDED',
+          message: 'このアカウントは停止されています。'
+        });
+      }
+    }
+
+    // 元セッションの remember_me を踏襲（一方的な期限延長を防止。
+    // 旧トークンにフラグが無い場合は短い方(1d)にフォールバック）。
+    const rememberMe = !!decoded.remember_me;
+    const accessTokenExpiry = rememberMe ? '30d' : '1d';
+
     const newToken = jwt.sign(
       {
-        id: decoded.id || decoded.userId,
-        email: decoded.email,
-        role: decoded.role,
+        id: userId,
+        email: email,
+        role: role,
         type: 'access'
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d', issuer: 'agenttree', audience: 'agenttree-api' }
+      { expiresIn: accessTokenExpiry, issuer: 'agenttree', audience: 'agenttree-api' }
     );
 
-    // 新しいアクセストークンをhttpOnly Cookieに設定
-    setTokenCookie(res, newToken);
+    // 新しいアクセストークンをhttpOnly Cookieに設定（cookieのmaxAgeもremember_meに揃える）
+    setTokenCookie(res, newToken, { rememberMe });
 
     // トークンはhttpOnly Cookieのみ（bodyには含めない）
     res.json({
