@@ -80,15 +80,10 @@ const globalApiRateLimiter = rateLimit({
     retryAfter: 60
   },
   standardHeaders: true,
-  legacyHeaders: false,
-  // 認証済みユーザーは制限を緩和
-  keyGenerator: (req) => {
-    return req.user?.id || req.ip;
-  },
-  skip: (req) => {
-    // 管理者は制限をスキップ
-    return req.user?.role === 'admin';
-  }
+  legacyHeaders: false
+  // 注意: このlimiterはルート側の認証(authenticateToken)より前段で実行されるため、
+  // req.user は未設定。以前の keyGenerator(req.user?.id) / skip(admin) は常に機能せず
+  // 誤った安心感を与えていたため削除。負荷遮断目的でIPベース(ライブラリ既定keyGenerator)に割り切る。
 });
 
 /**
