@@ -384,23 +384,53 @@ router.post('/set-password', passwordResetRateLimit, async (req, res) => {
       email_confirm: true
     });
 
-    if (authError && authError.message !== 'User already exists') {
-      // ユーザーが既に存在する場合はパスワードを更新
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
-        authUser?.id || agency.user_id,
-        { password }
-      );
+    let userId = authUser?.id || null;
 
-      if (updateError) {
-        logger.error('Password update error:', updateError.message);
+    if (authError) {
+      if (/already|exist/i.test(authError.message)) {
+        // 既にユーザーが存在する場合はパスワードを更新する。
+        // createUser失敗時 authUser は null のため、user_id優先→無ければメールで照合してIDを特定。
+        let existingUserId = agency.user_id || null;
+        if (!existingUserId) {
+          const { data: u } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', agency.contact_email)
+            .maybeSingle();
+          existingUserId = u?.id || null;
+        }
+
+        if (!existingUserId) {
+          logger.error('Set password: existing auth user not found for', agency.contact_email);
+          return res.status(500).json({
+            success: false,
+            message: 'パスワード設定に失敗しました'
+          });
+        }
+
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          existingUserId,
+          { password }
+        );
+
+        if (updateError) {
+          logger.error('Password update error:', updateError.message);
+          return res.status(500).json({
+            success: false,
+            message: 'パスワード設定に失敗しました'
+          });
+        }
+
+        userId = existingUserId;
+      } else {
+        // 「既に存在する」以外は本当のエラーとして扱う
+        logger.error('Set password: createUser error:', authError.message);
         return res.status(500).json({
           success: false,
           message: 'パスワード設定に失敗しました'
         });
       }
     }
-
-    const userId = authUser?.id || agency.user_id;
 
     // usersテーブルにレコードを作成または更新
     const { error: userError } = await supabase
