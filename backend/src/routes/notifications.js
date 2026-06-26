@@ -7,6 +7,7 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const emailService = require('../services/emailService');
+const { escapeHtml } = require('../utils/htmlEscape');
 const { createModuleLogger } = require('../config/logger');
 const logger = createModuleLogger('notifications');
 
@@ -319,6 +320,14 @@ router.post('/broadcast', authenticateToken, async (req, res) => {
 
     const { subject, message, targetAgencies = 'all' } = req.body;
 
+    // 入力バリデーション（subject/messageは必須）
+    if (!subject || !message) {
+      return res.status(400).json({
+        success: false,
+        message: '件名と本文は必須です'
+      });
+    }
+
     // 送信対象の代理店を取得
     let query = supabase.from('agencies').select('id, contact_email');
 
@@ -336,9 +345,11 @@ router.post('/broadcast', authenticateToken, async (req, res) => {
         const emailResult = await emailService.sendMail({
           to: agency.contact_email,
           subject,
+          // HTML本文に埋め込む際はエスケープしてHTMLインジェクション/XSSを防止
+          // （件名はメールヘッダのため非HTML、生のまま使用）
           html: `
-            <h2>${subject}</h2>
-            <div>${message}</div>
+            <h2>${escapeHtml(subject)}</h2>
+            <div>${escapeHtml(message)}</div>
             <hr>
             <p><small>このメールはシステムからの一括送信です。</small></p>
           `
