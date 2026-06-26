@@ -243,6 +243,11 @@ describe('POST /api/auth/refresh', () => {
     app = createApp();
   });
 
+  beforeEach(() => {
+    // refresh は最新の users.role / 状態をDBから取得して再発行するため、毎回モックを初期化
+    mockSupabase.resetAll();
+  });
+
   test('リフレッシュトークンなし → 401', async () => {
     const res = await request(app)
       .post('/api/auth/refresh')
@@ -282,6 +287,10 @@ describe('POST /api/auth/refresh', () => {
 
   test('有効なリフレッシュトークン → 200 + cookie更新', async () => {
     const validRefresh = createRefreshToken();
+    // DBの最新ユーザー（role/状態）を返す。agencyロールなので代理店status(active)も同じデータで応答
+    mockSupabase.setReturnData({
+      id: TEST_USER.id, email: TEST_USER.email, role: 'agency', is_active: true, status: 'active',
+    });
 
     const res = await request(app)
       .post('/api/auth/refresh')
@@ -303,8 +312,12 @@ describe('POST /api/auth/refresh', () => {
     expect(decoded.id).toBe(TEST_USER.id);
   });
 
-  test('リフレッシュで得たトークンのロールが保持される', async () => {
+  test('新トークンのロールはDBの最新値で発行される（admin）', async () => {
     const adminRefresh = createRefreshToken({ role: 'admin' });
+    // DBではadminのまま
+    mockSupabase.setReturnData({
+      id: TEST_USER.id, email: TEST_USER.email, role: 'admin', is_active: true,
+    });
 
     const res = await request(app)
       .post('/api/auth/refresh')
@@ -317,6 +330,38 @@ describe('POST /api/auth/refresh', () => {
     const tokenValue = accessCookie.split(';')[0].split('=')[1];
     const decoded = jwt.verify(tokenValue, JWT_SECRET, { issuer: 'agenttree', audience: 'agenttree-api' });
     expect(decoded.role).toBe('admin');
+  });
+
+  test('降格(admin→agency)がrefreshに反映される', async () => {
+    // リフレッシュトークンはadminだが、DBではagencyに降格済み
+    const adminRefresh = createRefreshToken({ role: 'admin' });
+    mockSupabase.setReturnData({
+      id: TEST_USER.id, email: TEST_USER.email, role: 'agency', is_active: true, status: 'active',
+    });
+
+    const res = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: adminRefresh });
+
+    expect(res.status).toBe(200);
+    const cookies = res.headers['set-cookie'];
+    const accessCookie = cookies.find(c => c.startsWith('access_token='));
+    const tokenValue = accessCookie.split(';')[0].split('=')[1];
+    const decoded = jwt.verify(tokenValue, JWT_SECRET, { issuer: 'agenttree', audience: 'agenttree-api' });
+    // 古いトークンのadminを焼き直さず、DBのagencyで再発行される
+    expect(decoded.role).toBe('agency');
+  });
+
+  test('DBにユーザーが存在しない場合は再発行しない → 401', async () => {
+    const validRefresh = createRefreshToken();
+    mockSupabase.setReturnData(null); // users取得で該当なし
+
+    const res = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: validRefresh });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
   });
 });
 
