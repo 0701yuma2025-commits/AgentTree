@@ -591,11 +591,18 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
     if (status) {
       query = query.eq('status', status);
     }
-    // 代理店フィルタ（代理店ユーザーは自分のデータのみ、管理者は全データ）
+    // 代理店フィルタ（一覧GETと同一スコープ：自社のみ）
     if (req.user.role !== 'admin') {
-      if (agency_id || req.user.agency_id) {
-        query = query.eq('agency_id', agency_id || req.user.agency_id);
+      // 非adminはクライアント指定のagency_idを無視し、自社のみで強制フィルタ
+      // 代理店IDが未解決の場合はfail-closed（空フィルタを発行しない）
+      const ownAgencyId = req.user.agency?.id || req.user.agency_id;
+      if (!ownAgencyId) {
+        return res.status(403).json({
+          success: false,
+          message: 'アクセス権限がありません'
+        });
       }
+      query = query.eq('agency_id', ownAgencyId);
     } else if (agency_id) {
       // 管理者が特定の代理店を指定した場合のみフィルタ
       query = query.eq('agency_id', agency_id);
