@@ -64,15 +64,21 @@ router.post('/generate', authenticateToken, async (req, res) => {
         )
       `);
 
+    // 代理店ユーザーは自分の代理店のデータのみ（agency_id未解決ならfail-closed）
+    if (req.user.role !== 'admin' && !req.user.agency?.id) {
+      return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+    }
+
     if (commission_id) {
       query = query.eq('id', commission_id);
-      // 代理店ユーザーは自分の代理店のデータのみ
       if (req.user.role !== 'admin') {
-        query = query.eq('agency_id', req.user.agency?.id);
+        query = query.eq('agency_id', req.user.agency.id);
       }
     } else {
-      query = query.eq('month', month)
-        .eq('agency_id', req.user.agency?.id);
+      query = query.eq('month', month);
+      if (req.user.role !== 'admin') {
+        query = query.eq('agency_id', req.user.agency.id);
+      }
     }
 
     const { data: commission, error } = await query.single();
@@ -245,9 +251,12 @@ router.post('/receipt', authenticateToken, async (req, res) => {
       `)
       .eq('id', payment_id);
 
-    // 代理店ユーザーは自分の代理店のデータのみ
+    // 代理店ユーザーは自分の代理店のデータのみ（agency_id未解決ならfail-closed）
     if (req.user.role !== 'admin') {
-      paymentQuery = paymentQuery.eq('agency_id', req.user.agency?.id);
+      if (!req.user.agency?.id) {
+        return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+      }
+      paymentQuery = paymentQuery.eq('agency_id', req.user.agency.id);
     }
 
     const { data: payment, error } = await paymentQuery.single();
@@ -337,9 +346,12 @@ router.post('/generate-from-sale', authenticateToken, async (req, res) => {
       `)
       .eq('id', sale_id);
 
-    // 代理店ユーザーは自分の代理店のデータのみ
+    // 代理店ユーザーは自分の代理店のデータのみ（agency_id未解決ならfail-closed）
     if (req.user.role !== 'admin') {
-      saleQuery = saleQuery.eq('agency_id', req.user.agency?.id);
+      if (!req.user.agency?.id) {
+        return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+      }
+      saleQuery = saleQuery.eq('agency_id', req.user.agency.id);
     }
 
     const { data: sale, error: saleError } = await saleQuery.single();
@@ -440,9 +452,12 @@ router.post('/receipt-from-sale', authenticateToken, async (req, res) => {
       `)
       .eq('id', sale_id);
 
-    // 代理店ユーザーは自分の代理店のデータのみ
+    // 代理店ユーザーは自分の代理店のデータのみ（agency_id未解決ならfail-closed）
     if (req.user.role !== 'admin') {
-      saleQuery2 = saleQuery2.eq('agency_id', req.user.agency?.id);
+      if (!req.user.agency?.id) {
+        return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+      }
+      saleQuery2 = saleQuery2.eq('agency_id', req.user.agency.id);
     }
 
     const { data: sale, error: saleError } = await saleQuery2.single();
@@ -773,9 +788,12 @@ router.get('/', authenticateToken, async (req, res) => {
       `)
       .order('month', { ascending: false });
 
-    // 管理者以外は自分の代理店のデータのみ
+    // 管理者以外は自分の代理店のデータのみ（agency_id未解決ならfail-closed）
     if (req.user.role !== 'admin') {
-      query = query.eq('agency_id', req.user.agency?.id);
+      if (!req.user.agency?.id) {
+        return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+      }
+      query = query.eq('agency_id', req.user.agency.id);
     }
 
     if (month) {

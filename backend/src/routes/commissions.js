@@ -59,8 +59,11 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('agency_id', agency_id);
     }
 
-    // 代理店ユーザーは自社の報酬のみ
-    if (req.user.role === 'agency' && req.user.agency) {
+    // 代理店ユーザーは自社の報酬のみ（agency_id未解決ならfail-closed）
+    if (req.user.role === 'agency') {
+      if (!req.user.agency?.id) {
+        return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+      }
       query = query.eq('agency_id', req.user.agency.id);
     }
 
@@ -189,7 +192,11 @@ router.get('/summary', authenticateToken, async (req, res) => {
       .select('base_amount, tier_bonus, campaign_bonus, final_amount, status')
       .eq('month', targetMonth);
 
-    if (req.user.role === 'agency' && req.user.agency) {
+    // 代理店ユーザーは自社の報酬のみ（agency_id未解決ならfail-closed）
+    if (req.user.role === 'agency') {
+      if (!req.user.agency?.id) {
+        return res.status(403).json({ success: false, message: 'アクセス権限がありません' });
+      }
       query = query.eq('agency_id', req.user.agency.id);
     }
 
