@@ -66,6 +66,12 @@ const securityHeaders = helmet({
  * 入力値のサニタイゼーション
  */
 const sanitizeInput = (req, res, next) => {
+  // 注意: 入力時のHTMLタグ除去は補助的な防御に過ぎず、本来のXSS対策は出力時エスケープ
+  //（メールHTMLは utils/htmlEscape、画面表示はフロントの escapeHtml）で行うこと。
+  // 認証・署名系の値（パスワード/トークン/コード/ハッシュ/秘密鍵/署名）は < > を含み得るうえ
+  // 改変すると照合失敗やデータ破壊を招くため、サニタイズ対象から除外する。
+  const PRESERVE_KEY_PATTERNS = ['password', 'token', 'secret', 'hash', 'signature', 'code'];
+
   // HTMLタグを削除する正規表現
   const stripHtml = (text) => {
     if (typeof text !== 'string') return text;
@@ -81,8 +87,9 @@ const sanitizeInput = (req, res, next) => {
       const sanitized = {};
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
-          // パスワードフィールドはサニタイズしない
-          if (key.toLowerCase().includes('password')) {
+          // 認証・署名系フィールドは改変しない（破壊・照合失敗防止）
+          const lowerKey = key.toLowerCase();
+          if (PRESERVE_KEY_PATTERNS.some(p => lowerKey.includes(p))) {
             sanitized[key] = obj[key];
           } else {
             sanitized[key] = sanitizeObject(obj[key]);
