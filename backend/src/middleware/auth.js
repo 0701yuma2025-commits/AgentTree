@@ -134,16 +134,46 @@ const authenticateToken = async (req, res, next) => {
         ...userInfo
       };
 
-      // 代理店ユーザーの場合は代理店情報も追加（メールベースで検索）
+      // 代理店ユーザーの場合は代理店情報も追加。
+      // 認可キーは user_id を正とする。旧データ(user_id未設定)は email でフォールバックし、
+      // 見つかった場合は user_id を補完して次回以降 user_id で確定できるようにする(自己修復)。
       if (req.user.role === 'agency') {
-        const { data: agency, error: agencyError } = await supabase
+        // 1) user_id で特定（一意・改ざん不能なキー）
+        const { data: byUserId } = await supabase
           .from('agencies')
           .select('*')
-          .eq('email', req.user.email)  // メールアドレスで代理店を特定
-          .single();
+          .eq('user_id', id)
+          .maybeSingle();
 
-        if (agencyError) {
-          logger.info('Agency lookup warning:', agencyError.message);
+        let agency = byUserId || null;
+
+        // 2) 見つからなければ email でフォールバック（旧データ互換）
+        if (!agency) {
+          const { data: byEmail, error: emailError } = await supabase
+            .from('agencies')
+            .select('*')
+            .eq('email', req.user.email)
+            .maybeSingle();
+
+          if (emailError) {
+            logger.info('Agency lookup (email fallback) warning:', emailError.message);
+          }
+
+          agency = byEmail || null;
+
+          // user_id 未設定なら補完しておく（best-effort、失敗してもログのみで継続）
+          if (agency && !agency.user_id) {
+            const { error: backfillError } = await supabase
+              .from('agencies')
+              .update({ user_id: id })
+              .eq('id', agency.id);
+
+            if (backfillError) {
+              logger.info('Agency user_id backfill warning:', backfillError.message);
+            } else {
+              agency.user_id = id;
+            }
+          }
         }
 
         if (agency) {
