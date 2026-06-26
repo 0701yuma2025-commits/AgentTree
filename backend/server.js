@@ -120,22 +120,31 @@ app.use('/api/invitations', invitationRateLimiter);
 // 入力値のサニタイゼーション
 app.use(sanitizeInput);
 
-// CSRF対策: 状態変更リクエストのOrigin検証（本番環境のみ）
+// CSRF対策: 状態変更リクエストのOrigin/Referer検証（test以外で常時有効）
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV !== 'production') return next();
+  // テスト環境のみ除外（supertestはOrigin/Refererを付与しないため）
+  if (process.env.NODE_ENV === 'test') return next();
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  // Bearerトークン認証はブラウザが自動付与しないためCSRF対象外（middleware/auth.jsの方針と一致）
+  const authHeader = req.headers['authorization'] || '';
+  if (authHeader.startsWith('Bearer ')) return next();
 
   const origin = req.headers.origin;
   const referer = req.headers.referer;
 
-  // Bearer JWT認証のAPIはOriginまたはRefererが許可リストに含まれていること
+  // Cookie認証の状態変更リクエストはOriginまたはRefererが許可リストに含まれていること
   if (origin && allowedOrigins.includes(origin)) return next();
   if (referer) {
-    const refOrigin = new URL(referer).origin;
-    if (allowedOrigins.includes(refOrigin)) return next();
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (allowedOrigins.includes(refOrigin)) return next();
+    } catch (e) {
+      // 不正な形式のRefererは検証失敗として拒否へフォールスルー（500を防止）
+    }
   }
 
-  // Origin/Referer両方なし、かつ本番環境の状態変更リクエスト → 拒否
+  // Origin/Refererが許可リストに一致しない状態変更リクエスト → 拒否
   return res.status(403).json({
     success: false,
     message: 'CSRF検証に失敗しました'
