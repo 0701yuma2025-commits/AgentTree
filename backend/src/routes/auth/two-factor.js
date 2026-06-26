@@ -479,17 +479,11 @@ router.post('/login/2fa/email', loginRateLimit, async (req, res) => {
       .eq('email', email)
       .single();
 
-    if (userError || !user) {
-      return res.status(404).json({
+    // アカウント列挙対策: ユーザー不在/2FA未設定を区別せず一律で同じ失敗レスポンスを返す
+    if (userError || !user || !user.two_factor_enabled) {
+      return res.status(401).json({
         success: false,
-        message: 'ユーザーが見つかりません'
-      });
-    }
-
-    if (!user.two_factor_enabled) {
-      return res.status(400).json({
-        success: false,
-        message: '2FAが有効化されていません'
+        message: '認証に失敗しました'
       });
     }
 
