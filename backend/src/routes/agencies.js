@@ -248,12 +248,15 @@ router.post('/',
         req.body.parent_agency_id = req.user.agency.id;
       }
 
+      // 実効親ID（代理店ユーザーの上書き後の値を含む。リクエスト本文を優先）
+      const effectiveParentId = req.body.parent_agency_id || parent_agency_id;
+
       // 親代理店の階層チェック
-      if (parent_agency_id) {
+      if (effectiveParentId) {
         const { data: parentAgency } = await supabase
           .from('agencies')
           .select('tier_level')
-          .eq('id', parent_agency_id)
+          .eq('id', effectiveParentId)
           .single();
 
         if (parentAgency && tier_level !== parentAgency.tier_level + 1) {
@@ -280,7 +283,7 @@ router.post('/',
           const { count: childCount, error: countError } = await supabase
             .from('agencies')
             .select('*', { count: 'exact', head: true })
-            .eq('parent_agency_id', parent_agency_id)
+            .eq('parent_agency_id', effectiveParentId)
             .eq('status', 'active');  // アクティブな代理店のみカウント
 
           if (countError) throw countError;
