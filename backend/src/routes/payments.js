@@ -247,14 +247,37 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { month, payment_date, agency_ids } = req.body;
 
-    if (!month || !payment_date || !agency_ids || agency_ids.length === 0) {
+    if (!month || !payment_date || !Array.isArray(agency_ids) || agency_ids.length === 0) {
       return res.status(400).json({
         success: false,
         message: '必須パラメータが不足しています'
       });
     }
 
-    // 該当する報酬を支払い済みに更新
+    // 冪等性: この月に既に completed の支払い履歴がある代理店を取得し、二重実行による重複作成を防止
+    const { data: existingRecords, error: existingError } = await supabase
+      .from('payment_records')
+      .select('agency_id')
+      .eq('month', month)
+      .eq('status', 'completed')
+      .in('agency_id', agency_ids);
+
+    if (existingError) throw existingError;
+
+    const alreadyPaidAgencyIds = new Set((existingRecords || []).map(r => r.agency_id));
+    const targetAgencyIds = agency_ids.filter(id => !alreadyPaidAgencyIds.has(id));
+
+    // 全代理店が既に支払い済みなら、何も更新せず冪等に成功を返す
+    if (targetAgencyIds.length === 0) {
+      return res.json({
+        success: true,
+        message: '対象の代理店はすべて支払い済みです',
+        data: { updated_count: 0, total_amount: 0 },
+        skipped_already_paid: agency_ids.length
+      });
+    }
+
+    // 該当する報酬を支払い済みに更新（既に支払い済みの代理店は除外）
     const { data, error } = await supabase
       .from('commissions')
       .update({
@@ -265,14 +288,15 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
       })
       .eq('month', month)
       .eq('status', 'approved')
-      .in('agency_id', agency_ids)
+      .in('agency_id', targetAgencyIds)
       .gte('final_amount', 10000)
       .select();
 
     if (error) throw error;
 
-    // 支払い履歴を記録
-    const paymentRecords = agency_ids.map(agency_id => ({
+    // 支払い履歴を記録（今回実際に支払った代理店のみ。承認済み報酬が無い代理店の0円レコードは作らない）
+    const paidAgencyIds = [...new Set((data || []).map(c => c.agency_id))];
+    const paymentRecords = paidAgencyIds.map(agency_id => ({
       agency_id,
       month,
       payment_date,
@@ -284,12 +308,15 @@ router.post('/confirm', authenticateToken, requireAdmin, async (req, res) => {
       created_by: req.user.id
     }));
 
-    const { error: recordError } = await supabase
-      .from('payment_records')
-      .insert(paymentRecords);
-
-    if (recordError) {
-      logger.error('Payment record creation error:', recordError.message);
+    let recordError = null;
+    if (paymentRecords.length > 0) {
+      const insertResult = await supabase
+        .from('payment_records')
+        .insert(paymentRecords);
+      recordError = insertResult.error;
+      if (recordError) {
+        logger.error('Payment record creation error:', recordError.message);
+      }
     }
 
     const response = {
