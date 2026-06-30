@@ -755,6 +755,19 @@ router.put('/:id', authenticateToken, auditLogMiddleware('update', 'sale'), asyn
             const parentChain = await getParentChain(agency.parent_agency_id);
 
             if (relatedCommissions && relatedCommissions.length > 0) {
+              // K2: 確定済み(approved/paid)報酬は売上編集で上書きしない。
+              // 1件でも含まれる場合は自動再計算を行わずスキップ(部分更新による不整合も回避)。
+              const hasFinalized = relatedCommissions.some(c => c.status === 'approved' || c.status === 'paid');
+              if (hasFinalized) {
+                logger.warn(`売上${id}の報酬にapproved/paidが含まれるため再計算をスキップ`);
+                return res.json({
+                  success: true,
+                  message: '売上情報を更新しました',
+                  warning: '確定済み(承認/支払済)の報酬が紐づいているため、報酬の自動再計算はスキップしました。必要なら管理者が手動で調整してください。',
+                  data
+                });
+              }
+
               // 既存報酬を更新：登録時の設定値を維持
               const settings = relatedCommissions[0].calculation_details?.applied_settings || DEFAULT_COMMISSION_SETTINGS;
               const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
