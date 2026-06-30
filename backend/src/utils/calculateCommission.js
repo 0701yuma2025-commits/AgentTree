@@ -310,6 +310,49 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
     });
   });
 
+  // 源泉徴収(外交員報酬)を月次・代理店単位で確定する。
+  // 個人事業主は「(その月の報酬合計 − インボイス控除 − 月12万円) に累進税率(100万円超は20.42%)」で
+  // 源泉徴収。基本報酬だけでなく階層/キャンペーンボーナスも含めて課税。法人は源泉なし。
+  // 売上単位の暫定源泉(calculateCommissionForSale)を上書きし、合計を代表レコードに集約する。
+  const monthlyDeduction = commissionSettings?.withholding_monthly_deduction ?? 120000;
+  const recordsByAgency = {};
+  commissions.forEach(c => {
+    (recordsByAgency[c.agency_id] = recordsByAgency[c.agency_id] || []).push(c);
+  });
+
+  Object.keys(recordsByAgency).forEach(agencyId => {
+    const recs = recordsByAgency[agencyId];
+    const agency = agencyMap[agencyId];
+    const isIndividual = !!agency && (agency.company_type === '個人' || agency.withholding_tax_flag);
+
+    // 各レコードの源泉を一旦0に戻し、final = 報酬 − インボイス控除 で再計算
+    let monthlyReward = 0;
+    let monthlyInvoiceDeduction = 0;
+    recs.forEach(r => {
+      const reward = (r.base_amount || 0) + (r.tier_bonus || 0) + (r.campaign_bonus || 0);
+      const invDed = r.calculation_details?.invoice_deduction || 0;
+      monthlyReward += reward;
+      monthlyInvoiceDeduction += invDed;
+      r.withholding_tax = 0;
+      r.final_amount = reward - invDed;
+    });
+
+    if (isIndividual) {
+      const taxable = monthlyReward - monthlyInvoiceDeduction - monthlyDeduction;
+      const withholding = calculateWithholdingTax(taxable, commissionSettings || {});
+      if (withholding > 0) {
+        // 代表レコード(base>0優先、無ければ先頭)に源泉を集約
+        const rep = recs.find(r => (r.base_amount || 0) > 0) || recs[0];
+        rep.withholding_tax = withholding;
+        rep.final_amount = Math.max(0, rep.final_amount - withholding);
+        if (rep.calculation_details) {
+          rep.calculation_details.withholding_tax = withholding;
+          rep.calculation_details.monthly_withholding = true;
+        }
+      }
+    }
+  });
+
   // 最低支払額チェック（代理店ごとに集計）。キャンペーンは上の売上単位計算で適用済みのため
   // ここでは旧 calculateCampaignBonus(閾値直書きの二重カウント=バグB)は行わない(シナリオC)。
   const agencySummary = {};

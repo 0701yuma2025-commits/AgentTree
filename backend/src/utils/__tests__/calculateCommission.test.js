@@ -619,3 +619,33 @@ describe('calculateWithholdingTax（源泉徴収・累進）', () => {
     expect(calculateWithholdingTax(undefined, {})).toBe(0);
   });
 });
+
+describe('月次の源泉徴収（外交員・個人事業主）', () => {
+  test('個人: (月報酬 − 12万円) に源泉。base100万 → floor((100万-12万)*10.21%)=89,848', () => {
+    const sales = [makeSale({ agency_id: 'ag-1', total_amount: 10000000 })]; // base = 10% = 1,000,000
+    const agencies = [makeAgency({ id: 'ag-1', tier_level: 1, company_type: '個人', invoice_registered: true })];
+    const products = [makeProduct()];
+    const result = calculateMonthlyCommissions(sales, agencies, products, '2026-01');
+    const self = result.find(r => r.agency_id === 'ag-1' && r.base_amount > 0);
+    expect(self.withholding_tax).toBe(89848); // floor(880000 * 10.21%)
+    expect(self.final_amount).toBe(1000000 - 89848);
+  });
+
+  test('個人: 月報酬が12万円以下なら源泉0（外交員の月12万円控除）', () => {
+    const sales = [makeSale({ agency_id: 'ag-1', total_amount: 1000000 })]; // base = 100,000
+    const agencies = [makeAgency({ id: 'ag-1', tier_level: 1, company_type: '個人', invoice_registered: true })];
+    const result = calculateMonthlyCommissions(sales, agencies, [makeProduct()], '2026-01');
+    const self = result.find(r => r.agency_id === 'ag-1' && r.base_amount > 0);
+    expect(self.withholding_tax).toBe(0);
+    expect(self.final_amount).toBe(100000);
+  });
+
+  test('法人: 源泉徴収なし', () => {
+    const sales = [makeSale({ agency_id: 'ag-1', total_amount: 10000000 })];
+    const agencies = [makeAgency({ id: 'ag-1', tier_level: 1, company_type: '法人', invoice_registered: true })];
+    const result = calculateMonthlyCommissions(sales, agencies, [makeProduct()], '2026-01');
+    const self = result.find(r => r.agency_id === 'ag-1' && r.base_amount > 0);
+    expect(self.withholding_tax).toBe(0);
+    expect(self.final_amount).toBe(1000000);
+  });
+});
