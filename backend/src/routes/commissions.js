@@ -526,7 +526,11 @@ router.put('/:id/pay',
         .from('commissions')
         .update({
           status: 'paid',
-          paid_at: payment_date || new Date().toISOString(),
+          // payment_date=業務上の支払日(任意入力), paid_at=支払処理時刻。意味を分離し
+          // payments/confirmと整合(#22)。旧実装はpayment_dateをpaid_atに混入させ
+          // payment_date列を空のままにしていた。
+          payment_date: payment_date || null,
+          paid_at: new Date().toISOString(),
           payment_method: payment_method || 'bank_transfer',
           transaction_id: transaction_id || null,
           paid_by: req.user.id
