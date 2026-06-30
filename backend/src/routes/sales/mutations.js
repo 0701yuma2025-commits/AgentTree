@@ -72,7 +72,9 @@ async function createCommissionRecords(sale, commissionResult, settings) {
     agency_id: sale.agency_id,
     month,
     base_amount: commissionResult.base_amount,
-    tier_bonus: commissionResult.tier_bonus || 0,
+    // 自社行の階層ボーナスは0(commissionResult.tier_bonusは親へ支払う合計=別レコードに計上)。
+    // 月次バッチ(calculateCommission.js:224)と整合させ二重計上を防ぐ。
+    tier_bonus: 0,
     campaign_bonus: commissionResult.campaign_bonus || 0,
     withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
     final_amount: commissionResult.final_amount,
@@ -350,7 +352,9 @@ router.post('/',
             agency_id: agency_id,
             month: month,
             base_amount: commissionResult.base_amount,
-            tier_bonus: commissionResult.tier_bonus || 0,
+            // 自社行の階層ボーナスは0(commissionResult.tier_bonusは親へ支払う合計=別レコードに計上)。
+            // 月次バッチ(calculateCommission.js:224)と整合させ二重計上を防ぐ。
+            tier_bonus: 0,
             campaign_bonus: commissionResult.campaign_bonus || 0,
             withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
             final_amount: commissionResult.final_amount,
