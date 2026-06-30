@@ -169,7 +169,7 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
  * @param {Object} commissionSettings - 報酬設定（インボイス控除率を含む）
  * @returns {Array} 報酬計算結果リスト
  */
-function calculateMonthlyCommissions(sales, agencies, products, month, commissionSettings = null) {
+function calculateMonthlyCommissions(sales, agencies, products, month, commissionSettings = null, campaigns = []) {
   const commissions = [];
 
   // マップ化
@@ -208,6 +208,9 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
     return chain;
   };
 
+  // キャンペーンはcampaignsテーブル連動(新方式)に一本化(シナリオC)。売上単位で適用する。
+  const normalizedCampaigns = normalizeCampaigns(campaigns);
+
   // 売上ごとに報酬レコードを作成（sale_idを保持）
   sales.forEach(sale => {
     const agency = agencyMap[sale.agency_id];
@@ -221,6 +224,10 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
 
     const commission = calculateCommissionForSale(sale, agency, product, parentChain, saleSettings);
 
+    // キャンペーンボーナス（新方式・売上単位）。旧 calculateCampaignBonus(閾値直書き)は廃止(シナリオC)。
+    const campaignResult = calculateCampaignBonusNew(sale, agency, product, normalizedCampaigns);
+    const campaignBonus = campaignResult.total || 0;
+
     // 売上を登録した代理店の報酬レコード（1売上 = 1報酬レコード）
     const commissionRecord = {
       agency_id: agency.id,
@@ -228,15 +235,16 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
       month: month,
       base_amount: commission.base_amount,
       tier_bonus: 0,
-      campaign_bonus: 0,
+      campaign_bonus: campaignBonus,
       invoice_deduction: commission.invoice_deduction || 0,
-      final_amount: commission.final_amount,
+      final_amount: commission.final_amount + campaignBonus,
       status: 'confirmed',
       tier_level: agency.tier_level,
       withholding_tax: commission.calculation_details.withholding_tax || 0,
       calculation_details: {
         ...commission.calculation_details,
-        applied_settings: sale._applied_settings || null
+        applied_settings: sale._applied_settings || null,
+        campaign_details: campaignResult.details
       },
       // メタデータ（表示用、DB保存時に除外）
       agency_name: agency.company_name,
@@ -277,42 +285,24 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
     });
   });
 
-  // キャンペーンボーナスの計算と最低支払額チェック（代理店ごとに集計）
+  // 最低支払額チェック（代理店ごとに集計）。キャンペーンは上の売上単位計算で適用済みのため
+  // ここでは旧 calculateCampaignBonus(閾値直書きの二重カウント=バグB)は行わない(シナリオC)。
   const agencySummary = {};
 
-  // 代理店ごとの合計を計算
+  // 代理店ごとのfinal_amount合計を計算
   commissions.forEach(commission => {
     if (!agencySummary[commission.agency_id]) {
-      agencySummary[commission.agency_id] = {
-        total_sales: 0,
-        total_amount: 0,
-        tier_level: commission.tier_level
-      };
+      agencySummary[commission.agency_id] = { total_amount: 0 };
     }
-    agencySummary[commission.agency_id].total_sales += commission.sale_amount || 0;
     agencySummary[commission.agency_id].total_amount += commission.final_amount;
   });
 
-  // キャンペーンボーナスと最低支払額チェックを適用
+  // 最低支払額未満は繰り越しに変更
   Object.keys(agencySummary).forEach(agencyId => {
     const summary = agencySummary[agencyId];
-    const campaignBonus = calculateCampaignBonus(summary.total_sales, summary.tier_level);
-
-    // キャンペーンボーナスがある場合、最初のレコードに追加
-    if (campaignBonus > 0) {
-      const firstRecord = commissions.find(c => c.agency_id === agencyId);
-      if (firstRecord) {
-        firstRecord.campaign_bonus = campaignBonus;
-        firstRecord.final_amount += campaignBonus;
-        summary.total_amount += campaignBonus;
-      }
-    }
-
-    // 最低支払額のチェック（月次計算時点の設定値を使用）
     const MIN_PAYMENT_AMOUNT = commissionSettings?.minimum_payment_amount || 10000;
 
     if (summary.total_amount < MIN_PAYMENT_AMOUNT) {
-      // 該当する全レコードのステータスを繰り越しに変更
       commissions.forEach(commission => {
         if (commission.agency_id === agencyId) {
           commission.status = 'carried_forward';
@@ -323,6 +313,27 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
   });
 
   return commissions;
+}
+
+/**
+ * DB形式のキャンペーンを計算関数(calculateCampaignBonusNew)が期待する形式に正規化する。
+ * 売上登録(mutations.js)と月次計算(calculateMonthlyCommissions)で同一ロジックを共有し、
+ * 経路差(バグC)をなくすための共通ヘルパー。
+ * @param {Array} campaigns - campaignsテーブルの生レコード配列
+ * @returns {Array} 正規化済みキャンペーン配列
+ */
+function normalizeCampaigns(campaigns = []) {
+  if (!Array.isArray(campaigns)) return [];
+  return campaigns.map(c => ({
+    ...c,
+    // bonus_rate(率)があればpercentage、無ければbonus_amount(固定額)。null/undefined両対応。
+    bonus_type: c.conditions?.bonus_type || (c.bonus_rate != null ? 'percentage' : 'fixed'),
+    bonus_value: c.bonus_rate != null ? c.bonus_rate : c.bonus_amount,
+    target_products: c.conditions?.target_products || null,
+    target_agencies: c.conditions?.target_agencies || null,
+    target_tiers: c.target_tier_levels || [1, 2, 3, 4, 5],
+    max_bonus_per_agency: c.conditions?.max_bonus_per_agency || null
+  }));
 }
 
 /**
@@ -429,7 +440,10 @@ function checkCampaignEligibility(sale, agency, product, campaign) {
 }
 
 /**
- * 売上目標達成ボーナスの計算（従来の実装：後方互換性のため維持）
+ * 売上目標達成ボーナスの計算（旧実装・閾値直書き）。
+ * @deprecated シナリオCにより報酬計算パイプラインからは除外済み(月次・売上登録とも
+ * calculateCampaignBonusNew/campaignsテーブルに一本化)。閾値・率がハードコードで設定不能、
+ * 経路差・二重カウント(バグB)の原因だったため不使用。直接の単体テストのみが参照。
  * @param {Number} totalSales - 総売上額
  * @param {Number} tierLevel - 階層レベル
  * @returns {Number} キャンペーンボーナス額
@@ -521,6 +535,7 @@ module.exports = {
   calculateMonthlyCommissions,
   calculateCampaignBonus,
   calculateCampaignBonusNew,
+  normalizeCampaigns,
   checkCampaignEligibility,
   generateCommissionSummary,
   DEFAULT_TIER_RATES,

@@ -385,14 +385,28 @@ describe('calculateMonthlyCommissions', () => {
     }).toThrow(TypeError);
   });
 
-  test('キャンペーンボーナスが最初のレコードに加算される', () => {
-    // Tier1で5,000,000以上 → 5%ボーナス
+  test('キャンペーン未設定なら campaign_bonus は0（旧閾値ボーナスは廃止＝シナリオC）', () => {
     const sales = [makeSale({ agency_id: 'ag-1', total_amount: 5000000 })];
     const agencies = [makeAgency({ id: 'ag-1', tier_level: 1 })];
     const products = [makeProduct()];
     const result = calculateMonthlyCommissions(sales, agencies, products, '2026-01');
-    expect(result[0].campaign_bonus).toBe(250000);
-    // final_amount = base(500000) + campaign(250000)
+    expect(result[0].campaign_bonus).toBe(0);
+    // base(5,000,000 * 10%) = 500,000、ボーナスなしなので final = base
+    expect(result[0].final_amount).toBe(500000);
+  });
+
+  test('有効なキャンペーン(percentage)が売上単位で campaign_bonus に加算される', () => {
+    const sales = [makeSale({ agency_id: 'ag-1', total_amount: 5000000 })]; // sale_date=2026-01-15
+    const agencies = [makeAgency({ id: 'ag-1', tier_level: 1 })];
+    const products = [makeProduct()];
+    // campaignsテーブルの生レコード形式（calculateMonthlyCommissions内で正規化される）
+    const campaigns = [{
+      id: 'camp-1', name: '1月キャンペーン', is_active: true,
+      start_date: '2026-01-01', end_date: '2026-01-31',
+      bonus_rate: 5, bonus_amount: null, target_tier_levels: [1], conditions: {}
+    }];
+    const result = calculateMonthlyCommissions(sales, agencies, products, '2026-01', null, campaigns);
+    expect(result[0].campaign_bonus).toBe(250000); // 5,000,000 * 5%
     expect(result[0].final_amount).toBe(500000 + 250000);
   });
 });

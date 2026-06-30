@@ -318,7 +318,16 @@ router.post('/calculate',
         _applied_settings: saleSettingsMap[sale.id] || defaultSettings
       }));
 
-      const commissions = calculateMonthlyCommissions(salesWithSettings, agencies, products, month, null);
+      // 当月と期間が重なる有効キャンペーンを取得し計算に渡す(新方式へ一本化=シナリオC)。
+      // 売上単位の適用可否はcheckCampaignEligibilityがsale_dateで再判定するため過剰取得でも安全。
+      const { data: campaigns } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('is_active', true)
+        .lte('start_date', monthEnd)
+        .gte('end_date', monthStart);
+
+      const commissions = calculateMonthlyCommissions(salesWithSettings, agencies, products, month, null, campaigns || []);
 
       // DBに挿入するデータを準備（不要なフィールドを削除）
       const commissionsForDB = commissions.map(commission => ({

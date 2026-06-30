@@ -7,7 +7,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../../config/supabase');
 const { authenticateToken } = require('../../middleware/auth');
-const { calculateCommissionForSale, calculateCampaignBonusNew, DEFAULT_COMMISSION_SETTINGS } = require('../../utils/calculateCommission');
+const { calculateCommissionForSale, calculateCampaignBonusNew, normalizeCampaigns, DEFAULT_COMMISSION_SETTINGS } = require('../../utils/calculateCommission');
 const { detectAnomalies } = require('../../utils/anomalyDetection');
 const { generateSaleNumber } = require('../../utils/generateCode');
 const { sendAnomalyNotification } = require('./anomaly');
@@ -310,16 +310,8 @@ router.post('/',
           // キャンペーンボーナスの計算（有効なキャンペーンがある場合）
           let campaignBonusResult = { total: 0, details: [] };
           if (activeCampaigns && activeCampaigns.length > 0) {
-            // DB形式→計算関数の期待する形式に変換
-            const normalizedCampaigns = activeCampaigns.map(c => ({
-              ...c,
-              bonus_type: c.conditions?.bonus_type || (c.bonus_rate !== null ? 'percentage' : 'fixed'),
-              bonus_value: c.bonus_rate !== null ? c.bonus_rate : c.bonus_amount,
-              target_products: c.conditions?.target_products || null,
-              target_agencies: c.conditions?.target_agencies || null,
-              target_tiers: c.target_tier_levels || [1, 2, 3, 4, 5],
-              max_bonus_per_agency: c.conditions?.max_bonus_per_agency || null
-            }));
+            // 月次計算と同一の正規化ロジックを共有(経路差=バグC解消)
+            const normalizedCampaigns = normalizeCampaigns(activeCampaigns);
             campaignBonusResult = calculateCampaignBonusNew(data, agencyData, product, normalizedCampaigns);
           }
           commissionResult.campaign_bonus = campaignBonusResult.total;

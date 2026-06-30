@@ -164,8 +164,17 @@ async function calculateCommissions() {
 
     const commissionSettings = settingsRows?.[0] || null;
 
+    // 当月と期間が重なる有効キャンペーンを取得(新方式へ一本化=シナリオC)。
+    // 売上単位の適用可否はcheckCampaignEligibilityがsale_dateで再判定する。
+    const { data: campaigns } = await supabase
+      .from('campaigns')
+      .select('*')
+      .eq('is_active', true)
+      .lt('start_date', nextMonthStr)
+      .gte('end_date', `${targetMonth}-01`);
+
     // 報酬計算
-    const commissionsData = calculateMonthlyCommissions(sales, agencies, products, targetMonth, commissionSettings);
+    const commissionsData = calculateMonthlyCommissions(sales, agencies, products, targetMonth, commissionSettings, campaigns || []);
 
     // DBに存在する列のみへ整形。calculateMonthlyCommissionsの戻り値は
     // agency_name/sale_amount/hierarchy_bonus_from等のDB非存在フィールドを含むため、
