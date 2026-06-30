@@ -370,11 +370,17 @@ class CommissionsPage {
         }
       }
 
+      // 「ボーナス」列は階層ボーナス＋キャンペーンボーナスの合算を表示。
+      // 旧実装はtier_bonusのみでcampaign_bonusが行に出ず「基本＋ボーナス≠最終」に見えていた(報告症状)。
+      const tierBonus = commission.tier_bonus || 0;
+      const campaignBonus = commission.campaign_bonus || 0;
+      const totalBonus = tierBonus + campaignBonus;
+
       row.innerHTML = `
         <td>${commission.month}</td>
         <td>${saleNumberCell}</td>
         <td>¥${(commission.base_amount || 0).toLocaleString()}</td>
-        <td>¥${(commission.tier_bonus || 0).toLocaleString()}</td>
+        <td title="階層 ¥${tierBonus.toLocaleString()} ＋ キャンペーン ¥${campaignBonus.toLocaleString()}">¥${totalBonus.toLocaleString()}</td>
         <td>¥${(commission.final_amount || 0).toLocaleString()}</td>
         <td><span class="status ${statusClass}">${statusText}</span></td>
         <td>${actionButtons || '-'}</td>
