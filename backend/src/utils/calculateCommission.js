@@ -484,6 +484,9 @@ function calculateCampaignBonus(totalSales, tierLevel) {
 
 /**
  * 報酬サマリーの生成
+ * @deprecated 本番コードからは未使用(テストのみ)。内部に既知バグあり: レコードのプロパティは
+ * sale_amount だが commission.total_sales を参照するため total_sales が常に0、total_agencies が
+ * 代理店数でなくレコード数になる。配線する場合は集計キーを修正してから使うこと。
  * @param {Array} commissions - 報酬リスト
  * @returns {Object} サマリー情報
  */
