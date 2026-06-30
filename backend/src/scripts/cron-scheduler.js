@@ -167,23 +167,73 @@ async function calculateCommissions() {
     // 報酬計算
     const commissionsData = calculateMonthlyCommissions(sales, agencies, products, targetMonth, commissionSettings);
 
-    // DELETE+INSERTで既存データを置換
-    const { error: deleteError } = await supabase
+    // DBに存在する列のみへ整形。calculateMonthlyCommissionsの戻り値は
+    // agency_name/sale_amount/hierarchy_bonus_from等のDB非存在フィールドを含むため、
+    // 生INSERTするとPostgRESTがカラム不一致で失敗し、先のDELETE後に当月報酬が消失する(G1)。
+    const commissionsForDB = commissionsData.map(commission => ({
+      agency_id: commission.agency_id,
+      sale_id: commission.sale_id,
+      month: commission.month,
+      base_amount: commission.base_amount,
+      tier_bonus: commission.tier_bonus,
+      campaign_bonus: commission.campaign_bonus,
+      final_amount: commission.final_amount,
+      status: commission.status || 'confirmed',
+      tier_level: commission.tier_level,
+      withholding_tax: commission.withholding_tax || 0,
+      carry_forward_reason: commission.carry_forward_reason || null,
+      calculation_details: commission.calculation_details || {}
+    }));
+
+    // 確定済み(approved/paid)報酬は再計算・置換の対象外として保護。
+    // 既存の確定済みレコードのキー(sale_id|agency_id)を再挿入対象から除外し、重複も防ぐ。
+    const { data: finalizedRows, error: finalizedError } = await supabase
       .from('commissions')
-      .delete()
-      .eq('month', targetMonth);
+      .select('sale_id, agency_id')
+      .eq('month', targetMonth)
+      .in('status', ['approved', 'paid']);
 
-    if (deleteError) throw deleteError;
+    if (finalizedError) throw finalizedError;
 
-    if (commissionsData.length > 0) {
-      const { error: insertError } = await supabase
+    const protectedKeys = new Set(
+      (finalizedRows || []).map(r => `${r.sale_id}|${r.agency_id}`)
+    );
+    const rowsToInsert = commissionsForDB.filter(
+      r => !protectedKeys.has(`${r.sale_id}|${r.agency_id}`)
+    );
+
+    // 原子的に再計算: DELETE(非確定のみ)+INSERTを単一トランザクションのRPCで実行
+    // (手動/calculateと同一経路。確定済み保護＋INSERT失敗時の当月消失回避=バグD/G1)。
+    const { error: rpcError } = await supabase
+      .rpc('recalculate_commissions', { p_month: targetMonth, p_rows: rowsToInsert });
+
+    if (rpcError) {
+      const rpcMissing = rpcError.code === 'PGRST202' ||
+        /could not find the function|does not exist/i.test(rpcError.message || '');
+
+      if (!rpcMissing) throw rpcError;
+
+      // RPC未適用環境向けフォールバック(非トランザクションだが確定済みは保護)
+      logger.warn('recalculate_commissions RPC not found; falling back to non-transactional delete+insert');
+      const { error: deleteError } = await supabase
         .from('commissions')
-        .insert(commissionsData);
+        .delete()
+        .eq('month', targetMonth)
+        .neq('status', 'approved')
+        .neq('status', 'paid');
 
-      if (insertError) throw insertError;
+      if (deleteError) throw deleteError;
+
+      if (rowsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('commissions')
+          .insert(rowsToInsert);
+
+        if (insertError) throw insertError;
+      }
     }
 
-    logger.info(`✅ ${commissionsData.length} 件の報酬を計算しました`);
+    logger.info(`✅ ${rowsToInsert.length} 件の報酬を計算しました(確定済み ${protectedKeys.size} 件は保護)`);
 
     // 管理者に通知
     const { data: admins } = await supabase
