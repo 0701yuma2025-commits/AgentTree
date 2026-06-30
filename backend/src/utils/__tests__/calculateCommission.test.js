@@ -10,6 +10,7 @@ const {
   calculateCommissionForSale,
   calculateMonthlyCommissions,
   calculateCampaignBonus,
+  calculateWithholdingTax,
   generateCommissionSummary,
   DEFAULT_TIER_RATES,
   DEFAULT_HIERARCHY_BONUS_RATES,
@@ -594,5 +595,27 @@ describe('定数エクスポート', () => {
 
   test('DEFAULT_HIERARCHY_BONUS_RATES が正しい値', () => {
     expect(DEFAULT_HIERARCHY_BONUS_RATES).toEqual({ 1: 2, 2: 1.5, 3: 1, 4: 0.5, 5: 0 });
+  });
+});
+
+describe('calculateWithholdingTax（源泉徴収・累進）', () => {
+  test('100万円以下は一律10.21%', () => {
+    expect(calculateWithholdingTax(50000, {})).toBe(5105); // floor(50000*10.21%)
+    expect(calculateWithholdingTax(1000000, {})).toBe(102100);
+  });
+  test('100万円超の部分は20.42%（国税庁の例: 120万→142,940）', () => {
+    expect(calculateWithholdingTax(1200000, {})).toBe(142940); // 100万*10.21% + 20万*20.42%
+  });
+  test('率は設定で変更可・0%設定を尊重', () => {
+    expect(calculateWithholdingTax(50000, { withholding_tax_rate: 0 })).toBe(0);
+    expect(calculateWithholdingTax(50000, { withholding_tax_rate: 5 })).toBe(2500);
+  });
+  test('閾値・超過率も設定で変更可', () => {
+    expect(calculateWithholdingTax(2000000, { withholding_threshold: 500000, withholding_threshold_rate: 30, withholding_tax_rate: 10 }))
+      .toBe(500000 * 0.10 + 1500000 * 0.30); // 50000 + 450000 = 500000
+  });
+  test('負値・未定義は0', () => {
+    expect(calculateWithholdingTax(-100, {})).toBe(0);
+    expect(calculateWithholdingTax(undefined, {})).toBe(0);
   });
 });

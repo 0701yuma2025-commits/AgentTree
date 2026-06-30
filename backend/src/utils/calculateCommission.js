@@ -39,8 +39,33 @@ const DEFAULT_COMMISSION_SETTINGS = {
   tier4_from_tier5_bonus: DEFAULT_HIERARCHY_BONUS_RATES[4],
   minimum_payment_amount: 10000,
   withholding_tax_rate: 10.21,
+  // 源泉徴収: 1回(月次)の支払が100万円を超える部分は20.42%(設定で変更可)
+  withholding_threshold: 1000000,
+  withholding_threshold_rate: 20.42,
+  // 外交員報酬の月額控除(1か月あたり12万円)。月次集計時に適用
+  withholding_monthly_deduction: 120000,
+  // インボイス未登録控除率: 2026/9まで2%、2026/10〜は経過措置見直しで要設定(税制改正大綱では3%見込)
   non_invoice_deduction_rate: 2.00
 };
+
+/**
+ * 源泉徴収税額を計算（累進対応・設定可能）。
+ * 100万円までは withholding_tax_rate(既定10.21%)、超える部分は withholding_threshold_rate(既定20.42%)。
+ * 外交員の月12万円控除は、月次集計側で taxableAmount に反映してから渡すこと（この関数では引かない）。
+ * @param {number} taxableAmount - 源泉対象額（控除後）
+ * @param {object} settings - commission_settings
+ * @returns {number} 源泉徴収税額（円・切り捨て）
+ */
+function calculateWithholdingTax(taxableAmount, settings = {}) {
+  const amount = Math.max(0, taxableAmount || 0);
+  const rate = settings.withholding_tax_rate ?? 10.21;
+  const threshold = settings.withholding_threshold ?? 1000000;
+  const thresholdRate = settings.withholding_threshold_rate ?? 20.42;
+  if (amount <= threshold) {
+    return Math.floor(amount * rate / 100);
+  }
+  return Math.floor((threshold * rate / 100) + ((amount - threshold) * thresholdRate / 100));
+}
 
 /**
  * 売上に基づく報酬を計算（商品情報を考慮）
@@ -140,17 +165,15 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
     result.calculation_details.invoice_registered = true;
   }
 
-  // 源泉徴収の計算（個人事業主の場合）
+  // 源泉徴収の計算（個人事業主の場合）。ここは売上単位の暫定値で、
+  // 外交員の月12万円控除・月次合算・100万円超の累進確定は月次計算側で行う。
   let withholding_tax = 0;
   if (agency.company_type === '個人' || agency.withholding_tax_flag) {
-    // 設定から源泉徴収率を取得（なければデフォルト10.21%）
-    // ?? で 0%設定(源泉なし)を尊重する(G8)
-    const withholdingRate = commissionSettings?.withholding_tax_rate ?? 10.21;
-    // インボイス控除後の金額に対して計算
+    // インボイス控除後の金額に累進対応の共通関数を適用(率は設定値・0%も尊重=G8)
     const taxableAmount = result.base_amount - invoice_deduction;
-    withholding_tax = Math.floor(taxableAmount * withholdingRate / 100);
+    withholding_tax = calculateWithholdingTax(taxableAmount, commissionSettings || {});
     result.calculation_details.withholding_tax = withholding_tax;
-    result.calculation_details.withholding_rate = withholdingRate;
+    result.calculation_details.withholding_rate = commissionSettings?.withholding_tax_rate ?? 10.21;
   }
 
   // 最終金額（基本報酬 - インボイス控除 - 源泉徴収）。
@@ -541,6 +564,7 @@ module.exports = {
   calculateMonthlyCommissions,
   calculateCampaignBonus,
   calculateCampaignBonusNew,
+  calculateWithholdingTax,
   normalizeCampaigns,
   checkCampaignEligibility,
   generateCommissionSummary,
