@@ -129,7 +129,8 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
   let invoice_deduction = 0;
   if (!agency.invoice_registered) {
     // インボイス未登録の場合、設定された控除率を適用（デフォルト2%）
-    const deductionRate = commissionSettings?.non_invoice_deduction_rate || 2.0;
+    // ?? で 0%設定(控除なし)を尊重する(|| だと0がデフォルト2.0に化ける=G8)
+    const deductionRate = commissionSettings?.non_invoice_deduction_rate ?? 2.0;
     invoice_deduction = Math.floor(result.base_amount * deductionRate / 100);
     result.invoice_deduction = invoice_deduction;
     result.calculation_details.invoice_deduction = invoice_deduction;
@@ -143,7 +144,8 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
   let withholding_tax = 0;
   if (agency.company_type === '個人' || agency.withholding_tax_flag) {
     // 設定から源泉徴収率を取得（なければデフォルト10.21%）
-    const withholdingRate = commissionSettings?.withholding_tax_rate || 10.21;
+    // ?? で 0%設定(源泉なし)を尊重する(G8)
+    const withholdingRate = commissionSettings?.withholding_tax_rate ?? 10.21;
     // インボイス控除後の金額に対して計算
     const taxableAmount = result.base_amount - invoice_deduction;
     withholding_tax = Math.floor(taxableAmount * withholdingRate / 100);
@@ -300,7 +302,8 @@ function calculateMonthlyCommissions(sales, agencies, products, month, commissio
   // 最低支払額未満は繰り越しに変更
   Object.keys(agencySummary).forEach(agencyId => {
     const summary = agencySummary[agencyId];
-    const MIN_PAYMENT_AMOUNT = commissionSettings?.minimum_payment_amount || 10000;
+    // ?? で 最低支払額0(繰り越しなし)を尊重する(G8)
+    const MIN_PAYMENT_AMOUNT = commissionSettings?.minimum_payment_amount ?? 10000;
 
     if (summary.total_amount < MIN_PAYMENT_AMOUNT) {
       commissions.forEach(commission => {
