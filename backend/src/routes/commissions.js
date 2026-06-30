@@ -182,15 +182,18 @@ router.get('/', authenticateToken, async (req, res) => {
  */
 router.get('/summary', authenticateToken, async (req, res) => {
   try {
-    // クエリパラメータから月を取得、なければ現在月を使用
+    // 月が指定されればその月、未指定なら全月を集計（全件表示の一覧と整合させる。
+    // 旧実装は未指定時に現在月へ既定し、現在月にデータが無いと合計が¥0になっていた）
     if (req.query.month && !isValidMonth(req.query.month)) {
       return res.status(400).json({ success: false, message: 'month形式が無効です（YYYY-MM）' });
     }
-    const targetMonth = req.query.month || new Date().toISOString().slice(0, 7);
+    const targetMonth = req.query.month || null;
     let query = supabase
       .from('commissions')
-      .select('base_amount, tier_bonus, campaign_bonus, final_amount, status')
-      .eq('month', targetMonth);
+      .select('base_amount, tier_bonus, campaign_bonus, final_amount, status');
+    if (targetMonth) {
+      query = query.eq('month', targetMonth);
+    }
 
     // 代理店ユーザーは自社の報酬のみ（agency_id未解決ならfail-closed）
     if (req.user.role === 'agency') {
@@ -205,7 +208,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
     if (error) throw error;
 
     const summary = {
-      month: targetMonth,
+      month: targetMonth || 'all',
       total_base: data.reduce((sum, c) => sum + (c.base_amount || 0), 0),
       total_tier_bonus: data.reduce((sum, c) => sum + (c.tier_bonus || 0), 0),
       total_campaign_bonus: data.reduce((sum, c) => sum + (c.campaign_bonus || 0), 0),
