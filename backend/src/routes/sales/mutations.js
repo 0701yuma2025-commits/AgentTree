@@ -841,6 +841,23 @@ router.delete('/:id', authenticateToken, auditLogMiddleware('delete', 'sale'), a
       });
     }
 
+    // K6: 確定済み(approved/paid)報酬が紐づく売上はCASCADE削除で確定済み報酬まで
+    // 消えてしまう(監査・支払い整合の懸念)ため、削除を拒否する。
+    const { data: finalizedComm, error: finalizedErr } = await supabase
+      .from('commissions')
+      .select('id')
+      .eq('sale_id', id)
+      .in('status', ['approved', 'paid'])
+      .limit(1);
+
+    if (finalizedErr) throw finalizedErr;
+    if (finalizedComm && finalizedComm.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: '確定済み(承認/支払済)の報酬が紐づいているため、この売上は削除できません。'
+      });
+    }
+
     // 1. 関連する通知履歴を削除（テーブルが存在する場合のみ）
     try {
       await supabase
