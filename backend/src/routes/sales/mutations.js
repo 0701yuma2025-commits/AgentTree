@@ -765,12 +765,21 @@ router.put('/:id', authenticateToken, auditLogMiddleware('update', 'sale'), asyn
               const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
               const month = new Date(data.sale_date).toISOString().slice(0, 7);
 
+              // K1: キャンペーンボーナスを新方式で再計算する(売上編集で0に潰さない)。create/月次と同一ロジック。
+              const { data: activeCampaigns } = await supabase
+                .from('campaigns').select('*')
+                .lte('start_date', data.sale_date).gte('end_date', data.sale_date).eq('is_active', true);
+              const campaignResult = calculateCampaignBonusNew(data, agency, product, normalizeCampaigns(activeCampaigns || []));
+              const campaignBonus = campaignResult.total || 0;
+
               for (const commission of relatedCommissions) {
                 if (commission.base_amount > 0) {
                   await supabase.from('commissions').update({
-                    month, base_amount: commissionResult.base_amount, tier_bonus: 0, campaign_bonus: 0,
+                    month, base_amount: commissionResult.base_amount, tier_bonus: 0,
+                    campaign_bonus: campaignBonus,
                     withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
-                    final_amount: commissionResult.final_amount, updated_at: new Date().toISOString()
+                    final_amount: commissionResult.final_amount + campaignBonus,
+                    updated_at: new Date().toISOString()
                   }).eq('id', commission.id);
                 } else if (commission.tier_bonus > 0) {
                   const pc = commissionResult.parent_commissions?.find(p => p.agency_id === commission.agency_id);
