@@ -19,11 +19,13 @@ class CommissionsPage {
     // 既に初期化済みの場合はデータのみ更新
     if (this.initialized) {
       await this.loadCommissions();
+      await this.loadCommissionSummary();
       return;
     }
 
     this.setupMonthSelector();
     await this.loadCommissions(); // 初期表示は全件
+    await this.loadCommissionSummary(); // 全件(全月集計)のサマリーも表示
     this.setupEventListeners();
     this.initialized = true;
   }
@@ -73,13 +75,8 @@ class CommissionsPage {
           this.updateMonthDisplay();
           // 一覧を絞り込み表示
           this.filterAndDisplayCommissions();
-          // サマリーも更新
-          if (this.selectedMonth) {
-            await this.loadCommissionSummary();
-          } else {
-            // 全件の場合はサマリーをクリア
-            this.clearSummary();
-          }
+          // サマリーも更新（全件のときは全月集計、月指定時はその月）
+          await this.loadCommissionSummary();
         }
       });
       monthInput.dataset.listenerAttached = 'true';
