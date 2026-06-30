@@ -72,7 +72,12 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
     // 商品マスタからTier別の報酬率を取得
     const tierRateField = `tier${agency.tier_level}_commission_rate`;
     if (product[tierRateField] !== null && product[tierRateField] !== undefined) {
-      commissionRate = parseFloat(product[tierRateField]);
+      // 非数値文字列だとparseFloatがNaN→base_amountがNaN化しfinalまで伝播するためガード(G10)。
+      // NaN時はデフォルト料率を維持する。
+      const parsedRate = parseFloat(product[tierRateField]);
+      if (!Number.isNaN(parsedRate)) {
+        commissionRate = parsedRate;
+      }
     }
   }
 
@@ -146,8 +151,9 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
     result.calculation_details.withholding_rate = withholdingRate;
   }
 
-  // 最終金額（基本報酬 - インボイス控除 - 源泉徴収）
-  result.final_amount = result.base_amount - invoice_deduction - withholding_tax;
+  // 最終金額（基本報酬 - インボイス控除 - 源泉徴収）。
+  // 料率の誤設定(控除＋源泉が100%超)でも負値にならないよう下限0でクランプ(G9)。
+  result.final_amount = Math.max(0, result.base_amount - invoice_deduction - withholding_tax);
   result.calculation_details.before_tax = result.base_amount;
   result.calculation_details.after_tax = result.final_amount;
 
