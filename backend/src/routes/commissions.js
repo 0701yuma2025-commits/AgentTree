@@ -663,11 +663,13 @@ router.get('/export', authenticateToken, exportRateLimit, async (req, res) => {
       代理店コード: commission.agencies?.agency_code || '',
       代理店名: commission.agencies?.company_name || '',
       階層: `Tier ${commission.agencies?.tier_level}`,
-      売上金額: commission.sales_amount,
-      基本報酬: commission.base_commission,
+      // DB列名に合わせて修正(旧 sales_amount/base_commission/total_commission は存在せず常にundefinedだった)。
+      // 売上金額はcommissions列に無いためcalculation_details内のsale_amountを使用(無い行は空)。
+      売上金額: commission.calculation_details?.sale_amount ?? '',
+      基本報酬: commission.base_amount || 0,
       階層ボーナス: commission.tier_bonus || 0,
       キャンペーンボーナス: commission.campaign_bonus || 0,
-      合計報酬: commission.total_commission,
+      合計報酬: commission.final_amount || 0,
       状態: commission.status === 'confirmed' ? '確定' :
             commission.status === 'paid' ? '支払済' : '計算済',
       計算日: commission.created_at
