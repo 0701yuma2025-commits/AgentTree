@@ -43,10 +43,10 @@ async function getParentChain(parentAgencyId) {
 }
 
 /**
- * 報酬レコードを新規作成（基本報酬 + 親代理店ボーナス）
- * 全レコードを1回のINSERTでアトミックに投入する
+ * 報酬レコードの配列を構築（基本報酬 + 親代理店ボーナス）。DBには触れない純関数。
+ * 売上登録と売上更新(再計算)で同一の行を生成するために共有する。
  */
-async function createCommissionRecords(sale, commissionResult, settings) {
+function buildCommissionRecords(sale, commissionResult, settings) {
   const month = new Date(sale.sale_date).toISOString().slice(0, 7);
   const appliedSettings = {
     tier1_from_tier2_bonus: settings.tier1_from_tier2_bonus,
@@ -63,17 +63,14 @@ async function createCommissionRecords(sale, commissionResult, settings) {
     applied_settings: appliedSettings
   };
 
-  // 全報酬レコードを配列に集約
   const records = [];
 
-  // 基本報酬
+  // 基本報酬（自社行）。tier_bonusは0(親へ支払う合計は別レコード=二重計上防止)。
   records.push({
     sale_id: sale.id,
     agency_id: sale.agency_id,
     month,
     base_amount: commissionResult.base_amount,
-    // 自社行の階層ボーナスは0(commissionResult.tier_bonusは親へ支払う合計=別レコードに計上)。
-    // 月次バッチ(calculateCommission.js:224)と整合させ二重計上を防ぐ。
     tier_bonus: 0,
     campaign_bonus: commissionResult.campaign_bonus || 0,
     withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
@@ -107,7 +104,15 @@ async function createCommissionRecords(sale, commissionResult, settings) {
     }
   }
 
-  // 1回のINSERTでアトミックに投入（全成功 or 全失敗）
+  return records;
+}
+
+/**
+ * 報酬レコードを新規作成（基本報酬 + 親代理店ボーナス）
+ * 全レコードを1回のINSERTでアトミックに投入する
+ */
+async function createCommissionRecords(sale, commissionResult, settings) {
+  const records = buildCommissionRecords(sale, commissionResult, settings);
   const { error } = await supabase.from('commissions').insert(records);
   if (error) throw error;
 }
@@ -746,58 +751,61 @@ router.put('/:id', authenticateToken, auditLogMiddleware('update', 'sale'), asyn
           if (agency && product) {
             const parentChain = await getParentChain(agency.parent_agency_id);
 
+            // K2: 確定済み(approved/paid)報酬は売上編集で上書きしない。
+            // 1件でも含まれる場合は再計算をスキップ(部分更新による不整合も回避)。
+            const hasFinalized = (relatedCommissions || []).some(c => c.status === 'approved' || c.status === 'paid');
+            if (hasFinalized) {
+              logger.warn(`売上${data.id}の報酬にapproved/paidが含まれるため再計算をスキップ`);
+              return res.json({
+                success: true,
+                message: '売上情報を更新しました',
+                warning: '確定済み(承認/支払済)の報酬が紐づいているため、報酬の自動再計算はスキップしました。必要なら管理者が手動で調整してください。',
+                data
+              });
+            }
+
+            // K5: 設定値の出所を一本化。既存報酬があれば登録時settingsを維持、無ければ現在の有効settings。
+            let settings;
             if (relatedCommissions && relatedCommissions.length > 0) {
-              // K2: 確定済み(approved/paid)報酬は売上編集で上書きしない。
-              // 1件でも含まれる場合は自動再計算を行わずスキップ(部分更新による不整合も回避)。
-              const hasFinalized = relatedCommissions.some(c => c.status === 'approved' || c.status === 'paid');
-              if (hasFinalized) {
-                logger.warn(`売上${id}の報酬にapproved/paidが含まれるため再計算をスキップ`);
-                return res.json({
-                  success: true,
-                  message: '売上情報を更新しました',
-                  warning: '確定済み(承認/支払済)の報酬が紐づいているため、報酬の自動再計算はスキップしました。必要なら管理者が手動で調整してください。',
-                  data
-                });
-              }
-
-              // 既存報酬を更新：登録時の設定値を維持
-              const settings = relatedCommissions[0].calculation_details?.applied_settings || DEFAULT_COMMISSION_SETTINGS;
-              const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
-              const month = new Date(data.sale_date).toISOString().slice(0, 7);
-
-              // K1: キャンペーンボーナスを新方式で再計算する(売上編集で0に潰さない)。create/月次と同一ロジック。
-              const { data: activeCampaigns } = await supabase
-                .from('campaigns').select('*')
-                .lte('start_date', data.sale_date).gte('end_date', data.sale_date).eq('is_active', true);
-              const campaignResult = calculateCampaignBonusNew(data, agency, product, normalizeCampaigns(activeCampaigns || []));
-              const campaignBonus = campaignResult.total || 0;
-
-              for (const commission of relatedCommissions) {
-                if (commission.base_amount > 0) {
-                  await supabase.from('commissions').update({
-                    month, base_amount: commissionResult.base_amount, tier_bonus: 0,
-                    campaign_bonus: campaignBonus,
-                    withholding_tax: commissionResult.calculation_details?.withholding_tax || 0,
-                    final_amount: commissionResult.final_amount + campaignBonus,
-                    updated_at: new Date().toISOString()
-                  }).eq('id', commission.id);
-                } else if (commission.tier_bonus > 0) {
-                  const pc = commissionResult.parent_commissions?.find(p => p.agency_id === commission.agency_id);
-                  if (pc) {
-                    await supabase.from('commissions').update({
-                      month, tier_bonus: pc.amount, final_amount: pc.amount, updated_at: new Date().toISOString()
-                    }).eq('id', commission.id);
-                  }
-                }
-              }
+              settings = relatedCommissions[0].calculation_details?.applied_settings || DEFAULT_COMMISSION_SETTINGS;
             } else {
-              // 報酬なし → 新規作成
-              const { data: commissionSettings } = await supabase
+              const { data: cs } = await supabase
                 .from('commission_settings').select('*').eq('is_active', true)
                 .order('created_at', { ascending: false }).limit(1).single();
-              const settings = commissionSettings || DEFAULT_COMMISSION_SETTINGS;
-              const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
-              await createCommissionRecords({ ...data, tier_level: agency.tier_level }, commissionResult, settings);
+              settings = cs || DEFAULT_COMMISSION_SETTINGS;
+            }
+
+            const commissionResult = calculateCommissionForSale(data, agency, product, parentChain, settings);
+
+            // K1: キャンペーンを新方式で再計算(売上編集で0に潰さない)。create/月次と同一ロジック。
+            const { data: activeCampaigns } = await supabase
+              .from('campaigns').select('*')
+              .lte('start_date', data.sale_date).gte('end_date', data.sale_date).eq('is_active', true);
+            const campaignResult = calculateCampaignBonusNew(data, agency, product, normalizeCampaigns(activeCampaigns || []));
+            commissionResult.campaign_bonus = campaignResult.total || 0;
+            commissionResult.final_amount += (campaignResult.total || 0);
+
+            // K3+K4: 古い非確定行を削除して作り直す(幽霊の親行除去・親の追加/削除に対応=K3)。
+            // 原子化RPCで DELETE(非確定のみ)+INSERT を単一トランザクション化(個別UPDATE群の部分失敗=K4を解消)。
+            const rows = buildCommissionRecords({ ...data, tier_level: agency.tier_level }, commissionResult, settings);
+            const { error: rpcError } = await supabase
+              .rpc('replace_sale_commissions', { p_sale_id: data.id, p_rows: rows });
+
+            if (rpcError) {
+              const rpcMissing = rpcError.code === 'PGRST202' ||
+                /could not find the function|does not exist/i.test(rpcError.message || '');
+              if (!rpcMissing) throw rpcError;
+
+              // RPC未適用環境向けフォールバック(非トランザクションだが確定済みは保護)
+              logger.warn('replace_sale_commissions RPC not found; falling back to non-transactional delete+insert');
+              const { error: delErr } = await supabase
+                .from('commissions').delete()
+                .eq('sale_id', data.id).neq('status', 'approved').neq('status', 'paid');
+              if (delErr) throw delErr;
+              if (rows.length > 0) {
+                const { error: insErr } = await supabase.from('commissions').insert(rows);
+                if (insErr) throw insErr;
+              }
             }
           }
         }
