@@ -168,6 +168,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
       dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString('ja-JP'),
       agency: commission.agencies,
       items: items,
+      // 金額は commission.final_amount を唯一の正とする。明細は統一式(A)で一致する:
+      // 小計(基本報酬 + 階層 + キャンペーン) − 控除(インボイス未登録控除 + 源泉徴収) = final_amount
       subtotal: commission.base_amount + commission.tier_bonus + (commission.campaign_bonus || 0),
       tax: 0, // 報酬は非課税
       deductions: (invoiceDeduction || 0) + (commission.withholding_tax || 0),

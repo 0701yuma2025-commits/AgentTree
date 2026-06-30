@@ -115,9 +115,12 @@ function calculateCommissionForSale(sale, agency, product = null, parentChain = 
   if (parentChain && parentChain.length > 0) {
     parentChain.forEach(parentAgency => {
       if (parentAgency.tier_level < agency.tier_level) {
+        // 階層ボーナス率は「もらう側(上位)のtier」だけで決まる仕様(#9 確定)。
+        // 代理店作成・招待は「子のtier=親+1」を強制(agencies.js/008 RPC)するため、
+        // 通常 tierDifference は常に1。下記 tier_difference は表示用メタデータのみで料率には未使用。
         const tierDifference = agency.tier_level - parentAgency.tier_level;
 
-        // 設定から階層ボーナス率を取得（なければデフォルト）
+        // 設定から階層ボーナス率を取得（なければデフォルト）。料率は親tierで決定。
         let bonusRate = DEFAULT_HIERARCHY_BONUS_RATES[parentAgency.tier_level] || 0;
         if (commissionSettings) {
           if (parentAgency.tier_level === 1 && commissionSettings.tier1_from_tier2_bonus !== undefined) {
