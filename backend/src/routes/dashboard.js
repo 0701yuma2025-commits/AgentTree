@@ -86,7 +86,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // 3. 報酬統計の取得（直近2ヶ月に限定）
     let commissionQuery = supabase
       .from('commissions')
-      .select('final_amount, status, month')
+      .select('final_amount, status, month, base_amount, tier_bonus, campaign_bonus')
       .gte('month', lastMonthStr);
 
     if (!isAdmin && agencyId) {
@@ -103,12 +103,21 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const currentMonthCommissions = commissionData?.filter(c => c.month === currentMonth) || [];
     const currentMonthCommissionAmount = currentMonthCommissions.reduce((sum, c) => sum + parseFloat(c.final_amount), 0);
 
+    // 当月報酬の内訳（基本/階層/キャンペーン）
+    const currentMonthBreakdown = currentMonthCommissions.reduce((acc, c) => {
+      acc.base += parseFloat(c.base_amount || 0);
+      acc.tier += parseFloat(c.tier_bonus || 0);
+      acc.campaign += parseFloat(c.campaign_bonus || 0);
+      return acc;
+    }, { base: 0, tier: 0, campaign: 0 });
+
     stats.commissions = {
       total: totalCommissions,
       pending: pendingCommissions.reduce((sum, c) => sum + parseFloat(c.final_amount), 0),
       approved: approvedCommissions.reduce((sum, c) => sum + parseFloat(c.final_amount), 0),
       paid: paidCommissions.reduce((sum, c) => sum + parseFloat(c.final_amount), 0),
       currentMonth: currentMonthCommissionAmount,
+      currentMonthBreakdown,
       pendingCount: pendingCommissions.length,
       approvedCount: approvedCommissions.length,
       paidCount: paidCommissions.length

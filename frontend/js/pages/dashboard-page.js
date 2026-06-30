@@ -70,7 +70,13 @@ class DashboardPage {
 
         // 報酬情報
         if (stats.commissions) {
-          document.getElementById('totalCommission').textContent = `\u00A5${stats.commissions.currentMonth.toLocaleString()}`;
+          const totalEl = document.getElementById('totalCommission');
+          totalEl.textContent = `\u00A5${stats.commissions.currentMonth.toLocaleString()}`;
+          // \u5F53\u6708\u5831\u916C\u306E\u5185\u8A33\u3092tooltip\u8868\u793A\uFF08\u57FA\u672C/\u968E\u5C64/\u30AD\u30E3\u30F3\u30DA\u30FC\u30F3\uFF09
+          const bd = stats.commissions.currentMonthBreakdown;
+          if (bd && totalEl) {
+            totalEl.title = `\u5185\u8A33: \u57FA\u672C\u00A5${(bd.base || 0).toLocaleString()} / \u968E\u5C64\u00A5${(bd.tier || 0).toLocaleString()} / \u30AD\u30E3\u30F3\u30DA\u30FC\u30F3\u00A5${(bd.campaign || 0).toLocaleString()}`;
+          }
           document.getElementById('pendingCommission').textContent = `\u00A5${stats.commissions.pending.toLocaleString()}`;
         }
 

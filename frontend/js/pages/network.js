@@ -87,6 +87,7 @@ class NetworkPage {
             <p style="margin: 5px 0;"><strong>Tier:</strong> ${node.tier}</p>
             <p style="margin: 5px 0;"><strong>売上:</strong> ¥${node.sales.toLocaleString()}</p>
             <p style="margin: 5px 0;"><strong>報酬:</strong> ¥${node.commission.toLocaleString()}</p>
+            <p style="margin: 5px 0; font-size: 0.85em; color: #aaa;">内訳: 基本¥${(node.commissionBreakdown?.base || 0).toLocaleString()} / 階層¥${(node.commissionBreakdown?.tier || 0).toLocaleString()} / CP¥${(node.commissionBreakdown?.campaign || 0).toLocaleString()}</p>
             <p style="margin: 5px 0;"><strong>下位代理店:</strong> ${node.childCount}社</p>
             <p style="margin: 5px 0; color: #ffaa44;"><em>クリックして詳細表示</em></p>
           </div>
@@ -227,6 +228,7 @@ class NetworkPage {
       <p><strong>ステータス:</strong> ${node.status === 'active' ? '有効' : '無効'}</p>
       <p><strong>売上:</strong> ¥${Number(node.sales).toLocaleString()}</p>
       <p><strong>報酬:</strong> ¥${Number(node.commission).toLocaleString()}</p>
+      <p style="font-size: 0.85em; color: #888;">内訳: 基本¥${Number(node.commissionBreakdown?.base || 0).toLocaleString()} / 階層¥${Number(node.commissionBreakdown?.tier || 0).toLocaleString()} / CP¥${Number(node.commissionBreakdown?.campaign || 0).toLocaleString()}</p>
       <p><strong>下位代理店数:</strong> ${Number(node.childCount)}社</p>
     `;
 

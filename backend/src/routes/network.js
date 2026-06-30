@@ -70,12 +70,13 @@ router.get('/agencies', authenticateToken, async (req, res) => {
     // 報酬データを取得
     const { data: commissionData } = await supabase
       .from('commissions')
-      .select('agency_id, final_amount')
+      .select('agency_id, final_amount, base_amount, tier_bonus, campaign_bonus')
       .in('agency_id', agencyIds);
 
     // 売上・報酬を集計
     const salesByAgency = {};
     const commissionsByAgency = {};
+    const breakdownByAgency = {};
 
     (salesData || []).forEach(sale => {
       salesByAgency[sale.agency_id] = (salesByAgency[sale.agency_id] || 0) + parseFloat(sale.total_amount);
@@ -83,6 +84,11 @@ router.get('/agencies', authenticateToken, async (req, res) => {
 
     (commissionData || []).forEach(comm => {
       commissionsByAgency[comm.agency_id] = (commissionsByAgency[comm.agency_id] || 0) + parseFloat(comm.final_amount);
+      const b = breakdownByAgency[comm.agency_id] || { base: 0, tier: 0, campaign: 0 };
+      b.base += parseFloat(comm.base_amount || 0);
+      b.tier += parseFloat(comm.tier_bonus || 0);
+      b.campaign += parseFloat(comm.campaign_bonus || 0);
+      breakdownByAgency[comm.agency_id] = b;
     });
 
     // 3D Force Graph用のデータ形式に変換
@@ -95,6 +101,7 @@ router.get('/agencies', authenticateToken, async (req, res) => {
       status: agency.status,
       sales: salesByAgency[agency.id] || 0,
       commission: commissionsByAgency[agency.id] || 0,
+      commissionBreakdown: breakdownByAgency[agency.id] || { base: 0, tier: 0, campaign: 0 },
       // 下位代理店の数を計算
       childCount: agencies.filter(a => a.parent_agency_id === agency.id).length
     }));
