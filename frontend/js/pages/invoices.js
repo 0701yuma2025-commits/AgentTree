@@ -310,6 +310,7 @@ class InvoicesPage {
             <td>${escapeHtml(invoice.month)}</td>
             <td>¥${(invoice.baseCommission || 0).toLocaleString()}</td>
             <td>¥${(invoice.tierBonus || 0).toLocaleString()}</td>
+            <td>¥${(invoice.campaignBonus || 0).toLocaleString()}</td>
             <td class="text-danger">-¥${(invoice.withholdingTax || 0).toLocaleString()}</td>
             <td class="font-weight-bold">¥${(invoice.amount || 0).toLocaleString()}</td>
             <td>
